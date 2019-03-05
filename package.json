@@ -1,0 +1,26 @@
+{
+  "name": "bitconch-web3j",
+  "version": "1.1.0",
+  "description": "Javascript API for bitconch chain",
+  "main": "lib/index.cjs.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caesarchad/bitconch-web3j.git"
+  },
+  "keywords": [
+    "api",
+    "blockchain",
+    "javascript",
+    "web3",
+    "bitconch"
+  ],
+  "author": "bitconch dev",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/caesarchad/bitconch-web3j/issues"
+  },
+  "homepage": "https://github.com/caesarchad/bitconch-web3j#readme"
+}
