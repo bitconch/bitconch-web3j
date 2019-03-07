@@ -1,0 +1,6 @@
+/coverage
+/deploy
+/doc
+/flow-typed
+/lib
+/module.flow.js
