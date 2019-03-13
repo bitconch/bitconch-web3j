@@ -4,7 +4,39 @@
   "description": "Javascript API for bitconch chain",
   "main": "lib/index.cjs.js",
   "scripts": {
-    "test": "test"
+        "localnet:stop": "testnet.sh stop",
+        "localnet:logs": "testnet.sh logs -f",
+        "localnet:start": "testnet.sh start $npm_package_testnetDefaultChannel",
+        "localnet:pull": "testnet.sh pull $npm_package_testnetDefaultChannel",
+
+    "bpf-sdk:install": "set -ex; npm run bpf-sdk:fetch; npm run bpf-sdk:extract; npm run bpf-sdk:remove-symlinks; npm run bpf-sdk:clean",
+    "bpf-sdk:extract": "rm -rf bpf-sdk; tar jxvf bpf-sdk.tar.bz2",
+    "bpf-sdk:fetch": "curl http://bitconch-sdk.s3.amazonaws.com/$npm_package_testnetDefaultChannel/bpf-sdk.tar.bz2 -o bpf-sdk.tar.bz2",
+    "bpf-sdk:remove-symlinks": "find bpf-sdk -type l -print -exec cp {} {}.tmp \\; -exec mv {}.tmp {} \\;",
+    "bpf-sdk:clean": "rm bpf-sdk.tar.bz2",
+    "build": "cross-env NODE_ENV=production rollup -c",
+    "clean": "rimraf ./coverage ./lib",
+    "codecov": "set -ex; npm run test:cover; cat ./coverage/lcov.info | codecov",
+    "dev": "cross-env NODE_ENV=development rollup -c",
+    "doc": "set -ex; esdoc; node -p '\"\\nDocumentation coverage: \" + require(\"./doc/coverage.json\").coverage'",
+    "doc:watch": "watch 'npm run doc' . --wait=1 --ignoreDirectoryPattern=/doc/",
+    "examples": "set -ex; for example in examples/*.js; do node $example; done",
+    "flow": "set -ex; flow stop; flow-typed install jest@24; flow",
+    "flow:stop": "flow stop",
+    "flow:watch": "flow stop; watch 'flow' . --wait=1 --ignoreDirectoryPattern=/doc/",
+    "install": "npm run bpf-sdk:install",
+    "lint": "set -ex; npm run pretty; eslint .",
+    "lint:fix": "npm run lint -- --fix",
+    "lint:watch": "watch 'npm run lint:fix' . --wait=1 --ignoreDirectoryPattern=/doc/",
+
+    "ok": "set -ex; npm run lint; npm run flow; npm run test; npm run doc",
+    "prepare": "set -ex; npm run clean; npm run bpf-sdk:install; npm run build",
+    "pretty": "prettier --write '{,{examples,src,test}/**/}*.js'",
+    "re": "semantic-release --repository-url git@github.com:bitconch/bitconch-web3j.git",
+    "test": "cross-env NODE_ENV=test jest --useStderr",
+    "test:cover": "cross-env NODE_ENV=test jest --coverage --useStderr",
+    "test:live": "cross-env NODE_ENV=test TEST_LIVE=1 jest --useStderr",
+    "test:watch": "cross-env NODE_ENV=test jest --watch --useStderr"
   },
   "repository": {
     "type": "git",
@@ -36,16 +68,13 @@
     "cross-env": "5.2.0",
     "elfy": "^0.1.0",
     "enzyme": "3.9.0",
-    "esdoc": "^1.1.0",
-    "esdoc-ecmascript-proposal-plugin": "^1.0.0",
-    "esdoc-flow-type-plugin": "^1.1.0",
-    "esdoc-importpath-plugin": "^1.0.2",
-    "esdoc-standard-plugin": "^1.0.0",
+
     "eslint": "5.14.1",
     "eslint-config-prettier": "^4.0.0",
     "eslint-plugin-import": "2.16.0",
     "eslint-plugin-jest": "22.3.0",
     "eslint-plugin-prettier": "^3.0.0",
+    
     "flow-bin": "0.93.0",
     "flow-typed": "2.5.1",
     "fs-file-tree": "1.0.7",
@@ -53,16 +82,11 @@
     "marked": "^0.6.0",
     "prettier": "^1.14.3",
     "rimraf": "2.6.3",
-    "rollup": "1.2.1",
-    "rollup-plugin-babel": "^4.3.2",
-    "rollup-plugin-commonjs": "9.2.0",
-    "rollup-plugin-json": "^3.0.0",
-    "rollup-plugin-node-builtins": "^2.1.2",
-    "rollup-plugin-node-globals": "^1.2.1",
-    "rollup-plugin-node-resolve": "4.0.0",
-    "rollup-plugin-replace": "2.1.0",
-    "rollup-plugin-terser": "^4.0.4",
+
     "semantic-release": "^15.9.16",
     "watch": "^1.0.2"
+  },
+  "dependencies": {
+    "ws": "^6.2.0"
   }
 }

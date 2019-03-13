@@ -1,0 +1,26 @@
+# Logs not included
+logs
+*.log
+
+# npm dependencies, can be installed using npm install
+node_modules
+
+# Coverage
+coverage
+
+# flow typed generated modules
+flow-typed/npm/*
+!flow-typed/npm/module_vx.x.x.js
+
+# Release
+lib
+
+# We use esdoc to generate documentaion, the output is ignored.
+doc
+
+# VIM swap files
+*.sw*
+
+# bpf-sdk
+/bpf-sdk
+/bpf-sdk.tar.bz2

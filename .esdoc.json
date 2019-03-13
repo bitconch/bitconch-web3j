@@ -1,0 +1,47 @@
+{
+  "source": "src",
+  "destination": "doc",
+  "plugins": [
+    {
+      "name": "esdoc-standard-plugin",
+      "option": {
+        "lint": {"enable": true},
+        "undocumentIdentifier": {"enable": true},
+        "unexportedIdentifier": {"enable": false},
+        "coverage": {"enable": true},
+        "accessor": {"access": ["public", "protected"], "autoPrivate": true},
+        "undocumentIdentifier": {"enable": true},
+        "unexportedIdentifier": {"enable": false},
+        "typeInference": {"enable": true},
+        "brand": {
+          "title": "Javascript API for Bitconch Chain",
+          "repository": "https://github.com/bitconch/bitconch-web3j",
+          "site": "https://bitconch.io"
+        }
+      }
+    },
+    {
+      "name": "esdoc-importpath-plugin",
+      "option": {
+        "stripPackageName": true,
+        "replaces": [
+          {"from": ".*", "to": "@bitconch/web3"}
+        ]
+      }
+    },
+    {
+      "name": "esdoc-flow-type-plugin",
+      "option": {"enable": true}
+    },
+    {
+      "name": "esdoc-ecmascript-proposal-plugin",
+      "option": {
+        "all": true
+      }
+    },
+    {
+      "name": "esdoc-inject-style-plugin",
+      "option": {"styles": ["styles/doc_style.css"]}
+    }
+  ]
+}
