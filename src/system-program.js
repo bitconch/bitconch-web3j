@@ -1,10 +1,9 @@
 // @flow
 
-import * as BufferLayout from 'buffer-layout';
+import assert from 'assert';
 
 import {Transaction} from './transaction';
 import {PublicKey} from './publickey';
-import * as Layout from './layout';
 
 /**
  * Factory class for transactions to interact with the System program
@@ -14,9 +13,7 @@ export class SystemProgram {
    * Public key that identifies the System program
    */
   static get programId(): PublicKey {
-    return new PublicKey(
-      '0x000000000000000000000000000000000000000000000000000000000000000',
-    );
+    return new PublicKey('0x000000000000000000000000000000000000000000000000000000000000000');
   }
 
   /**
@@ -27,27 +24,28 @@ export class SystemProgram {
     newAccount: PublicKey,
     tokens: number,
     space: number,
-    programId: PublicKey,
+    programId: PublicKey
   ): Transaction {
-    const userdataLayout = BufferLayout.struct([
-      BufferLayout.u32('instruction'),
-      BufferLayout.ns64('tokens'),
-      BufferLayout.ns64('space'),
-      Layout.publicKey('programId'),
-    ]);
+    const userdata = Buffer.alloc(4 + 8 + 8 + 1 + 32);
+    let pos = 0;
 
-    const userdata = Buffer.alloc(userdataLayout.span);
-    userdataLayout.encode(
-      {
-        instruction: 0, // Create Account instruction
-        tokens,
-        space,
-        programId: programId.toBuffer(),
-      },
-      userdata,
-    );
+    userdata.writeUInt32LE(0, pos); // Create Account instruction
+    pos += 4;
 
-    return new Transaction().add({
+    userdata.writeUInt32LE(tokens, pos); // tokens as i64
+    pos += 8;
+
+    userdata.writeUInt32LE(space, pos); // space as u64
+    pos += 8;
+
+    const programIdBytes = programId.toBuffer();
+    programIdBytes.copy(userdata, pos);
+    pos += programIdBytes.length;
+
+    assert(pos <= userdata.length);
+
+    return new Transaction({
+      fee: 0,
       keys: [from, newAccount],
       programId: SystemProgram.programId,
       userdata,
@@ -58,21 +56,18 @@ export class SystemProgram {
    * Generate a Transaction that moves tokens from one account to another
    */
   static move(from: PublicKey, to: PublicKey, amount: number): Transaction {
-    const userdataLayout = BufferLayout.struct([
-      BufferLayout.u32('instruction'),
-      BufferLayout.ns64('amount'),
-    ]);
+    const userdata = Buffer.alloc(4 + 8);
+    let pos = 0;
+    userdata.writeUInt32LE(2, pos); // Move instruction
+    pos += 4;
 
-    const userdata = Buffer.alloc(userdataLayout.span);
-    userdataLayout.encode(
-      {
-        instruction: 2, // Move instruction
-        amount,
-      },
-      userdata,
-    );
+    userdata.writeUInt32LE(amount, pos); // amount as u64
+    pos += 8;
 
-    return new Transaction().add({
+    assert(pos === userdata.length);
+
+    return new Transaction({
+      fee: 0,
       keys: [from, to],
       programId: SystemProgram.programId,
       userdata,
@@ -83,21 +78,20 @@ export class SystemProgram {
    * Generate a Transaction that assigns an account to a program
    */
   static assign(from: PublicKey, programId: PublicKey): Transaction {
-    const userdataLayout = BufferLayout.struct([
-      BufferLayout.u32('instruction'),
-      Layout.publicKey('programId'),
-    ]);
+    const userdata = Buffer.alloc(4 + 32);
+    let pos = 0;
 
-    const userdata = Buffer.alloc(userdataLayout.span);
-    userdataLayout.encode(
-      {
-        instruction: 1, // Assign instruction
-        programId: programId.toBuffer(),
-      },
-      userdata,
-    );
+    userdata.writeUInt32LE(1, pos); // Assign instruction
+    pos += 4;
 
-    return new Transaction().add({
+    const programIdBytes = programId.toBuffer();
+    programIdBytes.copy(userdata, pos);
+    pos += programIdBytes.length;
+
+    assert(pos === userdata.length);
+
+    return new Transaction({
+      fee: 0,
       keys: [from],
       programId: SystemProgram.programId,
       userdata,

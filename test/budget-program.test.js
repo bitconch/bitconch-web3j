@@ -1,7 +1,7 @@
 // @flow
 
 import {Account} from '../src/account';
-import {BudgetProgram} from '../src/atomic-opcodem';
+import {BudgetProgram} from '../src/budget-program';
 
 test('pay', () => {
   const from = new Account();
@@ -74,3 +74,4 @@ test('apply', () => {
   expect(transaction.keys).toHaveLength(3);
   // TODO: Validate transaction contents more
 });
+
