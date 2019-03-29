@@ -14,7 +14,7 @@
         "unexportedIdentifier": {"enable": false},
         "typeInference": {"enable": true},
         "brand": {
-          "title": "Javascript API for Bitconch Chain",
+          "title": "Bitconch Javascript API",
           "repository": "https://github.com/bitconch/bitconch-web3j",
           "site": "https://bitconch.io"
         }
@@ -25,7 +25,7 @@
       "option": {
         "stripPackageName": true,
         "replaces": [
-          {"from": ".*", "to": "@bitconch/web3"}
+          {"from": ".*", "to": "@bitconch/bitconch-web3j"}
         ]
       }
     },

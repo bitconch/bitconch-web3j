@@ -1,16 +1,16 @@
 /**
- * Flow Library definition for bitconch-web3j
+ * Flow Library definition for @@bitconch/bitconch-web3j
  *
- * Use "export" to expose modules from bitconch-web3j
+ * This file is manually generated from the contents of src/
  *
  * Usage: add the following line under the [libs] section of your project's
  * .flowconfig:
  * [libs]
- * node_modules/@bitconch/web3j/module.flow.js
+ * node_modules/@@bitconch/bitconch-web3j/module.flow.js
  *
  */
 
-declare module '@bitconch/web3.js' {
+declare module '@@bitconch/bitconch-web3j' {
   // === src/publickey.js ===
   declare export class PublicKey {
     constructor(number: string | Buffer | Array<number>): PublicKey;

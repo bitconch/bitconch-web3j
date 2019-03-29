@@ -64,7 +64,7 @@ export class Transaction {
   /**
    * Fee for this transaction
    */
-  fee: number = 0.001;
+  fee: number = 0;
 
   /**
    * Program input
