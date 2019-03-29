@@ -1,26 +1,26 @@
-# Logs not included
+# IDE & OS specific
+.DS_Store
+.idea
+
+# Logs
 logs
 *.log
 
-# npm dependencies, can be installed using npm install
+# Dependencies
 node_modules
 
 # Coverage
 coverage
 
-# flow typed generated modules
+# Types
 flow-typed/npm/*
 !flow-typed/npm/module_vx.x.x.js
 
 # Release
 lib
 
-# We use esdoc to generate documentaion, the output is ignored.
+# Generated docs
 doc
 
 # VIM swap files
-*.sw*
-
-# bpf-sdk
-/bpf-sdk
-/bpf-sdk.tar.bz2
+*.sw.

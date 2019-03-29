@@ -10,8 +10,6 @@
  *
  */
 
-import BN from 'bn.js';
-
 declare module '@bitconch/web3.js' {
   // === src/publickey.js ===
   declare export class PublicKey {
@@ -29,50 +27,29 @@ declare module '@bitconch/web3.js' {
     secretKey: Buffer;
   }
 
-  // === src/atomic-opcodem.js ===
+  // === src/budget-program.js ===
   /* TODO */
 
   // === src/connection.js ===
   declare export type AccountInfo = {
-    executable: boolean,
-    owner: PublicKey,
     tokens: number,
+    programId: PublicKey,
     userdata: Buffer,
-  };
+  }
 
-  declare type AccountChangeCallback = (accountInfo: AccountInfo) => void;
-
-  declare export type SignatureStatus =
-    | 'Confirmed'
-    | 'AccountInUse'
-    | 'SignatureNotFound'
-    | 'ProgramRuntimeError'
-    | 'GenericFailure';
+  declare export type SignatureStatus = 'Confirmed' | 'SignatureNotFound' | 'ProgramRuntimeError' | 'GenericFailure';
 
   declare export class Connection {
     constructor(endpoint: string): Connection;
     getBalance(publicKey: PublicKey): Promise<number>;
     getAccountInfo(publicKey: PublicKey): Promise<AccountInfo>;
     confirmTransaction(signature: TransactionSignature): Promise<boolean>;
-    getSignatureStatus(
-      signature: TransactionSignature,
-    ): Promise<SignatureStatus>;
+    getSignatureStatus(signature: TransactionSignature): Promise<SignatureStatus>;
     getTransactionCount(): Promise<number>;
     getLastId(): Promise<TransactionId>;
-    requestAirdrop(
-      to: PublicKey,
-      amount: number,
-    ): Promise<TransactionSignature>;
-    sendTransaction(
-      transaction: Transaction,
-      ...signers: Array<Account>
-    ): Promise<TransactionSignature>;
-    sendRawTransaction(wireTransaction: Buffer): Promise<TransactionSignature>;
-    onAccountChange(
-      publickey: PublicKey,
-      callback: AccountChangeCallback,
-    ): number;
-    removeAccountChangeListener(id: number): Promise<void>;
+    getFinality(): Promise<number>;
+    requestAirdrop(to: PublicKey, amount: number): Promise<TransactionSignature>;
+    sendTransaction(from: Account, transaction: Transaction): Promise<TransactionSignature>;
   }
 
   // === src/system-program.js ===
@@ -84,7 +61,7 @@ declare module '@bitconch/web3.js' {
       newAccount: PublicKey,
       tokens: number,
       space: number,
-      programId: PublicKey,
+      programId: PublicKey
     ): Transaction;
     static move(from: PublicKey, to: PublicKey, amount: number): Transaction;
     static assign(from: PublicKey, programId: PublicKey): Transaction;
@@ -94,172 +71,25 @@ declare module '@bitconch/web3.js' {
   declare export type TransactionSignature = string;
   declare export type TransactionId = string;
 
-  declare type TransactionInstructionCtorFields = {|
-    keys: ?Array<PublicKey>,
-    programId?: PublicKey,
-    userdata?: Buffer,
-  |};
-
-  declare export class TransactionInstruction {
-    keys: Array<PublicKey>;
-    programId: PublicKey;
-    userdata: Buffer;
-  }
-
-  declare type SignaturePubkeyPair = {|
-    signature: Buffer | null,
-    publicKey: PublicKey,
-  |};
-
   declare type TransactionCtorFields = {|
-    fee?: number,
-    lastId?: TransactionId,
-    signatures?: Array<SignaturePubkeyPair>,
+    signature?: Buffer;
+    keys?: Array<PublicKey>;
+    programId?: PublicKey;
+    fee?: number;
+    userdata?: Buffer;
   |};
+
 
   declare export class Transaction {
-    signatures: Array<SignaturePubkeyPair>;
     signature: ?Buffer;
-    instructions: Array<TransactionInstruction>;
+    keys: Array<PublicKey>;
+    programId: ?PublicKey;
     lastId: ?TransactionId;
     fee: number;
+    userdata: Buffer;
 
     constructor(opts?: TransactionCtorFields): Transaction;
-    add(
-      ...items: Array<Transaction | TransactionInstructionCtorFields>
-    ): Transaction;
-    sign(...signers: Array<Account>): void;
-    signPartial(...partialSigners: Array<PublicKey | Account>): void;
-    addSigner(signer: Account): void;
+    sign(from: Account): void;
     serialize(): Buffer;
   }
-
-  // === src/token-program.js ===
-  declare export class TokenAmount extends BN {
-    toBuffer(): Buffer;
-    fromBuffer(buffer: Buffer): TokenAmount;
-  }
-
-  declare export type TokenInfo = {|
-    supply: TokenAmount,
-    decimals: number,
-    name: string,
-    symbol: string,
-  |};
-  declare export type TokenAccountInfo = {|
-    token: PublicKey,
-    owner: PublicKey,
-    amount: TokenAmount,
-    source: null | PublicKey,
-    originalAmount: TokenAmount,
-  |};
-  declare type TokenAndPublicKey = [Token, PublicKey];
-
-  declare export class Token {
-    programId: PublicKey;
-    token: PublicKey;
-
-    static createNewToken(
-      connection: Connection,
-      owner: Account,
-      supply: TokenAmount,
-      name: string,
-      symbol: string,
-      decimals: number,
-      programId?: PublicKey,
-    ): Promise<TokenAndPublicKey>;
-
-    constructor(connection: Connection, token: PublicKey): Token;
-    newAccount(owner: Account, source?: PublicKey): Promise<PublicKey>;
-    tokenInfo(): Promise<TokenInfo>;
-    accountInfo(account: PublicKey): Promise<TokenAccountInfo>;
-    transfer(
-      owner: Account,
-      source: PublicKey,
-      destination: PublicKey,
-      amount: number | TokenAmount,
-    ): Promise<TransactionSignature>;
-    approve(
-      owner: Account,
-      account: PublicKey,
-      delegate: PublicKey,
-      amount: number | TokenAmount,
-    ): Promise<void>;
-    revoke(
-      owner: Account,
-      account: PublicKey,
-      delegate: PublicKey,
-    ): Promise<void>;
-    setOwner(
-      owner: Account,
-      account: PublicKey,
-      newOwner: PublicKey,
-    ): Promise<void>;
-
-    transferInstruction(
-      owner: PublicKey,
-      source: PublicKey,
-      destination: PublicKey,
-      amount: number | TokenAmount,
-    ): Promise<TransactionInstruction>;
-    approveInstruction(
-      owner: PublicKey,
-      account: PublicKey,
-      delegate: PublicKey,
-      amount: number | TokenAmount,
-    ): TransactionInstruction;
-    revokeInstruction(
-      owner: PublicKey,
-      account: PublicKey,
-      delegate: PublicKey,
-    ): TransactionInstruction;
-    setOwnerInstruction(
-      owner: PublicKey,
-      account: PublicKey,
-      newOwner: PublicKey,
-    ): TransactionInstruction;
-  }
-
-  // === src/deploy.js ===
-  declare export class Loader {
-    constructor(connection: Connection, programId: PublicKey): Loader;
-    load(program: Account, offset: number, bytes: Array<number>): Promise<void>;
-    finalize(program: Account): Promise<void>;
-  }
-
-  // === src/smartcontract-loader.js ===
-  declare export class BpfLoader {
-    static programId: PublicKey;
-    static load(
-      connection: Connection,
-      owner: Account,
-      elfBytes: Array<number>,
-    ): Promise<PublicKey>;
-  }
-
-  // === src/rust-smart-contract-deploy.js ===
-  declare export class NativeLoader {
-    static programId: PublicKey;
-    static load(
-      connection: Connection,
-      owner: Account,
-      programName: string,
-    ): Promise<PublicKey>;
-  }
-
-  // === src/user-transaction.js ===
-  declare export function sendAndConfirmTransaction(
-    connection: Connection,
-    transaction: Transaction,
-    ...signers: Array<Account>
-  ): Promise<TransactionSignature>;
-
-  // === src/system-transaction.js ===
-  declare export function sendAndConfirmRawTransaction(
-    connection: Connection,
-    wireTransaction: Buffer,
-  ): Promise<TransactionSignature>;
-
-  // === src/testnet.js ===
-  declare export function testnetChannelEndpoint(channel?: string): string;
 }

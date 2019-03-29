@@ -38,10 +38,6 @@
       "option": {
         "all": true
       }
-    },
-    {
-      "name": "esdoc-inject-style-plugin",
-      "option": {"styles": ["styles/doc_style.css"]}
     }
   ]
 }
