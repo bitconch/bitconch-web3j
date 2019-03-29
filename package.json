@@ -1,10 +1,12 @@
 {
-  "name": "@/bitconch-web3j",
-  "version": "0.0.0-development",
+  "name": "@bitconch/bitconch-web3j",
+  "version": "1.0.0-beta",
   "description": "Bitconch Javascript API",
   "keywords": [
     "api",
-    "blockchain"
+    "blockchain",
+    "javascript",
+    "bitconch"
   ],
   "license": "MIT",
   "author": "Bitconch Dev",
