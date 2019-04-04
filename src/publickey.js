@@ -12,25 +12,17 @@ export class PublicKey {
   /**
    * Create a new PublicKey object
    */
-  constructor(number: string | Buffer | Array<number>) {
-
-    for (;;) {
-      if (typeof number === 'string') {
-        // base 58 encoded?
-        if (/^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(number)) {
-          this._bn = new BN(bs58.decode(number));
-          break;
-        }
-
-        // hexadecimal number
-        if (number.startsWith('0x')) {
-          this._bn = new BN(number.substring(2), 16);
-          break;
-        }
+  constructor(value: number | string | Buffer | Array<number>) {
+    if (typeof value === 'string') {
+      // hexadecimal number
+      if (value.startsWith('0x')) {
+        this._bn = new BN(value.substring(2), 16);
+      } else {
+        // assume base 58 encoding by default
+        this._bn = new BN(bs58.decode(value));
       }
-
-      this._bn = new BN(number);
-      break;
+    } else {
+      this._bn = new BN(value);
     }
 
     if (this._bn.byteLength() > 32) {
@@ -60,7 +52,7 @@ export class PublicKey {
   }
 
   /**
-   * Return the base-58 representation of the public key
+   * Return the Buffer representation of the public key
    */
   toBuffer(): Buffer {
     const b = this._bn.toArrayLike(Buffer);
@@ -68,8 +60,8 @@ export class PublicKey {
       return b;
     }
 
-    const zeroPad = new Buffer(32);
-    b.copy(zeroPad);
+    const zeroPad = Buffer.alloc(32);
+    b.copy(zeroPad, 32 - b.length);
     return zeroPad;
   }
 
@@ -80,4 +72,3 @@ export class PublicKey {
     return this.toBase58();
   }
 }
-

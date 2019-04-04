@@ -25,7 +25,7 @@
       "option": {
         "stripPackageName": true,
         "replaces": [
-          {"from": ".*", "to": "@bitconch/bitconch-web3j"}
+          {"from": ".*", "to": "@bitconch/web3"}
         ]
       }
     },
@@ -38,6 +38,10 @@
       "option": {
         "all": true
       }
+    },
+    {
+      "name": "esdoc-inject-style-plugin",
+      "option": {"styles": ["css/theme.css"]}
     }
   ]
 }

@@ -1,0 +1,280 @@
+// @flow
+import {Account} from '../src/account';
+import {PublicKey} from '../src/publickey';
+import {Transaction} from '../src/transaction';
+import {SystemProgram} from '../src/system-program';
+
+test('signPartial', () => {
+  const account1 = new Account();
+  const account2 = new Account();
+  const recentBlockhash = account1.publicKey.toBase58(); // Fake recentBlockhash
+  const move = SystemProgram.move(account1.publicKey, account2.publicKey, 123);
+
+  const transaction = new Transaction({recentBlockhash}).add(move);
+  transaction.sign(account1, account2);
+
+  const partialTransaction = new Transaction({recentBlockhash}).add(move);
+  partialTransaction.signPartial(account1, account2.publicKey);
+  expect(partialTransaction.signatures[1].signature).toBeNull();
+  partialTransaction.addSigner(account2);
+
+  expect(partialTransaction).toEqual(transaction);
+});
+
+test('transfer signatures', () => {
+  const account1 = new Account();
+  const account2 = new Account();
+  const recentBlockhash = account1.publicKey.toBase58(); // Fake recentBlockhash
+  const move1 = SystemProgram.move(account1.publicKey, account2.publicKey, 123);
+  const move2 = SystemProgram.move(account2.publicKey, account1.publicKey, 123);
+
+  const orgTransaction = new Transaction({recentBlockhash}).add(move1, move2);
+  orgTransaction.sign(account1, account2);
+
+  const newTransaction = new Transaction({
+    recentBlockhash: orgTransaction.recentBlockhash,
+    fee: orgTransaction.fee,
+    signatures: orgTransaction.signatures,
+  }).add(move1, move2);
+
+  expect(newTransaction).toEqual(orgTransaction);
+});
+
+test('parse wire format and serialize', () => {
+  const recentBlockhash = 'EETubP5AKHgjPAhzPAFcb8BAY1hMH639CWCFTqi3hq1k'; // Arbitrary known recentBlockhash
+  const sender = new Account(Buffer.alloc(64, 8)); // Arbitrary known account
+  const recipient = new PublicKey(
+    'J3dxNj7nDRRqRRXuEMynDG57DkZK4jYRuv3Garmb1i99',
+  ); // Arbitrary known public key
+  const move = SystemProgram.move(sender.publicKey, recipient, 49);
+  const expectedTransaction = new Transaction({recentBlockhash}).add(move);
+  expectedTransaction.sign(sender);
+
+  const wireTransaction = Buffer.from([
+    1,
+    50,
+    238,
+    193,
+    5,
+    227,
+    31,
+    95,
+    69,
+    85,
+    3,
+    132,
+    143,
+    216,
+    77,
+    235,
+    129,
+    3,
+    109,
+    89,
+    222,
+    127,
+    137,
+    228,
+    15,
+    113,
+    207,
+    169,
+    93,
+    167,
+    249,
+    71,
+    33,
+    185,
+    182,
+    83,
+    116,
+    203,
+    102,
+    64,
+    245,
+    68,
+    34,
+    100,
+    193,
+    156,
+    109,
+    35,
+    104,
+    119,
+    101,
+    197,
+    43,
+    141,
+    174,
+    228,
+    154,
+    146,
+    78,
+    216,
+    202,
+    18,
+    177,
+    179,
+    5,
+    2,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    253,
+    67,
+    159,
+    204,
+    182,
+    103,
+    39,
+    242,
+    137,
+    197,
+    198,
+    222,
+    59,
+    196,
+    168,
+    254,
+    93,
+    213,
+    215,
+    119,
+    112,
+    188,
+    143,
+    241,
+    92,
+    62,
+    238,
+    220,
+    177,
+    74,
+    243,
+    252,
+    196,
+    154,
+    231,
+    118,
+    3,
+    120,
+    32,
+    84,
+    241,
+    122,
+    157,
+    236,
+    234,
+    67,
+    180,
+    68,
+    235,
+    160,
+    237,
+    177,
+    44,
+    111,
+    29,
+    49,
+    198,
+    224,
+    228,
+    168,
+    75,
+    240,
+    82,
+    235,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    2,
+    0,
+    1,
+    12,
+    2,
+    0,
+    0,
+    0,
+    49,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+  ]);
+  const tx = Transaction.from(wireTransaction);
+
+  expect(tx).toEqual(expectedTransaction);
+  expect(wireTransaction).toEqual(expectedTransaction.serialize());
+});

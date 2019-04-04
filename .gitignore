@@ -23,4 +23,8 @@ lib
 doc
 
 # VIM swap files
-*.sw.
+*.sw*
+
+# bpf-sdk
+/bpf-sdk
+/bpf-sdk.tar.bz2
