@@ -1,6 +1,6 @@
 {
   "name": "@bitconch/bitconch-web3j",
-  "version": "1.0.0-beta",
+  "version": "1.0.0",
   "description": "Bitconch Javascript API",
   "keywords": [
     "api",
