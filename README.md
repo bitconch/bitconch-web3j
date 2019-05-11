@@ -2,7 +2,49 @@
 
 bitconch-web3j is the implementation of javascript API for bitconch chain. We will publish documents soon. 
 
-# How to Contribute
+# Updates
+
+## 1.1.x
+
+- Support ERC20 token creation
+
+用户可以发布ERC20代币
+  
+用户可以指定代币的名称、符号、发行总量等信息。
+
+用户可以实现代币的锁仓、定时转账、确认转账等功能。
+
+
+- Support a native coin on Bitconch chain **Dif**, details for this native coin unit conversion can be found here at https://github.com/bitconch/bus/issues/95
+
+1.1.x版本引入了Bitconch Chain的最小单位Dif，1000Dif=1BUS，Dif的命名来源于现代密码学之父Whitfield Diffie。
+
+1.1.x版本中交易手续费默认为1Dif或者1/1000BUS。
+
+
+- Suppport a primitive BVM code loader for on-chain storage of DApp code.
+
+1.1.x版本引入了BVM程序加载器，在下一版本中用户可以通过加载器加载链上的BVM代码。
+
+# Usage
+
+**ES6**
+
+```js
+
+const web3j = require('@bitconch/bitconch-web3j');
+console.log(web3j);
+
+```
+**Javascript**
+```es6
+
+import web3j from '@bitconch/bitconch-web3j';
+console.log(web3j);
+
+```
+
+# Contribution
 
 ## About the commands
 

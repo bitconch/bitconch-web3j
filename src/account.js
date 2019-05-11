@@ -5,18 +5,19 @@ import type {KeyPair} from 'tweetnacl';
 import {PublicKey} from './publickey';
 
 /**
- * An account key pair (public and secret keys).
+ * 帐户密钥对（公钥和密钥）。
  */
 export class Account {
   _keypair: KeyPair;
 
   /**
-   * Create a new Account object
+   * 创建一个新的Account对象
    *
-   * If the secretKey parameter is not provided a new key pair is randomly
-   * created for the account
+   * 如果未提供secretKey参数，
+   *  为该帐户随机创建一个新密钥对
    *
-   * @param secretKey Secret key for the account
+   *
+   * @param secretKey 帐户的密钥
    */
   constructor(secretKey: ?Buffer = null) {
     if (secretKey) {
@@ -27,17 +28,16 @@ export class Account {
   }
 
   /**
-   * The public key for this account
+   * 此帐户的公钥
    */
   get publicKey(): PublicKey {
     return new PublicKey(this._keypair.publicKey);
   }
 
   /**
-   * The **unencrypted** secret key for this account
+   * 此帐户的**未加密**密钥
    */
   get secretKey(): Buffer {
     return this._keypair.secretKey;
   }
 }
-

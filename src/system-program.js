@@ -1,76 +1,81 @@
 // @flow
 
-import assert from 'assert';
+import * as BufferLayout from 'buffer-layout';
 
 import {Transaction} from './transaction';
 import {PublicKey} from './publickey';
+import * as Layout from './layout';
 
 /**
- * Factory class for transactions to interact with the System program
+ * 用于与System程序交互的交易的工厂类
  */
 export class SystemProgram {
   /**
-   * Public key that identifies the System program
+   * 标识系统程序的公钥
    */
   static get programId(): PublicKey {
-    return new PublicKey('0x000000000000000000000000000000000000000000000000000000000000000');
+    return new PublicKey(
+      '0x000000000000000000000000000000000000000000000000000000000000000',
+    );
   }
 
   /**
-   * Generate a Transaction that creates a new account
+   * 生成创建新帐户的交易
    */
   static createAccount(
     from: PublicKey,
     newAccount: PublicKey,
-    tokens: number,
+    difs: number,
     space: number,
-    programId: PublicKey
+    programId: PublicKey,
   ): Transaction {
-    const userdata = Buffer.alloc(4 + 8 + 8 + 1 + 32);
-    let pos = 0;
+    const dataLayout = BufferLayout.struct([
+      BufferLayout.u32('instruction'),
+      BufferLayout.ns64('difs'),
+      BufferLayout.ns64('space'),
+      Layout.publicKey('programId'),
+    ]);
 
-    userdata.writeUInt32LE(0, pos); // Create Account instruction
-    pos += 4;
+    const data = Buffer.alloc(dataLayout.span);
+    dataLayout.encode(
+      {
+        instruction: 0, // Create Account instruction
+        difs,
+        space,
+        programId: programId.toBuffer(),
+      },
+      data,
+    );
 
-    userdata.writeUInt32LE(tokens, pos); // tokens as i64
-    pos += 8;
-
-    userdata.writeUInt32LE(space, pos); // space as u64
-    pos += 8;
-
-    const programIdBytes = programId.toBuffer();
-    programIdBytes.copy(userdata, pos);
-    pos += programIdBytes.length;
-
-    assert(pos <= userdata.length);
-
-    return new Transaction({
-      fee: 0,
+    return new Transaction().add({
       keys: [from, newAccount],
       programId: SystemProgram.programId,
-      userdata,
+      data,
     });
   }
 
   /**
-   * Generate a Transaction that moves tokens from one account to another
+   * 生成将Difs从一个帐户移动到另一个帐户的事务
    */
   static move(from: PublicKey, to: PublicKey, amount: number): Transaction {
-    const userdata = Buffer.alloc(4 + 8);
-    let pos = 0;
-    userdata.writeUInt32LE(2, pos); // Move instruction
-    pos += 4;
+    const dataLayout = BufferLayout.struct([
+      BufferLayout.u32('instruction'),
+      BufferLayout.ns64('amount'),
+    ]);
 
-    userdata.writeUInt32LE(amount, pos); // amount as u64
-    pos += 8;
+    const data = Buffer.alloc(dataLayout.span);
+    dataLayout.encode(
+      {
+        instruction: 2, // Move instruction
+        amount,
+      },
+      data,
+    );
 
-    assert(pos === userdata.length);
-
-    return new Transaction({
-      fee: 0,
+    return new Transaction().add({
       keys: [from, to],
       programId: SystemProgram.programId,
-      userdata,
+      data,
     });
   }
 
@@ -78,23 +83,24 @@ export class SystemProgram {
    * Generate a Transaction that assigns an account to a program
    */
   static assign(from: PublicKey, programId: PublicKey): Transaction {
-    const userdata = Buffer.alloc(4 + 32);
-    let pos = 0;
+    const dataLayout = BufferLayout.struct([
+      BufferLayout.u32('instruction'),
+      Layout.publicKey('programId'),
+    ]);
 
-    userdata.writeUInt32LE(1, pos); // Assign instruction
-    pos += 4;
+    const data = Buffer.alloc(dataLayout.span);
+    dataLayout.encode(
+      {
+        instruction: 1, // Assign instruction
+        programId: programId.toBuffer(),
+      },
+      data,
+    );
 
-    const programIdBytes = programId.toBuffer();
-    programIdBytes.copy(userdata, pos);
-    pos += programIdBytes.length;
-
-    assert(pos === userdata.length);
-
-    return new Transaction({
-      fee: 0,
+    return new Transaction().add({
       keys: [from],
       programId: SystemProgram.programId,
-      userdata,
+      data,
     });
   }
 }

@@ -4,33 +4,25 @@ import BN from 'bn.js';
 import bs58 from 'bs58';
 
 /**
- * A public key
+ * 公钥
  */
 export class PublicKey {
   _bn: BN;
 
   /**
-   * Create a new PublicKey object
+   * 创建一个新的PublicKey对象
    */
-  constructor(number: string | Buffer | Array<number>) {
-
-    for (;;) {
-      if (typeof number === 'string') {
-        // base 58 encoded?
-        if (/^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(number)) {
-          this._bn = new BN(bs58.decode(number));
-          break;
-        }
-
-        // hexadecimal number
-        if (number.startsWith('0x')) {
-          this._bn = new BN(number.substring(2), 16);
-          break;
-        }
+  constructor(value: number | string | Buffer | Array<number>) {
+    if (typeof value === 'string') {
+      // 十六进制数
+      if (value.startsWith('0x')) {
+        this._bn = new BN(value.substring(2), 16);
+      } else {
+        // 默认情况下base 58编码
+        this._bn = new BN(bs58.decode(value));
       }
-
-      this._bn = new BN(number);
-      break;
+    } else {
+      this._bn = new BN(value);
     }
 
     if (this._bn.byteLength() > 32) {
@@ -39,28 +31,28 @@ export class PublicKey {
   }
 
   /**
-   * Checks if the provided object is a PublicKey
+   * 检查提供的对象是否为PublicKey
    */
   static isPublicKey(o: Object): boolean {
     return o instanceof PublicKey;
   }
 
   /**
-   * Checks if two publicKeys are equal
+   * 检查两个publicKeys是否相等
    */
   equals(publicKey: PublicKey): boolean {
     return this._bn.eq(publicKey._bn);
   }
 
   /**
-   * Return the base-58 representation of the public key
+   * 返回公钥的base-58表示
    */
   toBase58(): string {
     return bs58.encode(this.toBuffer());
   }
 
   /**
-   * Return the base-58 representation of the public key
+   * 返回公钥的Buffer表示形式
    */
   toBuffer(): Buffer {
     const b = this._bn.toArrayLike(Buffer);
@@ -68,16 +60,15 @@ export class PublicKey {
       return b;
     }
 
-    const zeroPad = new Buffer(32);
-    b.copy(zeroPad);
+    const zeroPad = Buffer.alloc(32);
+    b.copy(zeroPad, 32 - b.length);
     return zeroPad;
   }
 
   /**
-   * Returns a string representation of the public key
+   * 返回公钥的字符串表示形式
    */
   toString(): string {
     return this.toBase58();
   }
 }
-
