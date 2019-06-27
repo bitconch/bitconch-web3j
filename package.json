@@ -8,7 +8,7 @@
     "javascript",
     "bitconch"
   ],
-  "testnetDefaultChannel": "beta",
+  "testnetDefaultChannel": "edge",
   "license": "MIT",
   "author": "Bitconch Dev",
   "homepage": "https://bitconch.io/",
@@ -27,7 +27,6 @@
   "bin": {
     "mini_server": "bin/mini_server.sh"
   },
-  "testnetDefaultChannel": "edge",
   "files": [
     "/bin",
     "/doc",
@@ -37,7 +36,6 @@
   ],
   "scripts": {
     "bpf-sdk:install": "set -ex; npm run bpf-sdk:fetch; npm run bpf-sdk:clean",
-    "bpf-sdk:extract": "rm -rf bpf-sdk; tar jxvf bpf-sdk.tar.bz2",
     "bpf-sdk:fetch": "curl http://solana-sdk.s3.amazonaws.com/$npm_package_testnetDefaultChannel/bpf-sdk.tar.bz2 -o bpf-sdk.tar.bz2",
     "bpf-sdk:remove-symlinks": "find bpf-sdk -type l -print -exec cp {} {}.tmp \\; -exec mv {}.tmp {} \\;",
     "bpf-sdk:clean": "rm bpf-sdk.tar.bz2",
@@ -60,7 +58,7 @@
     "localnet:up": "bin/localnet.sh up $npm_package_testnetDefaultChannel",
     "localnet:update": "bin/localnet.sh update $npm_package_testnetDefaultChannel",
     "ok": "set -ex; npm run lint; npm run flow; npm run test; npm run doc",
-    "prepare": "set -ex; npm run clean; npm run build",
+    "prepare": "set -ex; npm run clean; npm run bpf-sdk:install; npm run build",
     "pretty": "prettier --write '{,{examples,src,test}/**/}*.js'",
     "re": "semantic-release --repository-url git@github.com:bitconch/bitconch-web3j.git",
     "test": "cross-env NODE_ENV=test jest --useStderr",

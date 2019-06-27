@@ -3,7 +3,7 @@
  * passed to it
  */
 
-#include <solana_sdk.h>
+#include <bitconch_sdk.h>
 
 extern bool entrypoint(const uint8_t *input) {
   SolKeyedAccount ka[1];
