@@ -7,11 +7,12 @@ import {PublicKey} from './publickey';
 import * as Layout from './layout';
 
 /**
- * 表示通过执行`applySignature（）`交易来满足的条件
+ * Represents a condition that is met by executing a `applySignature()`
+ * transaction
  *
  * @typedef {Object} SignatureCondition
- * @property {string} type 必须等于字符串'timestamp'
- * @property {PublicKey} from 将从中接受`applySignature（）`的公钥
+ * @property {string} type Must equal the string 'timestamp'
+ * @property {PublicKey} from Public key from which `applySignature()` will be accepted from
  */
 export type SignatureCondition = {
   type: 'signature',
@@ -19,12 +20,13 @@ export type SignatureCondition = {
 };
 
 /**
- * 表示通过执行`applyTimestamp（）`交易来满足的条件
+ * Represents a condition that is met by executing a `applyTimestamp()`
+ * transaction
  *
  * @typedef {Object} TimestampCondition
- * @property {string} type 必须等于字符串'timestamp'
- * @property {PublicKey} from 从中接受`applyTimestamp（）`的公钥
- * @property {Date} when 观察到的时间戳
+ * @property {string} type Must equal the string 'timestamp'
+ * @property {PublicKey} from Public key from which `applyTimestamp()` will be accepted from
+ * @property {Date} when The timestamp that was observed
  */
 export type TimestampCondition = {
   type: 'timestamp',
@@ -33,11 +35,11 @@ export type TimestampCondition = {
 };
 
 /**
- * 表示对给定公钥的付款
+ * Represents a payment to a given public key
  *
  * @typedef {Object} Payment
- * @property {number} amount Dif数量
- * @property {PublicKey} to 接受者的公钥
+ * @property {number} amount Number of lamports
+ * @property {PublicKey} to Public key of the recipient
  */
 export type Payment = {
   amount: number,
@@ -45,7 +47,7 @@ export type Payment = {
 };
 
 /**
- * 可以解锁付款的条件
+ * A condition that can unlock a payment
  *
  * @typedef {SignatureCondition|TimestampCondition} BudgetCondition
  */
@@ -134,27 +136,25 @@ function serializeCondition(condition: BudgetCondition) {
 }
 
 /**
- * 用于与预算程序交互的交易的工厂类
+ * Factory class for transactions to interact with the Budget program
  */
 export class BudgetProgram {
   /**
-   * 用于标识预算计划的公钥
+   * Public key that identifies the Budget program
    */
   static get programId(): PublicKey {
-    return new PublicKey(
-      '0x8100000000000000000000000000000000000000000000000000000000000000',
-    );
+    return new PublicKey('Budget1111111111111111111111111111111111111');
   }
 
   /**
-   * 该程序所需的空间量
+   * The amount of space this program requires
    */
   static get space(): number {
     return 128;
   }
 
   /**
-   * 创建时间戳条件
+   * Creates a timestamp condition
    */
   static timestampCondition(from: PublicKey, when: Date): TimestampCondition {
     return {
@@ -165,7 +165,7 @@ export class BudgetProgram {
   }
 
   /**
-   * 创建签名条件
+   * Creates a signature condition
    */
   static signatureCondition(from: PublicKey): SignatureCondition {
     return {
@@ -175,7 +175,7 @@ export class BudgetProgram {
   }
 
   /**
-   * 生成在满足任何条件后传输dif的交易
+   * Generates a transaction that transfers lamports once any of the conditions are met
    */
   static pay(
     from: PublicKey,
@@ -186,12 +186,12 @@ export class BudgetProgram {
   ): Transaction {
     const data = Buffer.alloc(1024);
     let pos = 0;
-    data.writeUInt32LE(0, pos); // NewBudget指令
+    data.writeUInt32LE(0, pos); // NewBudget instruction
     pos += 4;
 
     switch (conditions.length) {
       case 0:
-        data.writeUInt32LE(0, pos); // 预算枚举=支付
+        data.writeUInt32LE(0, pos); // Budget enum = Pay
         pos += 4;
 
         {
@@ -201,12 +201,12 @@ export class BudgetProgram {
         }
 
         return new Transaction().add({
-          keys: [from, to],
+          keys: [{pubkey: from, isSigner: true}, {pubkey: to, isSigner: false}],
           programId: this.programId,
           data: data.slice(0, pos),
         });
       case 1:
-        data.writeUInt32LE(1, pos); // 预算枚举=after
+        data.writeUInt32LE(1, pos); // Budget enum = After
         pos += 4;
         {
           const condition = conditions[0];
@@ -221,13 +221,17 @@ export class BudgetProgram {
         }
 
         return new Transaction().add({
-          keys: [from, program, to],
+          keys: [
+            {pubkey: from, isSigner: true},
+            {pubkey: program, isSigner: false},
+            {pubkey: to, isSigner: false},
+          ],
           programId: this.programId,
           data: data.slice(0, pos),
         });
 
       case 2:
-        data.writeUInt32LE(2, pos); // 预算枚举=or
+        data.writeUInt32LE(2, pos); // Budget enum = Or
         pos += 4;
 
         for (let condition of conditions) {
@@ -241,7 +245,11 @@ export class BudgetProgram {
         }
 
         return new Transaction().add({
-          keys: [from, program, to],
+          keys: [
+            {pubkey: from, isSigner: true},
+            {pubkey: program, isSigner: false},
+            {pubkey: to, isSigner: false},
+          ],
           programId: this.programId,
           data: data.slice(0, pos),
         });
@@ -256,7 +264,7 @@ export class BudgetProgram {
   }
 
   /**
-   * 生成一个交易，一旦满足两个条件就转移dif
+   * Generates a transaction that transfers lamports once both conditions are met
    */
   static payOnBoth(
     from: PublicKey,
@@ -268,10 +276,10 @@ export class BudgetProgram {
   ): Transaction {
     const data = Buffer.alloc(1024);
     let pos = 0;
-    data.writeUInt32LE(0, pos); // NewBudget指令
+    data.writeUInt32LE(0, pos); // NewBudget instruction
     pos += 4;
 
-    data.writeUInt32LE(3, pos); // 预算枚举=And
+    data.writeUInt32LE(3, pos); // Budget enum = And
     pos += 4;
 
     for (let condition of [condition1, condition2]) {
@@ -285,14 +293,19 @@ export class BudgetProgram {
     pos += paymentData.length;
 
     return new Transaction().add({
-      keys: [from, program, to],
+      keys: [
+        {pubkey: from, isSigner: true},
+        {pubkey: program, isSigner: false},
+        {pubkey: to, isSigner: false},
+      ],
       programId: this.programId,
       data: data.slice(0, pos),
     });
   }
 
   /**
-   * 生成应用时间戳的交易，该交易可以启用待处理的付款。
+   * Generates a transaction that applies a timestamp, which could enable a
+   * pending payment to proceed.
    */
   static applyTimestamp(
     from: PublicKey,
@@ -303,18 +316,23 @@ export class BudgetProgram {
     const whenData = serializeDate(when);
     const data = Buffer.alloc(4 + whenData.length);
 
-    data.writeUInt32LE(1, 0); // ApplyTimestamp指令
+    data.writeUInt32LE(1, 0); // ApplyTimestamp instruction
     whenData.copy(data, 4);
 
     return new Transaction().add({
-      keys: [from, program, to],
+      keys: [
+        {pubkey: from, isSigner: true},
+        {pubkey: program, isSigner: false},
+        {pubkey: to, isSigner: false},
+      ],
       programId: this.programId,
       data,
     });
   }
 
   /**
-   * 生成应用签名的交易，这可以使待处理的付款继续进行。
+   * Generates a transaction that applies a signature, which could enable a
+   * pending payment to proceed.
    */
   static applySignature(
     from: PublicKey,
@@ -326,13 +344,17 @@ export class BudgetProgram {
     const data = Buffer.alloc(dataLayout.span);
     dataLayout.encode(
       {
-        instruction: 2, // ApplySignature指令
+        instruction: 2, // ApplySignature instruction
       },
       data,
     );
 
     return new Transaction().add({
-      keys: [from, program, to],
+      keys: [
+        {pubkey: from, isSigner: true},
+        {pubkey: program, isSigner: false},
+        {pubkey: to, isSigner: false},
+      ],
       programId: this.programId,
       data,
     });

@@ -10,7 +10,7 @@ import type {TransactionSignature} from '../transaction';
 import {DEFAULT_TICKS_PER_SLOT, NUM_TICKS_PER_SECOND} from '../timing';
 
 /**
- * 签名，发送并确认交易
+ * Sign, send and confirm a transaction
  */
 export async function sendAndConfirmTransaction(
   connection: Connection,
@@ -23,23 +23,23 @@ export async function sendAndConfirmTransaction(
     const start = Date.now();
     signature = await connection.sendTransaction(transaction, ...signers);
 
-    // 等待几个插槽进行确认
-    let status = 'SignatureNotFound';
+    // Wait up to a couple slots for a confirmation
+    let status = null;
     let statusRetries = 6;
     for (;;) {
       status = await connection.getSignatureStatus(signature);
-      if (status !== 'SignatureNotFound') {
+      if (status) {
         break;
       }
 
       if (--statusRetries <= 0) {
         break;
       }
-      // 睡了大约半个插槽
+      // Sleep for approximately half a slot
       await sleep((500 * DEFAULT_TICKS_PER_SLOT) / NUM_TICKS_PER_SECOND);
     }
 
-    if (status === 'Confirmed') {
+    if (status && 'Ok' in status) {
       break;
     }
     if (--sendRetries <= 0) {
@@ -47,15 +47,17 @@ export async function sendAndConfirmTransaction(
       throw new Error(
         `Transaction '${signature}' was not confirmed in ${duration.toFixed(
           2,
-        )} seconds (${status})`,
+        )} seconds (${JSON.stringify(status)})`,
       );
     }
 
-    if (status !== 'AccountInUse' && status !== 'SignatureNotFound') {
-      throw new Error(`Transaction ${signature} failed (${status})`);
+    if (status && status.Err && !('AccountInUse' in status.Err)) {
+      throw new Error(
+        `Transaction ${signature} failed (${JSON.stringify(status)})`,
+      );
     }
 
-    // 在0..100ms内重试以尝试避免另一个AccountInUse冲突
+    // Retry in 0..100ms to try to avoid another AccountInUse collision
     await sleep(Math.random() * 100);
   }
 

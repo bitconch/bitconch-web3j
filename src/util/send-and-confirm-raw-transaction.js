@@ -6,7 +6,7 @@ import type {TransactionSignature} from '../transaction';
 import {DEFAULT_TICKS_PER_SLOT, NUM_TICKS_PER_SECOND} from '../timing';
 
 /**
- * 签署，发送并确认原始交易
+ * Sign, send and confirm a raw transaction
  */
 export async function sendAndConfirmRawTransaction(
   connection: Connection,
@@ -15,16 +15,16 @@ export async function sendAndConfirmRawTransaction(
   const start = Date.now();
   let signature = await connection.sendRawTransaction(rawTransaction);
 
-  // 等待几个插槽进行确认
-  let status = '';
+  // Wait up to a couple slots for a confirmation
+  let status = null;
   let statusRetries = 6;
   for (;;) {
     status = await connection.getSignatureStatus(signature);
-    if (status !== 'SignatureNotFound') {
+    if (status) {
       break;
     }
 
-    // 睡了大约半个插槽
+    // Sleep for approximately half a slot
     await sleep((500 * DEFAULT_TICKS_PER_SLOT) / NUM_TICKS_PER_SECOND);
 
     if (--statusRetries <= 0) {
@@ -32,14 +32,16 @@ export async function sendAndConfirmRawTransaction(
       throw new Error(
         `Raw Transaction '${signature}' was not confirmed in ${duration.toFixed(
           2,
-        )} seconds (${status})`,
+        )} seconds (${JSON.stringify(status)})`,
       );
     }
   }
 
-  if (status === 'Confirmed') {
+  if (status && 'Ok' in status) {
     return signature;
   }
 
-  throw new Error(`Raw transaction ${signature} failed (${status})`);
+  throw new Error(
+    `Raw transaction ${signature} failed (${JSON.stringify(status)})`,
+  );
 }

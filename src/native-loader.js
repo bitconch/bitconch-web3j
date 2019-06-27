@@ -3,53 +3,39 @@
 import {Account} from './account';
 import {PublicKey} from './publickey';
 import {Loader} from './loader';
-import {SystemProgram} from './system-program';
-import {sendAndConfirmTransaction} from './util/send-and-confirm-transaction';
 import type {Connection} from './connection';
 
 /**
- * 用于与程序加载器交互的事务的工厂类
+ * Factory class for transactions to interact with a program loader
  */
 export class NativeLoader {
   /**
-   * 标识NativeLoader的公钥
+   * Public key that identifies the NativeLoader
    */
   static get programId(): PublicKey {
-    return new PublicKey(
-      '0x100000000000000000000000000000000000000000000000000000000000000',
-    );
+    return new PublicKey('NativeLoader1111111111111111111111111111111');
   }
 
   /**
-   * 加载本机程序
+   * Loads a native program
    *
-   * @param connection 要使用的连接
-   * @param owner 用于加载程序的用户帐户
-   * @param programName 本机程序的名称
+   * @param connection The connection to use
+   * @param payer System account that pays to load the program
+   * @param programName Name of the native program
    */
-  static async load(
+  static load(
     connection: Connection,
-    owner: Account,
+    payer: Account,
     programName: string,
   ): Promise<PublicKey> {
     const bytes = [...Buffer.from(programName)];
-
-    const programAccount = new Account();
-
-    // 为程序帐户分配内存
-    const transaction = SystemProgram.createAccount(
-      owner.publicKey,
-      programAccount.publicKey,
-      1 + 1 + 1,
-      bytes.length + 1,
+    const program = new Account();
+    return Loader.load(
+      connection,
+      payer,
+      program,
       NativeLoader.programId,
+      bytes,
     );
-    await sendAndConfirmTransaction(connection, transaction, owner);
-
-    const loader = new Loader(connection, NativeLoader.programId);
-    await loader.load(programAccount, bytes);
-    await loader.finalize(programAccount);
-
-    return programAccount.publicKey;
   }
 }

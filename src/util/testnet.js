@@ -7,12 +7,13 @@ import {testnetDefaultChannel} from '../../package.json';
  */
 const endpoint = {
   nightly: 'https://api.nightly.bitconch.io',
-  beta: 'https://api.beta.bitconch.io',
-  stable: 'https://api.stable.bitconch.io',
+  beta: 'https://api.beta.testnet.bitconch.com',
+  stable: 'https://api.testnet.bitconch.com',
 };
 
 /**
- * 检索指定的testnet发布通道的RPC终结点URL
+ * Retrieves the RPC endpoint URL for the specified testnet release
+ * channel
  */
 export function testnetChannelEndpoint(channel?: string): string {
   if (!channel) {

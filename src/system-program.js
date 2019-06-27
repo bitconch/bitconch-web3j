@@ -7,11 +7,11 @@ import {PublicKey} from './publickey';
 import * as Layout from './layout';
 
 /**
- * 用于与System程序交互的交易的工厂类
+ * Factory class for transactions to interact with the System program
  */
 export class SystemProgram {
   /**
-   * 标识系统程序的公钥
+   * Public key that identifies the System program
    */
   static get programId(): PublicKey {
     return new PublicKey(
@@ -20,18 +20,20 @@ export class SystemProgram {
   }
 
   /**
-   * 生成创建新帐户的交易
+   * Generate a Transaction that creates a new account
    */
   static createAccount(
     from: PublicKey,
     newAccount: PublicKey,
-    difs: number,
+    // lamports: number,
+    dif: number,
     space: number,
     programId: PublicKey,
   ): Transaction {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u32('instruction'),
-      BufferLayout.ns64('difs'),
+      // BufferLayout.ns64('lamports'),
+      BufferLayout.ns64('dif'),
       BufferLayout.ns64('space'),
       Layout.publicKey('programId'),
     ]);
@@ -40,7 +42,8 @@ export class SystemProgram {
     dataLayout.encode(
       {
         instruction: 0, // Create Account instruction
-        difs,
+        // lamports,
+        dif,
         space,
         programId: programId.toBuffer(),
       },
@@ -48,16 +51,19 @@ export class SystemProgram {
     );
 
     return new Transaction().add({
-      keys: [from, newAccount],
+      keys: [
+        {pubkey: from, isSigner: true},
+        {pubkey: newAccount, isSigner: false},
+      ],
       programId: SystemProgram.programId,
       data,
     });
   }
 
   /**
-   * 生成将Difs从一个帐户移动到另一个帐户的事务
+   * Generate a Transaction that transfers lamports from one account to another
    */
-  static move(from: PublicKey, to: PublicKey, amount: number): Transaction {
+  static transfer(from: PublicKey, to: PublicKey, amount: number): Transaction {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u32('instruction'),
       BufferLayout.ns64('amount'),
@@ -73,7 +79,7 @@ export class SystemProgram {
     );
 
     return new Transaction().add({
-      keys: [from, to],
+      keys: [{pubkey: from, isSigner: true}, {pubkey: to, isSigner: false}],
       programId: SystemProgram.programId,
       data,
     });
@@ -98,7 +104,7 @@ export class SystemProgram {
     );
 
     return new Transaction().add({
-      keys: [from],
+      keys: [{pubkey: from, isSigner: true}],
       programId: SystemProgram.programId,
       data,
     });

@@ -1,0 +1,13 @@
+
+[package]
+name = "bitconch-sdk-bpf-utils"
+version = "0.17.0"
+description = "Bitconch BPF SDK Rust Utils"
+authors = ["Bitconch Dev"]
+repository = "https://github.com/bitconch/bus"
+license = "Apache-2.0"
+homepage = "https://bitconch.com/"
+edition = "2018"
+
+[workspace]
+members = []
