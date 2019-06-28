@@ -39,8 +39,16 @@ declare module '@bitconch/bitconch-web3j' {
   declare export type AccountInfo = {
     executable: boolean,
     owner: PublicKey,
-    lamports: number,
+    // lamports: number,
+    dif: number,
     data: Buffer,
+  };
+
+  declare export type ContactInfo = {
+    id: string,
+    gossip: string,
+    tpu: string | null,
+    rpc: string | null,
   };
 
   declare export type KeyedAccountInfo = {
@@ -53,21 +61,23 @@ declare module '@bitconch/bitconch-web3j' {
     keyedAccountInfo: KeyedAccountInfo,
   ) => void;
 
-  declare export type SignatureStatus =
-    | 'Confirmed'
-    | 'AccountInUse'
-    | 'SignatureNotFound'
-    | 'ProgramRuntimeError'
-    | 'GenericFailure';
+  declare export type SignatureSuccess = {|
+    Ok: null,
+  |};
+  declare export type TransactionError = {|
+    Err: Object,
+  |};
 
   declare export class Connection {
     constructor(endpoint: string): Connection;
-    getBalance(publicKey: PublicKey): Promise<number>;
     getAccountInfo(publicKey: PublicKey): Promise<AccountInfo>;
+    getBalance(publicKey: PublicKey): Promise<number>;
+    getClusterNodes(): Promise<Array<ContactInfo>>;
     confirmTransaction(signature: TransactionSignature): Promise<boolean>;
+    getSlotLeader(): Promise<string>;
     getSignatureStatus(
       signature: TransactionSignature,
-    ): Promise<SignatureStatus>;
+    ): Promise<SignatureSuccess | TransactionError | null>;
     getTransactionCount(): Promise<number>;
     getRecentBlockhash(): Promise<Blockhash>;
     requestAirdrop(
@@ -89,6 +99,7 @@ declare module '@bitconch/bitconch-web3j' {
       callback: ProgramAccountChangeCallback,
     ): number;
     removeProgramAccountChangeListener(id: number): Promise<void>;
+    fullnodeExit(): Promise<boolean>;
   }
 
   // === src/system-program.js ===
@@ -98,11 +109,16 @@ declare module '@bitconch/bitconch-web3j' {
     static createAccount(
       from: PublicKey,
       newAccount: PublicKey,
-      lamports: number,
+      // lamports: number,
+      dif: number,
       space: number,
       programId: PublicKey,
     ): Transaction;
-    static move(from: PublicKey, to: PublicKey, amount: number): Transaction;
+    static transfer(
+      from: PublicKey,
+      to: PublicKey,
+      amount: number,
+    ): Transaction;
     static assign(from: PublicKey, programId: PublicKey): Transaction;
   }
 
@@ -110,13 +126,13 @@ declare module '@bitconch/bitconch-web3j' {
   declare export type TransactionSignature = string;
 
   declare type TransactionInstructionCtorFields = {|
-    keys: ?Array<PublicKey>,
+    keys: ?Array<{pubkey: PublicKey, isSigner: boolean}>,
     programId?: PublicKey,
     data?: Buffer,
   |};
 
   declare export class TransactionInstruction {
-    keys: Array<PublicKey>;
+    keys: Array<{pubkey: PublicKey, isSigner: boolean}>;
     programId: PublicKey;
     data: Buffer;
   }
@@ -127,7 +143,6 @@ declare module '@bitconch/bitconch-web3j' {
   |};
 
   declare type TransactionCtorFields = {|
-    fee?: number,
     recentBlockhash?: Blockhash,
     signatures?: Array<SignaturePubkeyPair>,
   |};
@@ -137,7 +152,6 @@ declare module '@bitconch/bitconch-web3j' {
     signature: ?Buffer;
     instructions: Array<TransactionInstruction>;
     recentBlockhash: ?Blockhash;
-    fee: number;
 
     constructor(opts?: TransactionCtorFields): Transaction;
     add(
@@ -237,9 +251,13 @@ declare module '@bitconch/bitconch-web3j' {
 
   // === src/loader.js ===
   declare export class Loader {
-    constructor(connection: Connection, programId: PublicKey): Loader;
-    load(program: Account, offset: number, bytes: Array<number>): Promise<void>;
-    finalize(program: Account): Promise<void>;
+    static load(
+      connection: Connection,
+      payer: Account,
+      program: Account,
+      programId: PublicKey,
+      data: Array<number>,
+    ): Promise<PublicKey>;
   }
 
   // === src/bpf-loader.js ===
@@ -247,7 +265,7 @@ declare module '@bitconch/bitconch-web3j' {
     static programId: PublicKey;
     static load(
       connection: Connection,
-      owner: Account,
+      payer: Account,
       elfBytes: Array<number>,
     ): Promise<PublicKey>;
   }
@@ -257,7 +275,7 @@ declare module '@bitconch/bitconch-web3j' {
     static programId: PublicKey;
     static load(
       connection: Connection,
-      owner: Account,
+      payer: Account,
       programName: string,
     ): Promise<PublicKey>;
   }

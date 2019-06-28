@@ -9,43 +9,46 @@ import {Transaction} from './transaction';
 import {sendAndConfirmTransaction} from './util/send-and-confirm-transaction';
 import {sleep} from './util/sleep';
 import type {Connection} from './connection';
+import {SystemProgram} from './system-program';
 
 /**
- * 程序加载器接口
+ * Program loader interface
  */
 export class Loader {
   /**
-   * @private
-   */
-  connection: Connection;
-
-  /**
-   * @private
-   */
-  programId: PublicKey;
-
-  /**
-   * 每个加载交易中放置的程序数据量
+   * Amount of program data placed in each load Transaction
    */
   static get chunkSize(): number {
-    return 256;
+    return 229; // Keep program chunks under PACKET_DATA_SIZE
   }
 
   /**
-   * @param connection 要使用的连接
-   * @param programId 标识加载程序的公钥
-   */
-  constructor(connection: Connection, programId: PublicKey) {
-    Object.assign(this, {connection, programId});
-  }
-
-  /**
-   * 加载程序数据
+   * Loads a generic program
    *
-   * @param program 帐户加载程序信息
-   * @param data 程序数据
+   * @param connection The connection to use
+   * @param payer System account that pays to load the program
+   * @param program Account to load the program into
+   * @param programId Public key that identifies the loader
+   * @param data Program octets
    */
-  async load(program: Account, data: Array<number>) {
+  static async load(
+    connection: Connection,
+    payer: Account,
+    program: Account,
+    programId: PublicKey,
+    data: Array<number>,
+  ): Promise<PublicKey> {
+    {
+      const transaction = SystemProgram.createAccount(
+        payer.publicKey,
+        program.publicKey,
+        1,
+        data.length,
+        programId,
+      );
+      await sendAndConfirmTransaction(connection, transaction, payer);
+    }
+
     const dataLayout = BufferLayout.struct([
       BufferLayout.u32('instruction'),
       BufferLayout.u32('offset'),
@@ -67,7 +70,7 @@ export class Loader {
       const data = Buffer.alloc(chunkSize + 16);
       dataLayout.encode(
         {
-          instruction: 0, // 加载指令
+          instruction: 0, // Load instruction
           offset,
           bytes,
         },
@@ -75,20 +78,22 @@ export class Loader {
       );
 
       const transaction = new Transaction().add({
-        keys: [program.publicKey],
-        programId: this.programId,
+        keys: [{pubkey: program.publicKey, isSigner: true}],
+        programId,
         data,
       });
       transactions.push(
-        sendAndConfirmTransaction(this.connection, transaction, program),
+        sendAndConfirmTransaction(connection, transaction, payer, program),
       );
 
-      // 写入事务之间的延迟〜1滴答以尝试减少AccountInUse错误，因为所有写入事务都修改了相同的程序帐户
+      // Delay ~1 tick between write transactions in an attempt to reduce AccountInUse errors
+      // since all the write transactions modify the same program account
       await sleep(1000 / NUM_TICKS_PER_SECOND);
 
-      // 并行运行最多8个Loads，以防止过多的并行事务被AccountInUse拒绝。
+      // Run up to 8 Loads in parallel to prevent too many parallel transactions from
+      // getting rejected with AccountInUse.
       //
-      // TODO：8经验选择，应该重新审视
+      // TODO: 8 was selected empirically and should probably be revisited
       if (transactions.length === 8) {
         await Promise.all(transactions);
         transactions = [];
@@ -98,29 +103,26 @@ export class Loader {
       array = array.slice(chunkSize);
     }
     await Promise.all(transactions);
-  }
 
-  /**
-   * 完成加载程序数据以执行的帐户
-   *
-   * @param program `load()`ed Account
-   */
-  async finalize(program: Account) {
-    const dataLayout = BufferLayout.struct([BufferLayout.u32('instruction')]);
+    // Finalize the account loaded with program data for execution
+    {
+      const dataLayout = BufferLayout.struct([BufferLayout.u32('instruction')]);
 
-    const data = Buffer.alloc(dataLayout.span);
-    dataLayout.encode(
-      {
-        instruction: 1, // 完成指令
-      },
-      data,
-    );
+      const data = Buffer.alloc(dataLayout.span);
+      dataLayout.encode(
+        {
+          instruction: 1, // Finalize instruction
+        },
+        data,
+      );
 
-    const transaction = new Transaction().add({
-      keys: [program.publicKey],
-      programId: this.programId,
-      data,
-    });
-    await sendAndConfirmTransaction(this.connection, transaction, program);
+      const transaction = new Transaction().add({
+        keys: [{pubkey: program.publicKey, isSigner: true}],
+        programId,
+        data,
+      });
+      await sendAndConfirmTransaction(connection, transaction, payer, program);
+    }
+    return program.publicKey;
   }
 }

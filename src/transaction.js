@@ -17,12 +17,12 @@ import type {Blockhash} from './blockhash';
 export type TransactionSignature = string;
 
 /**
- * 交易的最大线上大小
+ * Maximum over-the-wire size of a Transaction
  */
 export const PACKET_DATA_SIZE = 512;
 
 /**
- * 可在构造时初始化的交易指令对象字段的列表
+ * List of TransactionInstruction object fields that may be initialized at construction
  *
  * @typedef {Object} TransactionInstructionCtorFields
  * @property {?Array<PublicKey>} keys
@@ -30,27 +30,28 @@ export const PACKET_DATA_SIZE = 512;
  * @property {?Buffer} data
  */
 type TransactionInstructionCtorFields = {|
-  keys?: Array<PublicKey>,
+  keys?: Array<{pubkey: PublicKey, isSigner: boolean}>,
   programId?: PublicKey,
   data?: Buffer,
 |};
 
 /**
- * 交易指令类
+ * Transaction Instruction class
  */
 export class TransactionInstruction {
   /**
-   * 包含在此交易中的公钥
+   * Public keys to include in this transaction
+   * Boolean represents whether this pubkey needs to sign the transaction
    */
-  keys: Array<PublicKey> = [];
+  keys: Array<{pubkey: PublicKey, isSigner: boolean}> = [];
 
   /**
-   * 要执行的程序ID
+   * Program Id to execute
    */
   programId: PublicKey;
 
   /**
-   * 输入
+   * Program input
    */
   data: Buffer = Buffer.alloc(0);
 
@@ -68,32 +69,30 @@ type SignaturePubkeyPair = {|
 |};
 
 /**
- * 可在构造时初始化的交易对象字段列表
+ * List of Transaction object fields that may be initialized at construction
  *
  * @typedef {Object} TransactionCtorFields
- * @property {?number} fee
- * @property (?recentBlockhash} 最近的一个块哈希
- * @property (?signatures} 一个或多个签名
+ * @property (?recentBlockhash} A recent block hash
+ * @property (?signatures} One or more signatures
  *
  */
 type TransactionCtorFields = {|
-  fee?: number,
   recentBlockhash?: Blockhash,
   signatures?: Array<SignaturePubkeyPair>,
 |};
 
 /**
- * 交易类
+ * Transaction class
  */
 export class Transaction {
   /**
-   * 交易的签名。一般都是通过调用`sign()`方法获得。
-   *
+   * Signatures for the transaction.  Typically created by invoking the
+   * `sign()` method
    */
   signatures: Array<SignaturePubkeyPair> = [];
 
   /**
-   * 第一个（主要）交易签名
+   * The first (payer) Transaction signature
    */
   get signature(): Buffer | null {
     if (this.signatures.length > 0) {
@@ -103,29 +102,24 @@ export class Transaction {
   }
 
   /**
-   * 原子执行的指令
+   * The instructions to atomically execute
    */
   instructions: Array<TransactionInstruction> = [];
 
   /**
-   * 最近的交易ID。 必须由调用者填充
+   * A recent transaction id.  Must be populated by the caller
    */
   recentBlockhash: ?Blockhash;
 
   /**
-   * 这笔交易的费用 手续费为0.001BUS或者1Dif
-   */
-  fee: number = 1;
-
-  /**
-   * 构造一个空的Transaction
+   * Construct an empty Transaction
    */
   constructor(opts?: TransactionCtorFields) {
     opts && Object.assign(this, opts);
   }
 
   /**
-   * 向此交易添加一条或多条指令
+   * Add one or more instructions to this Transaction
    */
   add(
     ...items: Array<Transaction | TransactionInstructionCtorFields>
@@ -158,6 +152,7 @@ export class Transaction {
     }
 
     const keys = this.signatures.map(({publicKey}) => publicKey.toString());
+    let numRequiredSignatures = 0;
 
     const programIds = [];
     this.instructions.forEach(instruction => {
@@ -166,14 +161,24 @@ export class Transaction {
         programIds.push(programId);
       }
 
-      instruction.keys
-        .map(key => key.toString())
-        .forEach(key => {
-          if (!keys.includes(key)) {
-            keys.push(key);
+      instruction.keys.forEach(keySignerPair => {
+        const keyStr = keySignerPair.pubkey.toString();
+        if (!keys.includes(keyStr)) {
+          if (keySignerPair.isSigner) {
+            numRequiredSignatures += 1;
           }
-        });
+          keys.push(keyStr);
+        }
+      });
     });
+
+    if (numRequiredSignatures > this.signatures.length) {
+      throw new Error(
+        `Insufficent signatures: expected ${numRequiredSignatures} but got ${
+          this.signatures.length
+        }`,
+      );
+    }
 
     let keyCount = [];
     shortvec.encodeLength(keyCount, keys.length);
@@ -191,7 +196,9 @@ export class Transaction {
         programIdIndex: programIds.indexOf(programId.toString()),
         keyIndicesCount: Buffer.from(keyIndicesCount),
         keyIndices: Buffer.from(
-          instruction.keys.map(key => keys.indexOf(key.toString())),
+          instruction.keys.map(keyObj =>
+            keys.indexOf(keyObj.pubkey.toString()),
+          ),
         ),
         dataLength: Buffer.from(dataCount),
         data,
@@ -239,10 +246,10 @@ export class Transaction {
     instructionBuffer = instructionBuffer.slice(0, instructionBufferLength);
 
     const signDataLayout = BufferLayout.struct([
+      BufferLayout.blob(1, 'numRequiredSignatures'),
       BufferLayout.blob(keyCount.length, 'keyCount'),
       BufferLayout.seq(Layout.publicKey('key'), keys.length, 'keys'),
       Layout.publicKey('recentBlockhash'),
-      BufferLayout.ns64('fee'),
 
       BufferLayout.blob(programIdCount.length, 'programIdCount'),
       BufferLayout.seq(
@@ -253,10 +260,10 @@ export class Transaction {
     ]);
 
     const transaction = {
+      numRequiredSignatures: Buffer.from([this.signatures.length]),
       keyCount: Buffer.from(keyCount),
       keys: keys.map(key => new PublicKey(key).toBuffer()),
       recentBlockhash: Buffer.from(bs58.decode(recentBlockhash)),
-      fee: this.fee,
       programIdCount: Buffer.from(programIdCount),
       programIds: programIds.map(programId =>
         new PublicKey(programId).toBuffer(),
@@ -272,21 +279,27 @@ export class Transaction {
   }
 
   /**
-   * 使用指定的帐户签署交易。 一个交易可以应用多个签名。 第一个签名被认为是主签名，在测试交易确认时使用。
+   * Sign the Transaction with the specified accounts.  Multiple signatures may
+   * be applied to a Transaction. The first signature is considered "primary"
+   * and is used when testing for Transaction confirmation.
    *
-   * 在第一次调用“sign”之后，不应修改交易字段，因为这样做可能会使签名无效并导致事务被拒绝。
+   * Transaction fields should not be modified after the first call to `sign`,
+   * as doing so may invalidate the signature and cause the Transaction to be
+   * rejected.
    *
-   * 在调用此方法之前，必须为Transaction分配一个有效的`recentBlockhash`
+   * The Transaction must be assigned a valid `recentBlockhash` before invoking this method
    */
   sign(...signers: Array<Account>) {
     this.signPartial(...signers);
   }
 
   /**
-   * 使用指定的帐户部分签署交易。 “账户”输入将立即用于签署交易，而任何“PublicKey”输入将在签名的交易中被引用，
-   * 但需要稍后通过使用匹配的“账户”调用“addSigner（）”来填写。
+   * Partially sign a Transaction with the specified accounts.  The `Account`
+   * inputs will be used to sign the Transaction immediately, while any
+   * `PublicKey` inputs will be referenced in the signed Transaction but need to
+   * be filled in later by calling `addSigner()` with the matching `Account`.
    *
-   * 来自`sign`方法的所有警告都适用于`signPartial`
+   * All the caveats from the `sign` method apply to `signPartial`
    */
   signPartial(...partialSigners: Array<PublicKey | Account>) {
     if (partialSigners.length === 0) {
@@ -321,7 +334,9 @@ export class Transaction {
   }
 
   /**
-   * 为部分签名的交易填写签名。 `signer`必须是之前提供给`signPartial`的`PublicKey`的相应`Account`。
+   * Fill in a signature for a partially signed Transaction.  The `signer` must
+   * be the corresponding `Account` for a `PublicKey` that was previously provided to
+   * `signPartial`
    */
   addSigner(signer: Account) {
     const index = this.signatures.findIndex(sigpair =>
@@ -338,9 +353,9 @@ export class Transaction {
   }
 
   /**
-   * 以电汇交易格式序列化交易。
+   * Serialize the Transaction in the wire format.
    *
-   * 在调用此方法之前，Transaction必须具有有效的`signature`
+   * The Transaction must have a valid `signature` before invoking this method
    */
   serialize(): Buffer {
     const {signatures} = this;
@@ -376,16 +391,16 @@ export class Transaction {
   }
 
   /**
-   * 不推荐的方法
+   * Deprecated method
    * @private
    */
   get keys(): Array<PublicKey> {
     invariant(this.instructions.length === 1);
-    return this.instructions[0].keys;
+    return this.instructions[0].keys.map(keyObj => keyObj.pubkey);
   }
 
   /**
-   * 不推荐的方法
+   * Deprecated method
    * @private
    */
   get programId(): PublicKey {
@@ -394,7 +409,7 @@ export class Transaction {
   }
 
   /**
-   * 不推荐的方法
+   * Deprecated method
    * @private
    */
   get data(): Buffer {
@@ -403,7 +418,7 @@ export class Transaction {
   }
 
   /**
-   * 解析电汇交易到交易对象。
+   * Parse a wire transaction into a Transaction object.
    */
   static from(buffer: Buffer): Transaction {
     const PUBKEY_LENGTH = 32;
@@ -422,6 +437,8 @@ export class Transaction {
       signatures.push(signature);
     }
 
+    byteArray = byteArray.slice(1); // Skip numRequiredSignatures byte
+
     const accountCount = shortvec.decodeLength(byteArray);
     let accounts = [];
     for (let i = 0; i < accountCount; i++) {
@@ -432,11 +449,6 @@ export class Transaction {
 
     const recentBlockhash = byteArray.slice(0, PUBKEY_LENGTH);
     byteArray = byteArray.slice(PUBKEY_LENGTH);
-
-    let fee = 0;
-    for (let i = 0; i < 8; i++) {
-      fee += byteArray.shift() >> (8 * i);
-    }
 
     const programIdCount = shortvec.decodeLength(byteArray);
     let programs = [];
@@ -460,9 +472,8 @@ export class Transaction {
       instructions.push(instruction);
     }
 
-    // 填充Transaction对象
+    // Populate Transaction object
     transaction.recentBlockhash = new PublicKey(recentBlockhash).toBase58();
-    transaction.fee = fee;
     for (let i = 0; i < signatureCount; i++) {
       const sigPubkeyPair = {
         signature: Buffer.from(signatures[i]),
@@ -477,9 +488,13 @@ export class Transaction {
         data: Buffer.from(instructions[i].data),
       };
       for (let j = 0; j < instructions[i].accountIndex.length; j++) {
-        instructionData.keys.push(
-          new PublicKey(accounts[instructions[i].accountIndex[j]]),
-        );
+        const pubkey = new PublicKey(accounts[instructions[i].accountIndex[j]]);
+        instructionData.keys.push({
+          pubkey,
+          isSigner: transaction.signatures.some(
+            keyObj => keyObj.publicKey.toString() === pubkey.toString(),
+          ),
+        });
       }
       let instruction = new TransactionInstruction(instructionData);
       transaction.instructions.push(instruction);

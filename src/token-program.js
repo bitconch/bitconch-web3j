@@ -16,11 +16,11 @@ import {sendAndConfirmTransaction} from './util/send-and-confirm-transaction';
 import type {Connection} from './connection';
 
 /**
- * 一些代币
+ * Some amount of tokens
  */
 export class TokenAmount extends BN {
   /**
-   * 转换为缓冲区表示
+   * Convert to Buffer representation
    */
   toBuffer(): Buffer {
     const a = super.toArray().reverse();
@@ -36,7 +36,7 @@ export class TokenAmount extends BN {
   }
 
   /**
-   * 从Buffer表示构造TokenAmount
+   * Construct a TokenAmount from Buffer representation
    */
   static fromBuffer(buffer: Buffer): TokenAmount {
     assert(buffer.length === 8, `Invalid buffer length: ${buffer.length}`);
@@ -51,26 +51,26 @@ export class TokenAmount extends BN {
 }
 
 /**
- * 有关代币的信息
+ * Information about a token
  */
 type TokenInfo = {|
   /**
-   * 代币总供应量
+   * Total supply of tokens
    */
   supply: TokenAmount,
 
   /**
-   * 小数点右侧的基数10位数
+   * Number of base 10 digits to the right of the decimal place
    */
   decimals: number,
 
   /**
-   * 此代币的描述性名称
+   * Descriptive name of this token
    */
   name: string,
 
   /**
-   * 代币的代号
+   * Symbol for this token
    */
   symbol: string,
 |};
@@ -86,34 +86,36 @@ const TokenInfoLayout = BufferLayout.struct([
 ]);
 
 /**
- * 有关代币帐户的信息
+ * Information about a token account
  */
 type TokenAccountInfo = {|
   /**
-   * 此帐户拥有的代币种类
+   * The kind of token this account holds
    */
   token: PublicKey,
 
   /**
-   * 此帐户的所有者
+   * Owner of this account
    */
   owner: PublicKey,
 
   /**
-   * 此帐户持有的代币金额
+   * Amount of tokens this account holds
    */
   amount: TokenAmount,
 
   /**
-   * 代币的源帐户。
+   * The source account for the tokens.
    *
-   * 如果`source`为null，则源为此帐户。如果`source`不为null，
-   * 则此帐户中的“amount”标记表示可以从源帐户转移的代币余额
+   * If `source` is null, the source is this account.
+   * If `source` is not null, the `amount` of tokens in this account represent
+   * an allowance of tokens that may be transferred from the source account
    */
   source: null | PublicKey,
 
   /**
-   * 此委托帐户被授权使用的原始代币数量如果`source`为null，则originalAmount为零
+   * Original amount of tokens this delegate account was authorized to spend
+   * If `source` is null, originalAmount is zero
    */
   originalAmount: TokenAmount,
 |};
@@ -130,18 +132,17 @@ const TokenAccountInfoLayout = BufferLayout.struct([
   Layout.uint64('originalAmount'),
 ]);
 
-// 存在此类型以解决esdoc解析错误
-type TokenAndPublicKey = [Token, PublicKey];
+type TokenAndPublicKey = [Token, PublicKey]; // This type exists to workaround an esdoc parse error
 
 /**
- * 内置代币程序
+ * The built-in token program
  */
 export const SYSTEM_TOKEN_PROGRAM_ID = new PublicKey(
-  '0x8300000000000000000000000000000000000000000000000000000000000000',
+  'Token11111111111111111111111111111111111111',
 );
 
 /**
- * 类似ERC20的令牌
+ * An ERC20-like Token
  */
 export class Token {
   /**
@@ -150,21 +151,21 @@ export class Token {
   connection: Connection;
 
   /**
-   * 标识此代币的公钥
+   * The public key identifying this token
    */
   token: PublicKey;
 
   /**
-   * 代币程序的程序标识符
+   * Program Identifier for the Token program
    */
   programId: PublicKey;
 
   /**
-   * 创建附加到特定代币的代币对象
+   * Create a Token object attached to the specific token
    *
-   * @param connection 要使用的连接
-   * @param token 代币的公钥
-   * @param programId 可选代币programId，默认使用系统programId
+   * @param connection The connection to use
+   * @param token Public key of the token
+   * @param programId Optional token programId, uses the system programId by default
    */
   constructor(
     connection: Connection,
@@ -175,16 +176,16 @@ export class Token {
   }
 
   /**
-   * 创建一个新的代币
+   * Create a new Token
    *
-   * @param connection 要使用的连接
-   * @param owner 拥有返回的令牌帐户的用户帐户
-   * @param supply 新令牌的总供应量
-   * @param name 此令牌的描述性名称
-   * @param symbol 此令牌的符号
-   * @param decimals 小数位的位置
-   * @param programId 可选令牌programId默认使用系统programId
-   * @return 新签名令牌的令牌对象，令牌帐户的公钥持有新令牌的总供应量
+   * @param connection The connection to use
+   * @param owner User account that will own the returned Token Account
+   * @param supply Total supply of the new token
+   * @param name Descriptive name of this token
+   * @param symbol Symbol for this token
+   * @param decimals Location of the decimal place
+   * @param programId Optional token programId, uses the system programId by default
+   * @return Token object for the newly minted token, Public key of the Token Account holding the total supply of new tokens
    */
   static async createNewToken(
     connection: Connection,
@@ -213,7 +214,7 @@ export class Token {
     {
       const encodeLength = dataLayout.encode(
         {
-          instruction: 0,
+          instruction: 0, // NewToken instruction
           supply: supply.toBuffer(),
           decimals,
           name,
@@ -224,7 +225,7 @@ export class Token {
       data = data.slice(0, encodeLength);
     }
 
-    // 为tokenAccount帐户分配内存
+    // Allocate memory for the tokenAccount account
     transaction = SystemProgram.createAccount(
       owner.publicKey,
       tokenAccount.publicKey,
@@ -235,24 +236,32 @@ export class Token {
     await sendAndConfirmTransaction(connection, transaction, owner);
 
     transaction = new Transaction().add({
-      keys: [tokenAccount.publicKey, initialAccountPublicKey],
+      keys: [
+        {pubkey: tokenAccount.publicKey, isSigner: true},
+        {pubkey: initialAccountPublicKey, isSigner: false},
+      ],
       programId,
       data,
     });
-    transaction.fee = 0;
-    await sendAndConfirmTransaction(connection, transaction, tokenAccount);
+    await sendAndConfirmTransaction(
+      connection,
+      transaction,
+      owner,
+      tokenAccount,
+    );
 
     return [token, initialAccountPublicKey];
   }
 
   /**
-   * 创建一个新的空令牌帐户。
+   * Create a new and empty token account.
    *
-   * 然后该帐户可以用作`transfer（）`或`approve（）`。
+   * This account may then be used as a `transfer()` or `approve()` destination
    *
-   * @param owner 拥有新令牌帐户的用户帐户
-   * @param source 如果不为null，则创建一个委托帐户，授权后可以从此`source`帐户转移令牌
-   * @return 新空令牌帐户的公钥
+   * @param owner User account that will own the new token account
+   * @param source If not null, create a delegate account that when authorized
+   *               may transfer tokens from this `source` account
+   * @return Public key of the new empty token account
    */
   async newAccount(
     owner: Account,
@@ -266,12 +275,12 @@ export class Token {
     const data = Buffer.alloc(dataLayout.span);
     dataLayout.encode(
       {
-        instruction: 1,
+        instruction: 1, // NewTokenAccount instruction
       },
       data,
     );
 
-    // 为令牌分配内存
+    // Allocate memory for the token
     transaction = SystemProgram.createAccount(
       owner.publicKey,
       tokenAccount.publicKey,
@@ -281,24 +290,32 @@ export class Token {
     );
     await sendAndConfirmTransaction(this.connection, transaction, owner);
 
-    //
-    const keys = [tokenAccount.publicKey, owner.publicKey, this.token];
+    // Initialize the token account
+    const keys = [
+      {pubkey: tokenAccount.publicKey, isSigner: true},
+      {pubkey: owner.publicKey, isSigner: false},
+      {pubkey: this.token, isSigner: false},
+    ];
     if (source) {
-      keys.push(source);
+      keys.push({pubkey: source, isSigner: false});
     }
     transaction = new Transaction().add({
       keys,
       programId: this.programId,
       data,
     });
-    transaction.fee = 0; // TODO: Batch with the `SystemProgram.createAccount` and remove this line
-    await sendAndConfirmTransaction(this.connection, transaction, tokenAccount);
+    await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      owner,
+      tokenAccount,
+    );
 
     return tokenAccount.publicKey;
   }
 
   /**
-   * 检索令牌信息
+   * Retrieve token information
    */
   async tokenInfo(): Promise<TokenInfo> {
     const accountInfo = await this.connection.getAccountInfo(this.token);
@@ -319,9 +336,9 @@ export class Token {
   }
 
   /**
-   * 检索帐户信息
+   * Retrieve account information
    *
-   * @param account 令牌帐户的公钥
+   * @param account Public key of the token account
    */
   async accountInfo(account: PublicKey): Promise<TokenAccountInfo> {
     const accountInfo = await this.connection.getAccountInfo(account);
@@ -359,12 +376,12 @@ export class Token {
   }
 
   /**
-   * 将令牌转移到另一个帐户
+   * Transfer tokens to another account
    *
-   * @param owner 源令牌帐户的所有者
-   * @param source 源令牌帐户
-   * @param destination 目标令牌帐户
-   * @param amount 要转移的令牌数量
+   * @param owner Owner of the source token account
+   * @param source Source token account
+   * @param destination Destination token account
+   * @param amount Number of tokens to transfer
    */
   async transfer(
     owner: Account,
@@ -387,12 +404,12 @@ export class Token {
   }
 
   /**
-   * 授予第三方权限以从帐户转移指定数量的令牌
+   * Grant a third-party permission to transfer up the specified number of tokens from an account
    *
-   * @param owner 源令牌帐户的所有者
-   * @param account 令牌帐户的公钥
-   * @param delegate 令牌帐户被授权从源帐户执行转移令牌
-   * @param amount 代表可以转移的最大令牌数
+   * @param owner Owner of the source token account
+   * @param account Public key of the token account
+   * @param delegate Token account authorized to perform a transfer tokens from the source account
+   * @param amount Maximum number of tokens the delegate may transfer
    */
   async approve(
     owner: Account,
@@ -410,11 +427,11 @@ export class Token {
   }
 
   /**
-   * 取消转让任何剩余令牌的批准
+   * Remove approval for the transfer of any remaining tokens
    *
-   * @param owner 源令牌帐户的所有者
-   * @param account 令牌帐户的公钥
-   * @param delegate 令牌帐户撤销授权
+   * @param owner Owner of the source token account
+   * @param account Public key of the token account
+   * @param delegate Token account to revoke authorization from
    */
   revoke(
     owner: Account,
@@ -425,11 +442,11 @@ export class Token {
   }
 
   /**
-   * 将新所有者分配给该帐户
+   * Assign a new owner to the account
    *
-   * @param owner 令牌帐户的所有者
-   * @param account 令牌帐户的公钥
-   * @param newOwner 令牌帐户的新所有者
+   * @param owner Owner of the token account
+   * @param account Public key of the token account
+   * @param newOwner New owner of the token account
    */
   async setOwner(
     owner: Account,
@@ -446,12 +463,12 @@ export class Token {
   }
 
   /**
-   * 构造转移指令
+   * Construct a Transfer instruction
    *
-   * @param owner 源令牌帐户的所有者
-   * @param source 源令牌帐户
-   * @param destination 目标令牌帐户
-   * @param amount 要转移的令牌数量
+   * @param owner Owner of the source token account
+   * @param source Source token account
+   * @param destination Destination token account
+   * @param amount Number of tokens to transfer
    */
   async transferInstruction(
     owner: PublicKey,
@@ -472,15 +489,19 @@ export class Token {
     const data = Buffer.alloc(dataLayout.span);
     dataLayout.encode(
       {
-        instruction: 2,
+        instruction: 2, // Transfer instruction
         amount: new TokenAmount(amount).toBuffer(),
       },
       data,
     );
 
-    const keys = [owner, source, destination];
+    const keys = [
+      {pubkey: owner, isSigner: true},
+      {pubkey: source, isSigner: false},
+      {pubkey: destination, isSigner: false},
+    ];
     if (accountInfo.source) {
-      keys.push(accountInfo.source);
+      keys.push({pubkey: accountInfo.source, isSigner: false});
     }
     return new TransactionInstruction({
       keys,
@@ -490,12 +511,12 @@ export class Token {
   }
 
   /**
-   * 构建一个Approve指令
+   * Construct an Approve instruction
    *
-   * @param owner 源令牌帐户的所有者
-   * @param account 令牌帐户的公钥
-   * @param delegate 令牌帐户被授权从源帐户执行转移令牌
-   * @param amount 代表可以转移的最大令牌数
+   * @param owner Owner of the source token account
+   * @param account Public key of the token account
+   * @param delegate Token account authorized to perform a transfer tokens from the source account
+   * @param amount Maximum number of tokens the delegate may transfer
    */
   approveInstruction(
     owner: PublicKey,
@@ -511,25 +532,29 @@ export class Token {
     const data = Buffer.alloc(dataLayout.span);
     dataLayout.encode(
       {
-        instruction: 3,
+        instruction: 3, // Approve instruction
         amount: new TokenAmount(amount).toBuffer(),
       },
       data,
     );
 
     return new TransactionInstruction({
-      keys: [owner, account, delegate],
+      keys: [
+        {pubkey: owner, isSigner: true},
+        {pubkey: account, isSigner: false},
+        {pubkey: delegate, isSigner: false},
+      ],
       programId: this.programId,
       data,
     });
   }
 
   /**
-   * 构造一个Revoke指令
+   * Construct an Revoke instruction
    *
-   * @param owner 源令牌帐户的所有者
-   * @param account 令牌帐户的公钥
-   * @param delegate 令牌帐户被授权从源帐户执行转移令牌
+   * @param owner Owner of the source token account
+   * @param account Public key of the token account
+   * @param delegate Token account authorized to perform a transfer tokens from the source account
    */
   revokeInstruction(
     owner: PublicKey,
@@ -540,11 +565,11 @@ export class Token {
   }
 
   /**
-   * 构造一个SetOwner指令
+   * Construct a SetOwner instruction
    *
-   * @param owner 令牌帐户的所有者
-   * @param account 令牌帐户的公钥
-   * @param newOwner 令牌帐户的新所有者
+   * @param owner Owner of the token account
+   * @param account Public key of the token account
+   * @param newOwner New owner of the token account
    */
   setOwnerInstruction(
     owner: PublicKey,
@@ -556,13 +581,17 @@ export class Token {
     const data = Buffer.alloc(dataLayout.span);
     dataLayout.encode(
       {
-        instruction: 4,
+        instruction: 4, // SetOwner instruction
       },
       data,
     );
 
     return new TransactionInstruction({
-      keys: [owner, account, newOwner],
+      keys: [
+        {pubkey: owner, isSigner: true},
+        {pubkey: account, isSigner: false},
+        {pubkey: newOwner, isSigner: false},
+      ],
       programId: this.programId,
       data,
     });

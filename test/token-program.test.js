@@ -4,15 +4,14 @@ import {Connection, PublicKey, Token, TokenAmount} from '../src';
 import {SYSTEM_TOKEN_PROGRAM_ID} from '../src/token-program';
 import {mockRpc, mockRpcEnabled} from './__mocks__/node-fetch';
 import {url} from './url';
-//import {newAccountWithLamports} from './new-account-with-lamports';
-import {newAccountWithDifs} from './new-account-with-difs';
+import {newAccountWithDif} from './new-account-with-dif';
 import {mockGetRecentBlockhash} from './mockrpc/get-recent-blockhash';
 import {sleep} from '../src/util/sleep';
 
 // The default of 5 seconds is too slow for live testing sometimes
 jest.setTimeout(60000);
 
-function mockGetSignatureStatus(result: string = 'Confirmed') {
+function mockGetSignatureStatus(result: Object = {Ok: null}) {
   mockRpc.push([
     url,
     {
@@ -49,8 +48,7 @@ test('create new token', async () => {
   const connection = new Connection(url);
   connection._disableBlockhashCaching = mockRpcEnabled;
 
-  //initialOwner = await newAccountWithLamports(connection, 1024);
-  initialOwner = await newAccountWithDifs(connection, 1024);
+  initialOwner = await newAccountWithDif(connection, 1024);
 
   {
     // mock SystemProgram.createAccount transaction for Token.createNewToken()
@@ -60,7 +58,7 @@ test('create new token', async () => {
 
     // mock Token.newAccount() transaction
     mockSendTransaction();
-    mockGetSignatureStatus('SignatureNotFound');
+    mockGetSignatureStatus(null);
     mockGetSignatureStatus();
 
     // mock SystemProgram.createAccount transaction for Token.createNewToken()
@@ -69,7 +67,7 @@ test('create new token', async () => {
 
     // mock Token.createNewToken() transaction
     mockSendTransaction();
-    mockGetSignatureStatus('SignatureNotFound');
+    mockGetSignatureStatus(null);
     mockGetSignatureStatus();
   }
 
@@ -94,8 +92,8 @@ test('create new token', async () => {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_PROGRAM_ID.toBuffer()],
-          //lamports: 1,
-          difs: 1,
+          // lamports: 1,
+          dif: 1,
           data: [
             1,
             16,
@@ -163,8 +161,8 @@ test('create new token', async () => {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_PROGRAM_ID.toBuffer()],
-          //lamports: 1,
-          difs: 1,
+          // lamports: 1,
+          dif: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -228,8 +226,7 @@ test('create new token', async () => {
 test('create new token account', async () => {
   const connection = new Connection(url);
   connection._disableBlockhashCaching = mockRpcEnabled;
-  //const destOwner = await newAccountWithLamports(connection);
-  const destOwner = await newAccountWithDifs(connection);
+  const destOwner = await newAccountWithDif(connection);
 
   {
     // mock SystemProgram.createAccount transaction for Token.newAccount()
@@ -254,8 +251,8 @@ test('create new token account', async () => {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_PROGRAM_ID.toBuffer()],
-          //lamports: 1,
-          difs: 1,
+          // lamports: 1,
+          dif: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -287,8 +284,7 @@ test('create new token account', async () => {
 test('transfer', async () => {
   const connection = new Connection(url);
   connection._disableBlockhashCaching = mockRpcEnabled;
-  //const destOwner = await newAccountWithLamports(connection);
-  const destOwner = await newAccountWithDifs(connection);
+  const destOwner = await newAccountWithDif(connection);
 
   {
     // mock SystemProgram.createAccount transaction for Token.newAccount()
@@ -314,8 +310,8 @@ test('transfer', async () => {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_PROGRAM_ID.toBuffer()],
-          //lamports: 1,
-          difs: 1,
+          // lamports: 1,
+          dif: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -354,8 +350,8 @@ test('transfer', async () => {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_PROGRAM_ID.toBuffer()],
-          //lamports: 1,
-          difs: 1,
+          // lamports: 1,
+          dif: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -385,8 +381,7 @@ test('transfer', async () => {
 test('approve/revoke', async () => {
   const connection = new Connection(url);
   connection._disableBlockhashCaching = mockRpcEnabled;
-  //const delegateOwner = await newAccountWithLamports(connection);
-  const delegateOwner = await newAccountWithDifs(connection);
+  const delegateOwner = await newAccountWithDif(connection);
 
   {
     // mock SystemProgram.createAccount transaction for Token.newAccount()
@@ -427,8 +422,8 @@ test('approve/revoke', async () => {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_PROGRAM_ID.toBuffer()],
-          //lamports: 1,
-          difs: 1,
+          // lamports: 1,
+          dif: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -490,8 +485,8 @@ test('approve/revoke', async () => {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_PROGRAM_ID.toBuffer()],
-          //lamports: 1,
-          difs: 1,
+          // lamports: 1,
+          dif: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -540,8 +535,7 @@ test('invalid approve', async () => {
   }
 
   const connection = new Connection(url);
-  //const owner = await newAccountWithLamports(connection);
-  const owner = await newAccountWithDifs(connection);
+  const owner = await newAccountWithDif(connection);
 
   const account1 = await testToken.newAccount(owner);
   const account1Delegate = await testToken.newAccount(owner, account1);
@@ -565,8 +559,7 @@ test('fail on approve overspend', async () => {
   }
 
   const connection = new Connection(url);
-  //const owner = await newAccountWithLamports(connection);
-  const owner = await newAccountWithDifs(connection);
+  const owner = await newAccountWithDif(connection);
 
   const account1 = await testToken.newAccount(owner);
   const account1Delegate = await testToken.newAccount(owner, account1);
@@ -609,10 +602,8 @@ test('set owner', async () => {
   }
 
   const connection = new Connection(url);
-  //const owner = await newAccountWithLamports(connection);
-  //const newOwner = await newAccountWithLamports(connection);
-  const owner = await newAccountWithDifs(connection);
-  const newOwner = await newAccountWithDifs(connection);
+  const owner = await newAccountWithDif(connection);
+  const newOwner = await newAccountWithDif(connection);
 
   const account = await testToken.newAccount(owner);
 

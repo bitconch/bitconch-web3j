@@ -4,21 +4,21 @@ import BN from 'bn.js';
 import bs58 from 'bs58';
 
 /**
- * 公钥
+ * A public key
  */
 export class PublicKey {
   _bn: BN;
 
   /**
-   * 创建一个新的PublicKey对象
+   * Create a new PublicKey object
    */
   constructor(value: number | string | Buffer | Array<number>) {
     if (typeof value === 'string') {
-      // 十六进制数
+      // hexadecimal number
       if (value.startsWith('0x')) {
         this._bn = new BN(value.substring(2), 16);
       } else {
-        // 默认情况下base 58编码
+        // assume base 58 encoding by default
         this._bn = new BN(bs58.decode(value));
       }
     } else {
@@ -31,28 +31,28 @@ export class PublicKey {
   }
 
   /**
-   * 检查提供的对象是否为PublicKey
+   * Checks if the provided object is a PublicKey
    */
   static isPublicKey(o: Object): boolean {
     return o instanceof PublicKey;
   }
 
   /**
-   * 检查两个publicKeys是否相等
+   * Checks if two publicKeys are equal
    */
   equals(publicKey: PublicKey): boolean {
     return this._bn.eq(publicKey._bn);
   }
 
   /**
-   * 返回公钥的base-58表示
+   * Return the base-58 representation of the public key
    */
   toBase58(): string {
     return bs58.encode(this.toBuffer());
   }
 
   /**
-   * 返回公钥的Buffer表示形式
+   * Return the Buffer representation of the public key
    */
   toBuffer(): Buffer {
     const b = this._bn.toArrayLike(Buffer);
@@ -66,7 +66,7 @@ export class PublicKey {
   }
 
   /**
-   * 返回公钥的字符串表示形式
+   * Returns a string representation of the public key
    */
   toString(): string {
     return this.toBase58();

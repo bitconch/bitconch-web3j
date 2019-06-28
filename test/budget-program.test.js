@@ -16,6 +16,7 @@ test('pay', () => {
     123,
   );
   expect(transaction.keys).toHaveLength(2);
+  // TODO: Validate transaction contents more
 
   transaction = BudgetProgram.pay(
     from.publicKey,
@@ -25,6 +26,7 @@ test('pay', () => {
     BudgetProgram.signatureCondition(from.publicKey),
   );
   expect(transaction.keys).toHaveLength(3);
+  // TODO: Validate transaction contents more
 
   transaction = BudgetProgram.pay(
     from.publicKey,
@@ -35,6 +37,7 @@ test('pay', () => {
     BudgetProgram.timestampCondition(from.publicKey, new Date()),
   );
   expect(transaction.keys).toHaveLength(3);
+  // TODO: Validate transaction contents more
 
   transaction = BudgetProgram.payOnBoth(
     from.publicKey,
@@ -45,6 +48,7 @@ test('pay', () => {
     BudgetProgram.timestampCondition(from.publicKey, new Date()),
   );
   expect(transaction.keys).toHaveLength(3);
+  // TODO: Validate transaction contents more
 });
 
 test('apply', () => {
@@ -60,6 +64,7 @@ test('apply', () => {
     new Date(),
   );
   expect(transaction.keys).toHaveLength(3);
+  // TODO: Validate transaction contents more
 
   transaction = BudgetProgram.applySignature(
     from.publicKey,
@@ -67,4 +72,5 @@ test('apply', () => {
     to.publicKey,
   );
   expect(transaction.keys).toHaveLength(3);
+  // TODO: Validate transaction contents more
 });

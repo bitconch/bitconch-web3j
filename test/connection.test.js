@@ -1,12 +1,5 @@
 // @flow
-import {
-  Account,
-  Connection,
-  BpfLoader,
-  Loader,
-  SystemProgram,
-  sendAndConfirmTransaction,
-} from '../src';
+import {Account, Connection, BpfLoader, Loader, SystemProgram} from '../src';
 import {DEFAULT_TICKS_PER_SLOT, NUM_TICKS_PER_SECOND} from '../src/timing';
 import {mockRpc, mockRpcEnabled} from './__mocks__/node-fetch';
 import {mockGetRecentBlockhash} from './mockrpc/get-recent-blockhash';
@@ -14,7 +7,7 @@ import {url} from './url';
 import {sleep} from '../src/util/sleep';
 
 if (!mockRpcEnabled) {
-  // Timeout setup
+  // The default of 5 seconds is too slow for live testing sometimes
   jest.setTimeout(30000);
 }
 
@@ -44,6 +37,28 @@ test('get account info - error', () => {
   );
 });
 
+test('fullnodeExit', async () => {
+  if (!mockRpcEnabled) {
+    console.log('fullnodeExit skipped on live node');
+    return;
+  }
+  const connection = new Connection(url);
+
+  mockRpc.push([
+    url,
+    {
+      method: 'fullnodeExit',
+    },
+    {
+      error: null,
+      result: false,
+    },
+  ]);
+
+  const result = await connection.fullnodeExit();
+  expect(result).toBe(false);
+});
+
 test('get balance', async () => {
   const account = new Account();
   const connection = new Connection(url);
@@ -62,6 +77,64 @@ test('get balance', async () => {
 
   const balance = await connection.getBalance(account.publicKey);
   expect(balance).toBeGreaterThanOrEqual(0);
+});
+
+test('get slot leader', async () => {
+  const connection = new Connection(url);
+
+  mockRpc.push([
+    url,
+    {
+      method: 'getSlotLeader',
+    },
+    {
+      error: null,
+      result: '11111111111111111111111111111111',
+    },
+  ]);
+
+  const slotLeader = await connection.getSlotLeader();
+  if (mockRpcEnabled) {
+    expect(slotLeader).toBe('11111111111111111111111111111111');
+  } else {
+    // No idea what the correct slotLeader value should be on a live cluster, so
+    // just check the type
+    expect(typeof slotLeader).toBe('string');
+  }
+});
+
+test('get cluster nodes', async () => {
+  const connection = new Connection(url);
+
+  mockRpc.push([
+    url,
+    {
+      method: 'getClusterNodes',
+    },
+    {
+      error: null,
+      result: [
+        {
+          id: '11111111111111111111111111111111',
+          gossip: '127.0.0.0:1234',
+          tpu: '127.0.0.0:1235',
+          rpc: null,
+        },
+      ],
+    },
+  ]);
+
+  const clusterNodes = await connection.getClusterNodes();
+  if (mockRpcEnabled) {
+    expect(clusterNodes).toHaveLength(1);
+    expect(clusterNodes[0].id).toBe('11111111111111111111111111111111');
+    expect(typeof clusterNodes[0].gossip).toBe('string');
+    expect(typeof clusterNodes[0].tpu).toBe('string');
+    expect(clusterNodes[0].rpc).toBeNull();
+  } else {
+    // There should be at least one node (the node that we're talking to)
+    expect(clusterNodes.length).toBeGreaterThan(0);
+  }
 });
 
 test('confirm transaction - error', () => {
@@ -213,7 +286,8 @@ test('request airdrop', async () => {
           0,
           0,
         ],
-        difs: 42,
+        // lamports: 42,
+        dif: 42,
         data: [],
         executable: false,
       },
@@ -221,7 +295,8 @@ test('request airdrop', async () => {
   ]);
 
   const accountInfo = await connection.getAccountInfo(account.publicKey);
-  expect(accountInfo.difs).toBe(42);
+  // expect(accountInfo.lamports).toBe(42);
+  expect(accountInfo.dif).toBe(42);
   expect(accountInfo.data).toHaveLength(0);
   expect(accountInfo.owner).toEqual(SystemProgram.programId);
 });
@@ -296,12 +371,11 @@ test('transaction', async () => {
     },
   ]);
 
-  const transaction = SystemProgram.move(
+  const transaction = SystemProgram.transfer(
     accountFrom.publicKey,
     accountTo.publicKey,
     10,
   );
-  transaction.fee = 0;
   const signature = await connection.sendTransaction(transaction, accountFrom);
 
   mockRpc.push([
@@ -339,12 +413,12 @@ test('transaction', async () => {
     },
     {
       error: null,
-      result: 'Confirmed',
+      result: {Ok: null},
     },
   ]);
-  await expect(connection.getSignatureStatus(signature)).resolves.toBe(
-    'Confirmed',
-  );
+  await expect(connection.getSignatureStatus(signature)).resolves.toEqual({
+    Ok: null,
+  });
 
   mockRpc.push([
     url,
@@ -357,7 +431,11 @@ test('transaction', async () => {
       result: 2,
     },
   ]);
-  expect(await connection.getBalance(accountFrom.publicKey)).toBe(2);
+
+  // accountFrom may have less than 2 due to transaction fees
+  const balance = await connection.getBalance(accountFrom.publicKey);
+  expect(balance).toBeGreaterThan(0);
+  expect(balance).toBeLessThanOrEqual(2);
 
   mockRpc.push([
     url,
@@ -391,12 +469,11 @@ test('multi-instruction transaction', async () => {
 
   // 1. Move(accountFrom, accountTo)
   // 2. Move(accountTo, accountFrom)
-  const transaction = SystemProgram.move(
+  const transaction = SystemProgram.transfer(
     accountFrom.publicKey,
     accountTo.publicKey,
     10,
-  ).add(SystemProgram.move(accountTo.publicKey, accountFrom.publicKey, 10));
-  transaction.fee = 0;
+  ).add(SystemProgram.transfer(accountTo.publicKey, accountFrom.publicKey, 10));
   const signature = await connection.sendTransaction(
     transaction,
     accountFrom,
@@ -412,11 +489,16 @@ test('multi-instruction transaction', async () => {
     expect(++i).toBeLessThan(10);
     await sleep(500);
   }
-  await expect(connection.getSignatureStatus(signature)).resolves.toBe(
-    'Confirmed',
-  );
+  await expect(connection.getSignatureStatus(signature)).resolves.toEqual({
+    Ok: null,
+  });
 
-  expect(await connection.getBalance(accountFrom.publicKey)).toBe(12);
+  // accountFrom may have less than 12 due to transaction fees
+  expect(await connection.getBalance(accountFrom.publicKey)).toBeGreaterThan(0);
+  expect(
+    await connection.getBalance(accountFrom.publicKey),
+  ).toBeLessThanOrEqual(12);
+
   expect(await connection.getBalance(accountTo.publicKey)).toBe(21);
 });
 
@@ -438,29 +520,21 @@ test('account change notification', async () => {
   );
 
   await connection.requestAirdrop(owner.publicKey, 42);
-  const transaction = SystemProgram.createAccount(
-    owner.publicKey,
-    programAccount.publicKey,
-    42,
+  await Loader.load(connection, owner, programAccount, BpfLoader.programId, [
+    1,
+    2,
     3,
-    BpfLoader.programId,
-  );
-  transaction.fee = 0;
-  await sendAndConfirmTransaction(connection, transaction, owner);
-
-  const loader = new Loader(connection, BpfLoader.programId);
-  await loader.load(programAccount, [1, 2, 3]);
+  ]);
 
   // Wait for mockCallback to receive a call
   let i = 0;
   for (;;) {
-    if (mockCallback.mock.calls.length === 1) {
+    if (mockCallback.mock.calls.length > 0) {
       break;
     }
 
-    if (++i === 5) {
-      console.log(JSON.stringify(mockCallback.mock.calls));
-      throw new Error('mockCallback should be called twice');
+    if (++i === 30) {
+      throw new Error('Account change notification not observed');
     }
     // Sleep for a 1/4 of a slot, notifications only occur after a block is
     // processed
@@ -469,10 +543,9 @@ test('account change notification', async () => {
 
   await connection.removeAccountChangeListener(subscriptionId);
 
-  expect(mockCallback.mock.calls[0][0].difs).toBe(41);
+  // expect(mockCallback.mock.calls[0][0].lamports).toBe(1);
+  expect(mockCallback.mock.calls[0][0].dif).toBe(1);
   expect(mockCallback.mock.calls[0][0].owner).toEqual(BpfLoader.programId);
-  expect(mockCallback.mock.calls[0][0].executable).toBe(false);
-  expect(mockCallback.mock.calls[0][0].data).toEqual(Buffer.from([1, 2, 3]));
 });
 
 test('program account change notification', async () => {
@@ -485,37 +558,36 @@ test('program account change notification', async () => {
   const owner = new Account();
   const programAccount = new Account();
 
-  const mockCallback = jest.fn();
+  // const mockCallback = jest.fn();
 
+  let notified = false;
   const subscriptionId = connection.onProgramAccountChange(
     BpfLoader.programId,
-    mockCallback,
+    keyedAccountInfo => {
+      if (keyedAccountInfo.accountId !== programAccount.publicKey.toString()) {
+        //console.log('Ignoring another account', keyedAccountInfo);
+        return;
+      }
+      // expect(keyedAccountInfo.accountInfo.lamports).toBe(1);
+      expect(keyedAccountInfo.accountInfo.dif).toBe(1);
+      expect(keyedAccountInfo.accountInfo.owner).toEqual(BpfLoader.programId);
+      notified = true;
+    },
   );
 
   await connection.requestAirdrop(owner.publicKey, 42);
-  const transaction = SystemProgram.createAccount(
-    owner.publicKey,
-    programAccount.publicKey,
-    42,
+  await Loader.load(connection, owner, programAccount, BpfLoader.programId, [
+    1,
+    2,
     3,
-    BpfLoader.programId,
-  );
-  transaction.fee = 0;
-  await sendAndConfirmTransaction(connection, transaction, owner);
-
-  const loader = new Loader(connection, BpfLoader.programId);
-  await loader.load(programAccount, [1, 2, 3]);
+  ]);
 
   // Wait for mockCallback to receive a call
   let i = 0;
-  for (;;) {
-    if (mockCallback.mock.calls.length === 1) {
-      break;
-    }
-
-    if (++i === 5) {
-      console.log(JSON.stringify(mockCallback.mock.calls));
-      throw new Error('mockCallback should be called twice');
+  while (!notified) {
+    //for (;;) {
+    if (++i === 30) {
+      throw new Error('Program change notification not observed');
     }
     // Sleep for a 1/4 of a slot, notifications only occur after a block is
     // processed
@@ -523,16 +595,4 @@ test('program account change notification', async () => {
   }
 
   await connection.removeProgramAccountChangeListener(subscriptionId);
-
-  expect(mockCallback.mock.calls[0][0].accountId).toEqual(
-    programAccount.publicKey.toString(),
-  );
-  expect(mockCallback.mock.calls[0][0].accountInfo.difs).toBe(41);
-  expect(mockCallback.mock.calls[0][0].accountInfo.owner).toEqual(
-    BpfLoader.programId,
-  );
-  expect(mockCallback.mock.calls[0][0].accountInfo.executable).toBe(false);
-  expect(mockCallback.mock.calls[0][0].accountInfo.data).toEqual(
-    Buffer.from([1, 2, 3]),
-  );
 });

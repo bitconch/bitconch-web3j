@@ -3,21 +3,21 @@
 import * as BufferLayout from 'buffer-layout';
 
 /**
- * 公钥的布局
+ * Layout for a public key
  */
 export const publicKey = (property: string = 'publicKey'): Object => {
   return BufferLayout.blob(32, property);
 };
 
 /**
- * 64位无符号值的布局
+ * Layout for a 64bit unsigned value
  */
 export const uint64 = (property: string = 'uint64'): Object => {
   return BufferLayout.blob(8, property);
 };
 
 /**
- * Rust String类型的布局
+ * Layout for a Rust String type
  */
 export const rustString = (property: string = 'string') => {
   const rsl = BufferLayout.struct(

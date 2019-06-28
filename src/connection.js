@@ -17,6 +17,22 @@ import type {TransactionSignature} from './transaction';
 
 type RpcRequest = (methodName: string, args: Array<any>) => any;
 
+/**
+ * Information describing a cluster node
+ *
+ * @typedef {Object} ContactInfo
+ * @property {string} id Unique identifier of the node
+ * @property {string} gossip Gossip network address for the node
+ * @property {string} tpu TPU network address for the node (null if not available)
+ * @property {string|null} rpc JSON RPC network address for the node (null if not available)
+ */
+type ContactInfo = {
+  id: string,
+  gossip: string,
+  tpu: string | null,
+  rpc: string | null,
+};
+
 function createRpcRequest(url): RpcRequest {
   const server = jayson(async (request, callback) => {
     const options = {
@@ -50,7 +66,7 @@ function createRpcRequest(url): RpcRequest {
 }
 
 /**
- * 对“getBalance”消息的预期JSON RPC响应
+ * Expected JSON RPC response for the "getBalance" message
  */
 const GetBalanceRpcResult = struct({
   jsonrpc: struct.literal('2.0'),
@@ -85,17 +101,18 @@ function jsonRpcResult(resultDescription: any) {
 const AccountInfoResult = struct({
   executable: 'boolean',
   owner: 'array',
-  difs: 'number',
+  // lamports: 'number',
+  dif: 'number',
   data: 'array',
 });
 
 /**
- * 对“getAccountInfo”消息的预期JSON RPC响应
+ * Expected JSON RPC response for the "getAccountInfo" message
  */
 const GetAccountInfoRpcResult = jsonRpcResult(AccountInfoResult);
 
 /***
- * “accountNotification”消息的预期JSON RPC响应
+ * Expected JSON RPC response for the "accountNotification" message
  */
 const AccountNotificationResult = struct({
   subscription: 'number',
@@ -108,7 +125,7 @@ const AccountNotificationResult = struct({
 const ProgramAccountInfoResult = struct(['string', AccountInfoResult]);
 
 /***
- * 对“programNotification”消息的预期JSON RPC响应
+ * Expected JSON RPC response for the "programNotification" message
  */
 const ProgramAccountNotificationResult = struct({
   subscription: 'number',
@@ -116,61 +133,79 @@ const ProgramAccountNotificationResult = struct({
 });
 
 /**
- * “confirmTransaction”消息的预期JSON RPC响应
+ * Expected JSON RPC response for the "confirmTransaction" message
  */
 const ConfirmTransactionRpcResult = jsonRpcResult('boolean');
 
 /**
- * 对“getSignatureStatus”消息的预期JSON RPC响应
+ * Expected JSON RPC response for the "getSlotLeader" message
  */
-const GetSignatureStatusRpcResult = jsonRpcResult(
-  struct.enum([
-    'AccountInUse',
-    'Confirmed',
-    'GenericFailure',
-    'ProgramRuntimeError',
-    'SignatureNotFound',
+const GetSlotLeader = jsonRpcResult('string');
+
+/**
+ * Expected JSON RPC response for the "getClusterNodes" message
+ */
+const GetClusterNodes = jsonRpcResult(
+  struct.list([
+    struct({
+      id: 'string',
+      gossip: 'string',
+      tpu: struct.union(['null', 'string']),
+      rpc: struct.union(['null', 'string']),
+    }),
   ]),
 );
 
 /**
- * 对“getTransactionCount”消息的预期JSON RPC响应
+ * Expected JSON RPC response for the "getSignatureStatus" message
+ */
+const GetSignatureStatusRpcResult = jsonRpcResult(
+  struct.union([
+    'null',
+    struct.union([struct({Ok: 'null'}), struct({Err: 'object'})]),
+  ]),
+);
+
+/**
+ * Expected JSON RPC response for the "getTransactionCount" message
  */
 const GetTransactionCountRpcResult = jsonRpcResult('number');
 
 /**
- * 对“getRecentBlockhash”消息的预期JSON RPC响应
+ * Expected JSON RPC response for the "getRecentBlockhash" message
  */
 const GetRecentBlockhash = jsonRpcResult('string');
 
 /**
- * 对“requestAirdrop”消息的预期JSON RPC响应
+ * Expected JSON RPC response for the "requestAirdrop" message
  */
 const RequestAirdropRpcResult = jsonRpcResult('string');
 
 /**
- * 对“sendTransaction”消息的预期JSON RPC响应
+ * Expected JSON RPC response for the "sendTransaction" message
  */
 const SendTransactionRpcResult = jsonRpcResult('string');
 
 /**
- * 描述帐户的信息
+ * Information describing an account
  *
  * @typedef {Object} AccountInfo
- * @property {number} difs 分配给帐户数
- * @property {PublicKey} owner 拥有该帐户的程序的标识符
- * @property {?Buffer} data 分配给帐户的可选数据
- * @property {boolean} executable `true` 如果此帐户的数据包含已加载的程序
+//  * @property {number} lamports Number of lamports assigned to the account
+ * @property {number} dif Number of dif assigned to the account
+ * @property {PublicKey} owner Identifier of the program that owns the account
+ * @property {?Buffer} data Optional data assigned to the account
+ * @property {boolean} executable `true` if this account's data contains a loaded program
  */
 type AccountInfo = {
   executable: boolean,
   owner: PublicKey,
-  difs: number,
+  // lamports: number,
+  dif: number,
   data: Buffer,
 };
 
 /**
- * pubkey标识的帐户信息
+ * Account information identified by pubkey
  *
  * @typedef {Object} KeyedAccountInfo
  * @property {PublicKey} accountId
@@ -182,7 +217,7 @@ type KeyedAccountInfo = {
 };
 
 /**
- * 帐户更改通知的回调函数
+ * Callback function for account change notifications
  */
 export type AccountChangeCallback = (accountInfo: AccountInfo) => void;
 
@@ -190,13 +225,13 @@ export type AccountChangeCallback = (accountInfo: AccountInfo) => void;
  * @private
  */
 type AccountSubscriptionInfo = {
-  publicKey: string, // 该帐户的PublicKey为58字符串
+  publicKey: string, // PublicKey of the account as a base 58 string
   callback: AccountChangeCallback,
-  subscriptionId: null | number, // 当没有当前服务器订阅ID时为null
+  subscriptionId: null | number, // null when there's no current server subscription id
 };
 
 /**
- * 程序帐户更改通知的回调函数
+ * Callback function for program account change notifications
  */
 export type ProgramAccountChangeCallback = (
   keyedAccountInfo: KeyedAccountInfo,
@@ -206,25 +241,31 @@ export type ProgramAccountChangeCallback = (
  * @private
  */
 type ProgramAccountSubscriptionInfo = {
-  programId: string, // 该程序的PublicKey为58字符串
+  programId: string, // PublicKey of the program as a base 58 string
   callback: ProgramAccountChangeCallback,
-  subscriptionId: null | number, // 当没有当前服务器订阅ID时为null
+  subscriptionId: null | number, // null when there's no current server subscription id
 };
 
 /**
- * 可能的签名状态值
+ * Signature status: Success
  *
- * @typedef {string} SignatureStatus
+ * @typedef {Object} SignatureSuccess
  */
-export type SignatureStatus =
-  | 'Confirmed'
-  | 'AccountInUse'
-  | 'SignatureNotFound'
-  | 'ProgramRuntimeError'
-  | 'GenericFailure';
+export type SignatureSuccess = {|
+  Ok: null,
+|};
 
 /**
- * 与fullnode JSON RPC端点的连接
+ * Signature status: TransactionError
+ *
+ * @typedef {Object} TransactionError
+ */
+export type TransactionError = {|
+  Err: Object,
+|};
+
+/**
+ * A connection to a fullnode JSON RPC endpoint
  */
 export class Connection {
   _rpcRequest: RpcRequest;
@@ -245,9 +286,9 @@ export class Connection {
   _programAccountChangeSubscriptionCounter: number = 0;
 
   /**
-   * 建立JSON RPC连接
+   * Establish a JSON RPC connection
    *
-   * @param endpoint fullnode JSON RPC端点的URL
+   * @param endpoint URL to the fullnode JSON RPC endpoint
    */
   constructor(endpoint: string) {
     let url = urlParse(endpoint);
@@ -283,7 +324,7 @@ export class Connection {
   }
 
   /**
-   * 获取指定公钥的余额
+   * Fetch the balance for the specified public key
    */
   async getBalance(publicKey: PublicKey): Promise<number> {
     const unsafeRes = await this._rpcRequest('getBalance', [
@@ -298,7 +339,7 @@ export class Connection {
   }
 
   /**
-   * 获取指定公钥的所有帐户信息
+   * Fetch all the account info for the specified public key
    */
   async getAccountInfo(publicKey: PublicKey): Promise<AccountInfo> {
     const unsafeRes = await this._rpcRequest('getAccountInfo', [
@@ -315,13 +356,14 @@ export class Connection {
     return {
       executable: result.executable,
       owner: new PublicKey(result.owner),
-      difs: result.difs,
+      // lamports: result.lamports,
+      dif: result.dif,
       data: Buffer.from(result.data),
     };
   }
 
   /**
-   * 确认指定签名标识的事务
+   * Confirm the transaction identified by the specified signature
    */
   async confirmTransaction(signature: TransactionSignature): Promise<boolean> {
     const unsafeRes = await this._rpcRequest('confirmTransaction', [signature]);
@@ -334,11 +376,37 @@ export class Connection {
   }
 
   /**
-   * 获取群集的当前事务计数
+   * Fetch the current slot leader of the cluster
+   */
+  async getSlotLeader(): Promise<string> {
+    const unsafeRes = await this._rpcRequest('getSlotLeader', []);
+    const res = GetSlotLeader(unsafeRes);
+    if (res.error) {
+      throw new Error(res.error.message);
+    }
+    assert(typeof res.result !== 'undefined');
+    return res.result;
+  }
+
+  /**
+   * Return the list of nodes that are currently participating in the cluster
+   */
+  async getClusterNodes(): Promise<Array<ContactInfo>> {
+    const unsafeRes = await this._rpcRequest('getClusterNodes', []);
+    const res = GetClusterNodes(unsafeRes);
+    if (res.error) {
+      throw new Error(res.error.message);
+    }
+    assert(typeof res.result !== 'undefined');
+    return res.result;
+  }
+
+  /**
+   * Fetch the current transaction count of the cluster
    */
   async getSignatureStatus(
     signature: TransactionSignature,
-  ): Promise<SignatureStatus> {
+  ): Promise<SignatureSuccess | TransactionError | null> {
     const unsafeRes = await this._rpcRequest('getSignatureStatus', [signature]);
     const res = GetSignatureStatusRpcResult(unsafeRes);
     if (res.error) {
@@ -349,7 +417,7 @@ export class Connection {
   }
 
   /**
-   * 获取群集的当前事务计数
+   * Fetch the current transaction count of the cluster
    */
   async getTransactionCount(): Promise<number> {
     const unsafeRes = await this._rpcRequest('getTransactionCount', []);
@@ -362,7 +430,7 @@ export class Connection {
   }
 
   /**
-   * 从群集中获取最近的blockhash
+   * Fetch a recent blockhash from the cluster
    */
   async getRecentBlockhash(): Promise<Blockhash> {
     const unsafeRes = await this._rpcRequest('getRecentBlockhash', []);
@@ -375,7 +443,7 @@ export class Connection {
   }
 
   /**
-   * 请求为指定帐户分配difs
+   * Request an allocation of lamports to the specified account
    */
   async requestAirdrop(
     to: PublicKey,
@@ -394,14 +462,14 @@ export class Connection {
   }
 
   /**
-   * 签署并发送交易
+   * Sign and send a transaction
    */
   async sendTransaction(
     transaction: Transaction,
     ...signers: Array<Account>
   ): Promise<TransactionSignature> {
     for (;;) {
-      // 尝试使用最近的blockhash最多30秒
+      // Attempt to use a recent blockhash for up to 30 seconds
       const seconds = new Date().getSeconds();
       if (
         this._blockhashInfo.recentBlockhash != null &&
@@ -410,10 +478,11 @@ export class Connection {
         transaction.recentBlockhash = this._blockhashInfo.recentBlockhash;
         transaction.sign(...signers);
         if (!transaction.signature) {
-          throw new Error('!signature'); // 永远不应该发生
+          throw new Error('!signature'); // should never happen
         }
 
-        // 如果之前使用当前的recentBlockhash没有看到此事务的签名，则全部完成。
+        // If the signature of this transaction has not been seen before with the
+        // current recentBlockhash, all done.
         const signature = transaction.signature.toString();
         if (!this._blockhashInfo.transactionSignatures.includes(signature)) {
           this._blockhashInfo.transactionSignatures.push(signature);
@@ -424,7 +493,7 @@ export class Connection {
         }
       }
 
-      // 获取新的blockhash
+      // Fetch a new blockhash
       let attempts = 0;
       const startTime = Date.now();
       for (;;) {
@@ -438,14 +507,14 @@ export class Connection {
           };
           break;
         }
-        if (attempts === 16) {
+        if (attempts === 50) {
           throw new Error(
             `Unable to obtain a new blockhash after ${Date.now() -
               startTime}ms`,
           );
         }
 
-        // 睡了大约半个插槽
+        // Sleep for approximately half a slot
         await sleep((500 * DEFAULT_TICKS_PER_SLOT) / NUM_TICKS_PER_SECOND);
 
         ++attempts;
@@ -457,18 +526,27 @@ export class Connection {
   }
 
   /**
-   * 将已签名并序列化的事务发送到有线格式
+   * @private
+   */
+  async fullnodeExit(): Promise<boolean> {
+    const unsafeRes = await this._rpcRequest('fullnodeExit', []);
+    const res = jsonRpcResult('boolean')(unsafeRes);
+    if (res.error) {
+      throw new Error(res.error.message);
+    }
+    assert(typeof res.result !== 'undefined');
+    return res.result;
+  }
+
+  /**
+   * Send a transaction that has already been signed and serialized into the
+   * wire format
    */
   async sendRawTransaction(
     rawTransaction: Buffer,
   ): Promise<TransactionSignature> {
-    // sendTransaction RPC API需要在原始事务字节之前添加u64长度字段
-    const rpcTransaction = Buffer.alloc(8 + rawTransaction.length);
-    rpcTransaction.writeUInt32LE(rawTransaction.length, 0);
-    rawTransaction.copy(rpcTransaction, 8);
-
     const unsafeRes = await this._rpcRequest('sendTransaction', [
-      [...rpcTransaction],
+      [...rawTransaction],
     ]);
     const res = SendTransactionRpcResult(unsafeRes);
     if (res.error) {
@@ -498,7 +576,7 @@ export class Connection {
    * @private
    */
   _wsOnClose(code: number, message: string) {
-    // 1000意味着_rpcWebSocket.close（）被显式调用
+    // 1000 means _rpcWebSocket.close() was called explicitly
     if (code !== 1000) {
       console.log('ws close:', code, message);
     }
@@ -552,7 +630,6 @@ export class Connection {
         subscriptionId,
         programId,
       } = this._programAccountChangeSubscriptions[id];
-      console.log('program-id: ' + programId);
       if (subscriptionId === null) {
         try {
           this._programAccountChangeSubscriptions[
@@ -588,7 +665,8 @@ export class Connection {
         sub.callback({
           executable: result.executable,
           owner: new PublicKey(result.owner),
-          difs: result.difs,
+          // lamports: result.lamports,
+          dif: result.dif,
           data: Buffer.from(result.data),
         });
         return true;
@@ -597,11 +675,11 @@ export class Connection {
   }
 
   /**
-   * 注册指定帐户更改时要调用的回调
+   * Register a callback to be invoked whenever the specified account changes
    *
-   * @param publickey 要监控的帐户的公钥
-   * @param callback 每当帐户更改时调用的函数
-   * @return 订阅ID
+   * @param publickey Public key of the account to monitor
+   * @param callback Function to invoke whenever the account is changed
+   * @return subscription id
    */
   onAccountChange(
     publicKey: PublicKey,
@@ -618,9 +696,9 @@ export class Connection {
   }
 
   /**
-   * 取消注册帐户通知回调
+   * Deregister an account notification callback
    *
-   * @param id 订阅ID以取消注册
+   * @param id subscription id to deregister
    */
   async removeAccountChangeListener(id: number): Promise<void> {
     if (this._accountChangeSubscriptions[id]) {
@@ -662,7 +740,8 @@ export class Connection {
           accountInfo: {
             executable: result[1].executable,
             owner: new PublicKey(result[1].owner),
-            difs: result[1].difs,
+            // lamports: result[1].lamports,
+            dif: result[1].dif,
             data: Buffer.from(result[1].data),
           },
         });
@@ -672,11 +751,12 @@ export class Connection {
   }
 
   /**
-   * 注册在指定程序拥有的帐户发生更改时要调用的回调
+   * Register a callback to be invoked whenever accounts owned by the
+   * specified program change
    *
-   * @param programId 监控程序的公钥
-   * @param callback 每当帐户更改时调用的函数
-   * @return 订阅ID
+   * @param programId Public key of the program to monitor
+   * @param callback Function to invoke whenever the account is changed
+   * @return subscription id
    */
   onProgramAccountChange(
     programId: PublicKey,
@@ -693,9 +773,9 @@ export class Connection {
   }
 
   /**
-   * 取消注册帐户通知回调
+   * Deregister an account notification callback
    *
-   * @param id 订阅ID以取消注册
+   * @param id subscription id to deregister
    */
   async removeProgramAccountChangeListener(id: number): Promise<void> {
     if (this._programAccountChangeSubscriptions[id]) {

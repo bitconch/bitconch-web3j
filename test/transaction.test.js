@@ -1,4 +1,6 @@
 // @flow
+import nacl from 'tweetnacl';
+
 import {Account} from '../src/account';
 import {PublicKey} from '../src/publickey';
 import {Transaction} from '../src/transaction';
@@ -8,12 +10,16 @@ test('signPartial', () => {
   const account1 = new Account();
   const account2 = new Account();
   const recentBlockhash = account1.publicKey.toBase58(); // Fake recentBlockhash
-  const move = SystemProgram.move(account1.publicKey, account2.publicKey, 123);
+  const transfer = SystemProgram.transfer(
+    account1.publicKey,
+    account2.publicKey,
+    123,
+  );
 
-  const transaction = new Transaction({recentBlockhash}).add(move);
+  const transaction = new Transaction({recentBlockhash}).add(transfer);
   transaction.sign(account1, account2);
 
-  const partialTransaction = new Transaction({recentBlockhash}).add(move);
+  const partialTransaction = new Transaction({recentBlockhash}).add(transfer);
   partialTransaction.signPartial(account1, account2.publicKey);
   expect(partialTransaction.signatures[1].signature).toBeNull();
   partialTransaction.addSigner(account2);
@@ -25,130 +31,166 @@ test('transfer signatures', () => {
   const account1 = new Account();
   const account2 = new Account();
   const recentBlockhash = account1.publicKey.toBase58(); // Fake recentBlockhash
-  const move1 = SystemProgram.move(account1.publicKey, account2.publicKey, 123);
-  const move2 = SystemProgram.move(account2.publicKey, account1.publicKey, 123);
+  const transfer1 = SystemProgram.transfer(
+    account1.publicKey,
+    account2.publicKey,
+    123,
+  );
+  const transfer2 = SystemProgram.transfer(
+    account2.publicKey,
+    account1.publicKey,
+    123,
+  );
 
-  const orgTransaction = new Transaction({recentBlockhash}).add(move1, move2);
+  const orgTransaction = new Transaction({recentBlockhash}).add(
+    transfer1,
+    transfer2,
+  );
   orgTransaction.sign(account1, account2);
 
   const newTransaction = new Transaction({
     recentBlockhash: orgTransaction.recentBlockhash,
-    fee: orgTransaction.fee,
     signatures: orgTransaction.signatures,
-  }).add(move1, move2);
+  }).add(transfer1, transfer2);
 
   expect(newTransaction).toEqual(orgTransaction);
 });
 
+test('dedup signatures', () => {
+  const account1 = new Account();
+  const account2 = new Account();
+  const recentBlockhash = account1.publicKey.toBase58(); // Fake recentBlockhash
+  const transfer1 = SystemProgram.transfer(
+    account1.publicKey,
+    account2.publicKey,
+    123,
+  );
+  const transfer2 = SystemProgram.transfer(
+    account1.publicKey,
+    account2.publicKey,
+    123,
+  );
+
+  const orgTransaction = new Transaction({recentBlockhash}).add(
+    transfer1,
+    transfer2,
+  );
+  orgTransaction.sign(account1);
+});
+
 test('parse wire format and serialize', () => {
+  const keypair = nacl.sign.keyPair.fromSeed(
+    Uint8Array.from(Array(32).fill(8)),
+  );
+  const sender = new Account(Buffer.from(keypair.secretKey)); // Arbitrary known account
   const recentBlockhash = 'EETubP5AKHgjPAhzPAFcb8BAY1hMH639CWCFTqi3hq1k'; // Arbitrary known recentBlockhash
-  const sender = new Account(Buffer.alloc(64, 8)); // Arbitrary known account
   const recipient = new PublicKey(
     'J3dxNj7nDRRqRRXuEMynDG57DkZK4jYRuv3Garmb1i99',
   ); // Arbitrary known public key
-  const move = SystemProgram.move(sender.publicKey, recipient, 49);
-  const expectedTransaction = new Transaction({recentBlockhash}).add(move);
+  const transfer = SystemProgram.transfer(sender.publicKey, recipient, 49);
+  const expectedTransaction = new Transaction({recentBlockhash}).add(transfer);
   expectedTransaction.sign(sender);
 
   const wireTransaction = Buffer.from([
     1,
-    50,
-    238,
-    193,
-    5,
-    227,
-    31,
-    95,
-    69,
-    85,
-    3,
     132,
-    143,
-    216,
-    77,
-    235,
-    129,
-    3,
-    109,
-    89,
-    222,
-    127,
-    137,
-    228,
-    15,
-    113,
-    207,
-    169,
-    93,
-    167,
-    249,
-    71,
+    50,
+    204,
+    17,
+    25,
+    230,
     33,
-    185,
-    182,
-    83,
-    116,
-    203,
-    102,
-    64,
-    245,
-    68,
-    34,
-    100,
+    52,
+    8,
+    149,
+    124,
+    56,
+    114,
+    17,
+    236,
+    92,
+    93,
+    53,
+    234,
+    122,
+    120,
+    219,
     193,
-    156,
-    109,
-    35,
-    104,
-    119,
-    101,
-    197,
-    43,
-    141,
-    174,
-    228,
-    154,
-    146,
-    78,
-    216,
-    202,
-    18,
-    177,
-    179,
-    5,
+    255,
     2,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
-    8,
+    14,
+    87,
+    12,
+    207,
+    99,
+    241,
+    32,
+    151,
+    102,
+    70,
+    60,
+    218,
+    73,
+    232,
+    68,
+    33,
+    94,
+    134,
+    117,
+    138,
+    182,
+    179,
+    118,
+    249,
+    132,
+    52,
+    41,
+    162,
+    44,
+    0,
+    43,
+    193,
+    242,
+    120,
+    108,
+    4,
+    163,
+    191,
+    6,
+    1,
+    2,
+    19,
+    152,
+    246,
+    44,
+    109,
+    26,
+    69,
+    124,
+    81,
+    186,
+    106,
+    75,
+    95,
+    61,
+    189,
+    47,
+    105,
+    252,
+    169,
+    50,
+    22,
+    33,
+    141,
+    200,
+    153,
+    126,
+    65,
+    107,
+    209,
+    125,
+    147,
+    202,
     253,
     67,
     159,
@@ -213,14 +255,6 @@ test('parse wire format and serialize', () => {
     240,
     82,
     235,
-    1,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
     1,
     0,
     0,
