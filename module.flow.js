@@ -74,7 +74,7 @@ declare module '@bitconch/bitconch-web3j' {
     getBalance(publicKey: PublicKey): Promise<number>;
     getClusterNodes(): Promise<Array<ContactInfo>>;
     confirmTransaction(signature: TransactionSignature): Promise<boolean>;
-    getSlotLeader(): Promise<string>;
+    getRoundLeader(): Promise<string>;
     getSignatureStatus(
       signature: TransactionSignature,
     ): Promise<SignatureSuccess | TransactionError | null>;

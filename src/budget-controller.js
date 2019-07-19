@@ -2,56 +2,56 @@
 
 import * as BufferLayout from 'buffer-layout';
 
-import {Transaction} from './transaction';
-import {PublicKey} from './publickey';
-import * as Layout from './layout';
+import {Transaction} from './transaction-controller';
+import {PubKey} from './pubkey';
+import * as Layout from './typelayout';
 
 /**
- * Represents a condition that is met by executing a `applySignature()`
- * transaction
+ * 
+ * 
  *
- * @typedef {Object} SignatureCondition
- * @property {string} type Must equal the string 'timestamp'
- * @property {PublicKey} from Public key from which `applySignature()` will be accepted from
+ * @typedef {Object} SignatureCond
+ * @property {string} type 
+ * @property {PubKey} from 
  */
-export type SignatureCondition = {
+export type SignatureCond = {
   type: 'signature',
-  from: PublicKey,
+  from: PubKey,
 };
 
 /**
- * Represents a condition that is met by executing a `applyTimestamp()`
- * transaction
+ * 
+ * 
  *
- * @typedef {Object} TimestampCondition
- * @property {string} type Must equal the string 'timestamp'
- * @property {PublicKey} from Public key from which `applyTimestamp()` will be accepted from
- * @property {Date} when The timestamp that was observed
+ * @typedef {Object} TimestampCond
+ * @property {string} type 
+ * @property {PubKey} from
+ * @property {Date} when 
  */
-export type TimestampCondition = {
+export type TimestampCond = {
   type: 'timestamp',
-  from: PublicKey,
+  from: PubKey,
   when: Date,
 };
 
 /**
- * Represents a payment to a given public key
+ * 
  *
  * @typedef {Object} Payment
- * @property {number} amount Number of lamports
- * @property {PublicKey} to Public key of the recipient
+ * @property {number} 
+ * @property {PubKey} 
  */
 export type Payment = {
   amount: number,
-  to: PublicKey,
+  to: PubKey,
 };
 
 /**
- * A condition that can unlock a payment
+ * 
  *
- * @typedef {SignatureCondition|TimestampCondition} BudgetCondition
+ * @typedef {SignatureCond|TimestampCond} BudgetCond
  */
-export type BudgetCondition = SignatureCondition | TimestampCondition;
+export type BudgetCond = SignatureCond | TimestampCond;
 
 /**
  * @private
@@ -69,7 +69,7 @@ function serializePayment(payment: Payment): Buffer {
  */
 function serializeDate(when: Date): Buffer {
   const data = Buffer.alloc(8 + 20);
-  data.writeUInt32LE(20, 0); // size of timestamp as u64
+  data.writeUInt32LE(20, 0); // 
 
   function iso(date) {
     function pad(number) {
@@ -101,14 +101,14 @@ function serializeDate(when: Date): Buffer {
 /**
  * @private
  */
-function serializeCondition(condition: BudgetCondition) {
+function serializeCond(condition: BudgetCond) {
   switch (condition.type) {
     case 'timestamp': {
       const date = serializeDate(condition.when);
       const from = condition.from.toBuffer();
 
       const data = Buffer.alloc(4 + date.length + from.length);
-      data.writeUInt32LE(0, 0); // Condition enum = Timestamp
+      data.writeUInt32LE(0, 0); 
       date.copy(data, 4);
       from.copy(data, 4 + date.length);
       return data;
@@ -116,14 +116,14 @@ function serializeCondition(condition: BudgetCondition) {
     case 'signature': {
       const dataLayout = BufferLayout.struct([
         BufferLayout.u32('condition'),
-        Layout.publicKey('from'),
+        Layout.pubKey('from'),
       ]);
 
       const from = condition.from.toBuffer();
       const data = Buffer.alloc(4 + from.length);
       dataLayout.encode(
         {
-          instruction: 1, // Signature
+          instruction: 1, 
           from,
         },
         data,
@@ -136,27 +136,27 @@ function serializeCondition(condition: BudgetCondition) {
 }
 
 /**
- * Factory class for transactions to interact with the Budget program
+ * 
  */
-export class BudgetProgram {
+export class BudgetController {
   /**
-   * Public key that identifies the Budget program
+   * 
    */
-  static get programId(): PublicKey {
-    return new PublicKey('Budget1111111111111111111111111111111111111');
+  static get controllerId(): PubKey {
+    return new PubKey('Budget1111111111111111111111111111111111111');
   }
 
   /**
-   * The amount of space this program requires
+   * 
    */
-  static get space(): number {
+  static get size(): number {
     return 128;
   }
 
   /**
-   * Creates a timestamp condition
+   * 
    */
-  static timestampCondition(from: PublicKey, when: Date): TimestampCondition {
+  static datetimeCond(from: PubKey, when: Date): TimestampCond {
     return {
       type: 'timestamp',
       from,
@@ -165,9 +165,9 @@ export class BudgetProgram {
   }
 
   /**
-   * Creates a signature condition
+   * 
    */
-  static signatureCondition(from: PublicKey): SignatureCondition {
+  static signatureCond(from: PubKey): SignatureCond {
     return {
       type: 'signature',
       from,
@@ -175,23 +175,23 @@ export class BudgetProgram {
   }
 
   /**
-   * Generates a transaction that transfers lamports once any of the conditions are met
+   * 
    */
   static pay(
-    from: PublicKey,
-    program: PublicKey,
-    to: PublicKey,
+    from: PubKey,
+    program: PubKey,
+    to: PubKey,
     amount: number,
-    ...conditions: Array<BudgetCondition>
+    ...conditions: Array<BudgetCond>
   ): Transaction {
     const data = Buffer.alloc(1024);
     let pos = 0;
-    data.writeUInt32LE(0, pos); // NewBudget instruction
+    data.writeUInt32LE(0, pos); 
     pos += 4;
 
     switch (conditions.length) {
       case 0:
-        data.writeUInt32LE(0, pos); // Budget enum = Pay
+        data.writeUInt32LE(0, pos); 
         pos += 4;
 
         {
@@ -202,16 +202,16 @@ export class BudgetProgram {
 
         return new Transaction().add({
           keys: [{pubkey: from, isSigner: true}, {pubkey: to, isSigner: false}],
-          programId: this.programId,
+          controllerId: this.controllerId,
           data: data.slice(0, pos),
         });
       case 1:
-        data.writeUInt32LE(1, pos); // Budget enum = After
+        data.writeUInt32LE(1, pos); 
         pos += 4;
         {
           const condition = conditions[0];
 
-          const conditionData = serializeCondition(condition);
+          const conditionData = serializeCond(condition);
           conditionData.copy(data, pos);
           pos += conditionData.length;
 
@@ -226,16 +226,16 @@ export class BudgetProgram {
             {pubkey: program, isSigner: false},
             {pubkey: to, isSigner: false},
           ],
-          programId: this.programId,
+          controllerId: this.controllerId,
           data: data.slice(0, pos),
         });
 
       case 2:
-        data.writeUInt32LE(2, pos); // Budget enum = Or
+        data.writeUInt32LE(2, pos);
         pos += 4;
 
         for (let condition of conditions) {
-          const conditionData = serializeCondition(condition);
+          const conditionData = serializeCond(condition);
           conditionData.copy(data, pos);
           pos += conditionData.length;
 
@@ -250,7 +250,7 @@ export class BudgetProgram {
             {pubkey: program, isSigner: false},
             {pubkey: to, isSigner: false},
           ],
-          programId: this.programId,
+          controllerId: this.controllerId,
           data: data.slice(0, pos),
         });
 
@@ -264,26 +264,26 @@ export class BudgetProgram {
   }
 
   /**
-   * Generates a transaction that transfers lamports once both conditions are met
+   * 
    */
-  static payOnBoth(
-    from: PublicKey,
-    program: PublicKey,
-    to: PublicKey,
+  static payOnAll(
+    from: PubKey,
+    program: PubKey,
+    to: PubKey,
     amount: number,
-    condition1: BudgetCondition,
-    condition2: BudgetCondition,
+    condition1: BudgetCond,
+    condition2: BudgetCond,
   ): Transaction {
     const data = Buffer.alloc(1024);
     let pos = 0;
-    data.writeUInt32LE(0, pos); // NewBudget instruction
+    data.writeUInt32LE(0, pos); 
     pos += 4;
 
-    data.writeUInt32LE(3, pos); // Budget enum = And
+    data.writeUInt32LE(3, pos); 
     pos += 4;
 
     for (let condition of [condition1, condition2]) {
-      const conditionData = serializeCondition(condition);
+      const conditionData = serializeCond(condition);
       conditionData.copy(data, pos);
       pos += conditionData.length;
     }
@@ -298,25 +298,25 @@ export class BudgetProgram {
         {pubkey: program, isSigner: false},
         {pubkey: to, isSigner: false},
       ],
-      programId: this.programId,
+      controllerId: this.controllerId,
       data: data.slice(0, pos),
     });
   }
 
   /**
-   * Generates a transaction that applies a timestamp, which could enable a
-   * pending payment to proceed.
+   * 
+   * 
    */
-  static applyTimestamp(
-    from: PublicKey,
-    program: PublicKey,
-    to: PublicKey,
+  static sealWithDatetime(
+    from: PubKey,
+    program: PubKey,
+    to: PubKey,
     when: Date,
   ): Transaction {
     const whenData = serializeDate(when);
     const data = Buffer.alloc(4 + whenData.length);
 
-    data.writeUInt32LE(1, 0); // ApplyTimestamp instruction
+    data.writeUInt32LE(1, 0); 
     whenData.copy(data, 4);
 
     return new Transaction().add({
@@ -325,26 +325,26 @@ export class BudgetProgram {
         {pubkey: program, isSigner: false},
         {pubkey: to, isSigner: false},
       ],
-      programId: this.programId,
+      controllerId: this.controllerId,
       data,
     });
   }
 
   /**
-   * Generates a transaction that applies a signature, which could enable a
-   * pending payment to proceed.
+   * 
+   * 
    */
-  static applySignature(
-    from: PublicKey,
-    program: PublicKey,
-    to: PublicKey,
+  static sealWithSignature(
+    from: PubKey,
+    program: PubKey,
+    to: PubKey,
   ): Transaction {
     const dataLayout = BufferLayout.struct([BufferLayout.u32('instruction')]);
 
     const data = Buffer.alloc(dataLayout.span);
     dataLayout.encode(
       {
-        instruction: 2, // ApplySignature instruction
+        operation: 2, 
       },
       data,
     );
@@ -355,7 +355,7 @@ export class BudgetProgram {
         {pubkey: program, isSigner: false},
         {pubkey: to, isSigner: false},
       ],
-      programId: this.programId,
+      controllerId: this.controllerId,
       data,
     });
   }

@@ -1,18 +1,18 @@
 // @flow
 import nacl from 'tweetnacl';
 
-import {Account} from '../src/account';
-import {PublicKey} from '../src/publickey';
-import {Transaction} from '../src/transaction';
-import {SystemProgram} from '../src/system-program';
+import {BusAccount} from '../src/bus-account';
+import {PubKey} from '../src/pubkey';
+import {Transaction} from '../src/transaction-controller';
+import {SystemController} from '../src/system-controller';
 
 test('signPartial', () => {
-  const account1 = new Account();
-  const account2 = new Account();
-  const recentBlockhash = account1.publicKey.toBase58(); // Fake recentBlockhash
-  const transfer = SystemProgram.transfer(
-    account1.publicKey,
-    account2.publicKey,
+  const account1 = new BusAccount();
+  const account2 = new BusAccount();
+  const recentBlockhash = account1.pubKey.toBase58(); 
+  const transfer = SystemController.transfer(
+    account1.pubKey,
+    account2.pubKey,
     123,
   );
 
@@ -20,7 +20,7 @@ test('signPartial', () => {
   transaction.sign(account1, account2);
 
   const partialTransaction = new Transaction({recentBlockhash}).add(transfer);
-  partialTransaction.signPartial(account1, account2.publicKey);
+  partialTransaction.signPartial(account1, account2.pubKey);
   expect(partialTransaction.signatures[1].signature).toBeNull();
   partialTransaction.addSigner(account2);
 
@@ -28,17 +28,17 @@ test('signPartial', () => {
 });
 
 test('transfer signatures', () => {
-  const account1 = new Account();
-  const account2 = new Account();
-  const recentBlockhash = account1.publicKey.toBase58(); // Fake recentBlockhash
-  const transfer1 = SystemProgram.transfer(
-    account1.publicKey,
-    account2.publicKey,
+  const account1 = new BusAccount();
+  const account2 = new BusAccount();
+  const recentBlockhash = account1.pubKey.toBase58(); 
+  const transfer1 = SystemController.transfer(
+    account1.pubKey,
+    account2.pubKey,
     123,
   );
-  const transfer2 = SystemProgram.transfer(
-    account2.publicKey,
-    account1.publicKey,
+  const transfer2 = SystemController.transfer(
+    account2.pubKey,
+    account1.pubKey,
     123,
   );
 
@@ -57,17 +57,17 @@ test('transfer signatures', () => {
 });
 
 test('dedup signatures', () => {
-  const account1 = new Account();
-  const account2 = new Account();
-  const recentBlockhash = account1.publicKey.toBase58(); // Fake recentBlockhash
-  const transfer1 = SystemProgram.transfer(
-    account1.publicKey,
-    account2.publicKey,
+  const account1 = new BusAccount();
+  const account2 = new BusAccount();
+  const recentBlockhash = account1.pubKey.toBase58(); // Fake recentBlockhash
+  const transfer1 = SystemController.transfer(
+    account1.pubKey,
+    account2.pubKey,
     123,
   );
-  const transfer2 = SystemProgram.transfer(
-    account1.publicKey,
-    account2.publicKey,
+  const transfer2 = SystemController.transfer(
+    account1.pubKey,
+    account2.pubKey,
     123,
   );
 
@@ -82,12 +82,12 @@ test('parse wire format and serialize', () => {
   const keypair = nacl.sign.keyPair.fromSeed(
     Uint8Array.from(Array(32).fill(8)),
   );
-  const sender = new Account(Buffer.from(keypair.secretKey)); // Arbitrary known account
-  const recentBlockhash = 'EETubP5AKHgjPAhzPAFcb8BAY1hMH639CWCFTqi3hq1k'; // Arbitrary known recentBlockhash
-  const recipient = new PublicKey(
+  const sender = new BusAccount(Buffer.from(keypair.secretKey)); 
+  const recentBlockhash = 'EETubP5AKHgjPAhzPAFcb8BAY1hMH639CWCFTqi3hq1k'; 
+  const recipient = new PubKey(
     'J3dxNj7nDRRqRRXuEMynDG57DkZK4jYRuv3Garmb1i99',
-  ); // Arbitrary known public key
-  const transfer = SystemProgram.transfer(sender.publicKey, recipient, 49);
+  ); 
+  const transfer = SystemController.transfer(sender.pubKey, recipient, 49);
   const expectedTransaction = new Transaction({recentBlockhash}).add(transfer);
   expectedTransaction.sign(sender);
 

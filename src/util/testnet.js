@@ -12,8 +12,8 @@ const endpoint = {
 };
 
 /**
- * Retrieves the RPC endpoint URL for the specified testnet release
- * channel
+ * 
+ * 
  */
 export function testnetChannelEndpoint(channel?: string): string {
   if (!channel) {

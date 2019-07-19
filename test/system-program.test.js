@@ -1,45 +1,42 @@
 // @flow
 
-import {Account, BudgetProgram, SystemProgram} from '../src';
+import {BusAccount, BudgetController, SystemController} from '../src';
 
 test('createAccount', () => {
-  const from = new Account();
-  const newAccount = new Account();
+  const from = new BusAccount();
+  const newAccount = new BusAccount();
   let transaction;
 
-  transaction = SystemProgram.createAccount(
-    from.publicKey,
-    newAccount.publicKey,
+  transaction = SystemController.createNewAccount(
+    from.pubKey,
+    newAccount.pubKey,
     123,
-    BudgetProgram.space,
-    BudgetProgram.programId,
+    BudgetController.size,
+    BudgetController.controllerId,
   );
 
   expect(transaction.keys).toHaveLength(2);
-  expect(transaction.programId).toEqual(SystemProgram.programId);
-  // TODO: Validate transaction contents more
+  expect(transaction.controllerId).toEqual(SystemController.controllerId);
 });
 
 test('transfer', () => {
-  const from = new Account();
-  const to = new Account();
+  const from = new BusAccount();
+  const to = new BusAccount();
   let transaction;
 
-  transaction = SystemProgram.transfer(from.publicKey, to.publicKey, 123);
+  transaction = SystemController.transfer(from.pubKey, to.pubKey, 123);
 
   expect(transaction.keys).toHaveLength(2);
-  expect(transaction.programId).toEqual(SystemProgram.programId);
-  // TODO: Validate transaction contents more
+  expect(transaction.controllerId).toEqual(SystemController.controllerId);
 });
 
 test('assign', () => {
-  const from = new Account();
-  const to = new Account();
+  const from = new BusAccount();
+  const to = new BusAccount();
   let transaction;
 
-  transaction = SystemProgram.assign(from.publicKey, to.publicKey);
+  transaction = SystemController.assign(from.pubKey, to.pubKey);
 
   expect(transaction.keys).toHaveLength(1);
-  expect(transaction.programId).toEqual(SystemProgram.programId);
-  // TODO: Validate transaction contents more
+  expect(transaction.controllerId).toEqual(SystemController.controllerId);
 });

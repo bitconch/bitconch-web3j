@@ -14,5 +14,5 @@ test('nightly', () => {
 });
 
 test('default', () => {
-  testnetChannelEndpoint(); // Should not throw
+  testnetChannelEndpoint(); 
 });

@@ -3,22 +3,14 @@
 import BN from 'bn.js';
 import bs58 from 'bs58';
 
-/**
- * A public key
- */
-export class PublicKey {
+export class PubKey {
   _bn: BN;
 
-  /**
-   * Create a new PublicKey object
-   */
   constructor(value: number | string | Buffer | Array<number>) {
     if (typeof value === 'string') {
-      // hexadecimal number
       if (value.startsWith('0x')) {
         this._bn = new BN(value.substring(2), 16);
       } else {
-        // assume base 58 encoding by default
         this._bn = new BN(bs58.decode(value));
       }
     } else {
@@ -30,30 +22,19 @@ export class PublicKey {
     }
   }
 
-  /**
-   * Checks if the provided object is a PublicKey
-   */
-  static isPublicKey(o: Object): boolean {
-    return o instanceof PublicKey;
+  static isPubKey(o: Object): boolean {
+    return o instanceof PubKey;
   }
 
-  /**
-   * Checks if two publicKeys are equal
-   */
-  equals(publicKey: PublicKey): boolean {
-    return this._bn.eq(publicKey._bn);
+  equals(pubKey: PubKey): boolean {
+    return this._bn.eq(pubKey._bn);
   }
 
-  /**
-   * Return the base-58 representation of the public key
-   */
+
   toBase58(): string {
     return bs58.encode(this.toBuffer());
   }
 
-  /**
-   * Return the Buffer representation of the public key
-   */
   toBuffer(): Buffer {
     const b = this._bn.toArrayLike(Buffer);
     if (b.length === 32) {
@@ -65,9 +46,6 @@ export class PublicKey {
     return zeroPad;
   }
 
-  /**
-   * Returns a string representation of the public key
-   */
   toString(): string {
     return this.toBase58();
   }

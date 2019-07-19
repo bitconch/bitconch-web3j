@@ -1,16 +1,16 @@
 // @flow
-export {Account} from './account';
-export {BpfLoader} from './bpf-loader';
-export {BudgetProgram} from './budget-program';
+export {BusAccount} from './bus-account';
+export {BpfControllerLoader} from './bpfcontroller-loader';
+export {BudgetController} from './budget-controller';
 export {Connection} from './connection';
-export {Loader} from './loader';
-export {NativeLoader} from './native-loader';
-export {PublicKey} from './publickey';
-export {SystemProgram} from './system-program';
-export {Token, TokenAmount} from './token-program';
-export {Transaction, TransactionInstruction} from './transaction';
-export {sendAndConfirmTransaction} from './util/send-and-confirm-transaction';
+export {ControllerLoader} from './controller-loader';
+export {NativeControllerLoader} from './nativecontroller-loader';
+export {PubKey} from './pubkey';
+export {SystemController} from './system-controller';
+export {Token, TokenCount} from './token-controller';
+export {Transaction, TxOperation} from './transaction-controller';
+export {sendAndConfmTxn} from './util/send-and-confm-tx';
 export {
-  sendAndConfirmRawTransaction,
-} from './util/send-and-confirm-raw-transaction';
+  sendAndConfmOriginalTxn,
+} from './util/send-and-confm-original-tx';
 export {testnetChannelEndpoint} from './util/testnet';

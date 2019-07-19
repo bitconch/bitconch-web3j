@@ -5,57 +5,50 @@ import * as BufferLayout from 'buffer-layout';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
 
-import * as Layout from './layout';
-import {PublicKey} from './publickey';
-import {Account} from './account';
+import * as Layout from './typelayout';
+import {PubKey} from './pubkey';
+import {BusAccount} from './bus-account';
 import * as shortvec from './util/shortvec-encoding';
-import type {Blockhash} from './blockhash';
+import type {Blockhash} from './bus-blockhash';
 
 /**
- * @typedef {string} TransactionSignature
+ * @typedef {string} TxnSignature
  */
-export type TransactionSignature = string;
+export type TxnSignature = string;
 
 /**
- * Maximum over-the-wire size of a Transaction
  */
 export const PACKET_DATA_SIZE = 512;
 
 /**
- * List of TransactionInstruction object fields that may be initialized at construction
  *
  * @typedef {Object} TransactionInstructionCtorFields
- * @property {?Array<PublicKey>} keys
- * @property {?PublicKey} programId
+ * @property {?Array<PubKey>} keys
+ * @property {?PubKey} controllerId
  * @property {?Buffer} data
  */
-type TransactionInstructionCtorFields = {|
-  keys?: Array<{pubkey: PublicKey, isSigner: boolean}>,
-  programId?: PublicKey,
+type TxnInstructionControlFields = {|
+  keys?: Array<{pubkey: PubKey, isSigner: boolean}>,
+  controllerId?: PubKey,
   data?: Buffer,
 |};
 
 /**
- * Transaction Instruction class
  */
-export class TransactionInstruction {
+export class TxOperation {
   /**
-   * Public keys to include in this transaction
-   * Boolean represents whether this pubkey needs to sign the transaction
    */
-  keys: Array<{pubkey: PublicKey, isSigner: boolean}> = [];
+  keys: Array<{pubkey: PubKey, isSigner: boolean}> = [];
 
   /**
-   * Program Id to execute
    */
-  programId: PublicKey;
+  controllerId: PubKey;
 
   /**
-   * Program input
    */
   data: Buffer = Buffer.alloc(0);
 
-  constructor(opts?: TransactionInstructionCtorFields) {
+  constructor(opts?: TxnInstructionControlFields) {
     opts && Object.assign(this, opts);
   }
 }
@@ -65,18 +58,17 @@ export class TransactionInstruction {
  */
 type SignaturePubkeyPair = {|
   signature: Buffer | null,
-  publicKey: PublicKey,
+  pubKey: PubKey,
 |};
 
 /**
- * List of Transaction object fields that may be initialized at construction
  *
- * @typedef {Object} TransactionCtorFields
- * @property (?recentBlockhash} A recent block hash
- * @property (?signatures} One or more signatures
+ * @typedef {Object} TxnControlFields
+ * @property (?recentBlockhash} 
+ * @property (?signatures} 
  *
  */
-type TransactionCtorFields = {|
+type TxnControlFields = {|
   recentBlockhash?: Blockhash,
   signatures?: Array<SignaturePubkeyPair>,
 |};
@@ -86,13 +78,10 @@ type TransactionCtorFields = {|
  */
 export class Transaction {
   /**
-   * Signatures for the transaction.  Typically created by invoking the
-   * `sign()` method
    */
   signatures: Array<SignaturePubkeyPair> = [];
 
   /**
-   * The first (payer) Transaction signature
    */
   get signature(): Buffer | null {
     if (this.signatures.length > 0) {
@@ -102,27 +91,23 @@ export class Transaction {
   }
 
   /**
-   * The instructions to atomically execute
    */
-  instructions: Array<TransactionInstruction> = [];
+  instructions: Array<TxOperation> = [];
 
   /**
-   * A recent transaction id.  Must be populated by the caller
    */
   recentBlockhash: ?Blockhash;
 
   /**
-   * Construct an empty Transaction
    */
-  constructor(opts?: TransactionCtorFields) {
+  constructor(opts?: TxnControlFields) {
     opts && Object.assign(this, opts);
   }
 
   /**
-   * Add one or more instructions to this Transaction
    */
   add(
-    ...items: Array<Transaction | TransactionInstructionCtorFields>
+    ...items: Array<Transaction | TxnInstructionControlFields>
   ): Transaction {
     if (items.length === 0) {
       throw new Error('No instructions');
@@ -132,7 +117,7 @@ export class Transaction {
       if (item instanceof Transaction) {
         this.instructions = this.instructions.concat(item.instructions);
       } else {
-        this.instructions.push(new TransactionInstruction(item));
+        this.instructions.push(new TxOperation(item));
       }
     });
     return this;
@@ -141,7 +126,7 @@ export class Transaction {
   /**
    * @private
    */
-  _getSignData(): Buffer {
+  _fetchSignData(): Buffer {
     const {recentBlockhash} = this;
     if (!recentBlockhash) {
       throw new Error('Transaction recentBlockhash required');
@@ -151,14 +136,14 @@ export class Transaction {
       throw new Error('No instructions provided');
     }
 
-    const keys = this.signatures.map(({publicKey}) => publicKey.toString());
+    const keys = this.signatures.map(({pubKey}) => pubKey.toString());
     let numRequiredSignatures = 0;
 
-    const programIds = [];
+    const controllerIds = [];
     this.instructions.forEach(instruction => {
-      const programId = instruction.programId.toString();
-      if (!programIds.includes(programId)) {
-        programIds.push(programId);
+      const controllerId = instruction.controllerId.toString();
+      if (!controllerIds.includes(controllerId)) {
+        controllerIds.push(controllerId);
       }
 
       instruction.keys.forEach(keySignerPair => {
@@ -183,17 +168,17 @@ export class Transaction {
     let keyCount = [];
     shortvec.encodeLength(keyCount, keys.length);
 
-    let programIdCount = [];
-    shortvec.encodeLength(programIdCount, programIds.length);
+    let controllerIdCount = [];
+    shortvec.encodeLength(controllerIdCount, controllerIds.length);
 
     const instructions = this.instructions.map(instruction => {
-      const {data, programId} = instruction;
+      const {data, controllerId} = instruction;
       let keyIndicesCount = [];
       shortvec.encodeLength(keyIndicesCount, instruction.keys.length);
       let dataCount = [];
       shortvec.encodeLength(dataCount, instruction.data.length);
       return {
-        programIdIndex: programIds.indexOf(programId.toString()),
+        controllerIdIndex: controllerIds.indexOf(controllerId.toString()),
         keyIndicesCount: Buffer.from(keyIndicesCount),
         keyIndices: Buffer.from(
           instruction.keys.map(keyObj =>
@@ -206,7 +191,7 @@ export class Transaction {
     });
 
     instructions.forEach(instruction => {
-      invariant(instruction.programIdIndex >= 0);
+      invariant(instruction.controllerIdIndex >= 0);
       instruction.keyIndices.forEach(keyIndex => invariant(keyIndex >= 0));
     });
 
@@ -218,7 +203,7 @@ export class Transaction {
 
     instructions.forEach(instruction => {
       const instructionLayout = BufferLayout.struct([
-        BufferLayout.u8('programIdIndex'),
+        BufferLayout.u8('controllerIdIndex'),
 
         BufferLayout.blob(
           instruction.keyIndicesCount.length,
@@ -248,25 +233,25 @@ export class Transaction {
     const signDataLayout = BufferLayout.struct([
       BufferLayout.blob(1, 'numRequiredSignatures'),
       BufferLayout.blob(keyCount.length, 'keyCount'),
-      BufferLayout.seq(Layout.publicKey('key'), keys.length, 'keys'),
-      Layout.publicKey('recentBlockhash'),
+      BufferLayout.seq(Layout.pubKey('key'), keys.length, 'keys'),
+      Layout.pubKey('recentBlockhash'),
 
-      BufferLayout.blob(programIdCount.length, 'programIdCount'),
+      BufferLayout.blob(controllerIdCount.length, 'controllerIdCount'),
       BufferLayout.seq(
-        Layout.publicKey('programId'),
-        programIds.length,
-        'programIds',
+        Layout.pubKey('controllerId'),
+        controllerIds.length,
+        'controllerIds',
       ),
     ]);
 
     const transaction = {
       numRequiredSignatures: Buffer.from([this.signatures.length]),
       keyCount: Buffer.from(keyCount),
-      keys: keys.map(key => new PublicKey(key).toBuffer()),
+      keys: keys.map(key => new PubKey(key).toBuffer()),
       recentBlockhash: Buffer.from(bs58.decode(recentBlockhash)),
-      programIdCount: Buffer.from(programIdCount),
-      programIds: programIds.map(programId =>
-        new PublicKey(programId).toBuffer(),
+      controllerIdCount: Buffer.from(controllerIdCount),
+      controllerIds: controllerIds.map(controllerId =>
+        new PubKey(controllerId).toBuffer(),
       ),
     };
 
@@ -278,92 +263,63 @@ export class Transaction {
     return signData;
   }
 
-  /**
-   * Sign the Transaction with the specified accounts.  Multiple signatures may
-   * be applied to a Transaction. The first signature is considered "primary"
-   * and is used when testing for Transaction confirmation.
-   *
-   * Transaction fields should not be modified after the first call to `sign`,
-   * as doing so may invalidate the signature and cause the Transaction to be
-   * rejected.
-   *
-   * The Transaction must be assigned a valid `recentBlockhash` before invoking this method
-   */
-  sign(...signers: Array<Account>) {
+  sign(...signers: Array<BusAccount>) {
     this.signPartial(...signers);
   }
 
-  /**
-   * Partially sign a Transaction with the specified accounts.  The `Account`
-   * inputs will be used to sign the Transaction immediately, while any
-   * `PublicKey` inputs will be referenced in the signed Transaction but need to
-   * be filled in later by calling `addSigner()` with the matching `Account`.
-   *
-   * All the caveats from the `sign` method apply to `signPartial`
-   */
-  signPartial(...partialSigners: Array<PublicKey | Account>) {
+  signPartial(...partialSigners: Array<PubKey | BusAccount>) {
     if (partialSigners.length === 0) {
       throw new Error('No signers');
     }
     const signatures: Array<SignaturePubkeyPair> = partialSigners.map(
-      accountOrPublicKey => {
-        const publicKey =
-          accountOrPublicKey instanceof Account
-            ? accountOrPublicKey.publicKey
-            : accountOrPublicKey;
+      accountOrPubKey => {
+        const pubKey =
+          accountOrPubKey instanceof BusAccount
+            ? accountOrPubKey.pubKey
+            : accountOrPubKey;
         return {
           signature: null,
-          publicKey,
+          pubKey,
         };
       },
     );
     this.signatures = signatures;
-    const signData = this._getSignData();
+    const signData = this._fetchSignData();
 
-    partialSigners.forEach((accountOrPublicKey, index) => {
-      if (accountOrPublicKey instanceof PublicKey) {
+    partialSigners.forEach((accountOrPubKey, index) => {
+      if (accountOrPubKey instanceof PubKey) {
         return;
       }
       const signature = nacl.sign.detached(
         signData,
-        accountOrPublicKey.secretKey,
+        accountOrPubKey.privateKey,
       );
       invariant(signature.length === 64);
       signatures[index].signature = Buffer.from(signature);
     });
   }
 
-  /**
-   * Fill in a signature for a partially signed Transaction.  The `signer` must
-   * be the corresponding `Account` for a `PublicKey` that was previously provided to
-   * `signPartial`
-   */
-  addSigner(signer: Account) {
+  addSigner(signer: BusAccount) {
     const index = this.signatures.findIndex(sigpair =>
-      signer.publicKey.equals(sigpair.publicKey),
+      signer.pubKey.equals(sigpair.pubKey),
     );
     if (index < 0) {
-      throw new Error(`Unknown signer: ${signer.publicKey.toString()}`);
+      throw new Error(`Unknown signer: ${signer.pubKey.toString()}`);
     }
 
-    const signData = this._getSignData();
-    const signature = nacl.sign.detached(signData, signer.secretKey);
+    const signData = this._fetchSignData();
+    const signature = nacl.sign.detached(signData, signer.privateKey);
     invariant(signature.length === 64);
     this.signatures[index].signature = Buffer.from(signature);
   }
 
-  /**
-   * Serialize the Transaction in the wire format.
-   *
-   * The Transaction must have a valid `signature` before invoking this method
-   */
   serialize(): Buffer {
     const {signatures} = this;
     if (!signatures) {
       throw new Error('Transaction has not been signed');
     }
 
-    const signData = this._getSignData();
+    const signData = this._fetchSignData();
     const signatureCount = [];
     shortvec.encodeLength(signatureCount, signatures.length);
     const transactionLength =
@@ -391,25 +347,22 @@ export class Transaction {
   }
 
   /**
-   * Deprecated method
    * @private
    */
-  get keys(): Array<PublicKey> {
+  get keys(): Array<PubKey> {
     invariant(this.instructions.length === 1);
     return this.instructions[0].keys.map(keyObj => keyObj.pubkey);
   }
 
   /**
-   * Deprecated method
    * @private
    */
-  get programId(): PublicKey {
+  get controllerId(): PubKey {
     invariant(this.instructions.length === 1);
-    return this.instructions[0].programId;
+    return this.instructions[0].controllerId;
   }
 
   /**
-   * Deprecated method
    * @private
    */
   get data(): Buffer {
@@ -418,7 +371,6 @@ export class Transaction {
   }
 
   /**
-   * Parse a wire transaction into a Transaction object.
    */
   static from(buffer: Buffer): Transaction {
     const PUBKEY_LENGTH = 32;
@@ -426,7 +378,6 @@ export class Transaction {
 
     let transaction = new Transaction();
 
-    // Slice up wire data
     let byteArray = [...buffer];
 
     const signatureCount = shortvec.decodeLength(byteArray);
@@ -437,7 +388,7 @@ export class Transaction {
       signatures.push(signature);
     }
 
-    byteArray = byteArray.slice(1); // Skip numRequiredSignatures byte
+    byteArray = byteArray.slice(1); 
 
     const accountCount = shortvec.decodeLength(byteArray);
     let accounts = [];
@@ -450,9 +401,9 @@ export class Transaction {
     const recentBlockhash = byteArray.slice(0, PUBKEY_LENGTH);
     byteArray = byteArray.slice(PUBKEY_LENGTH);
 
-    const programIdCount = shortvec.decodeLength(byteArray);
+    const controllerIdCount = shortvec.decodeLength(byteArray);
     let programs = [];
-    for (let i = 0; i < programIdCount; i++) {
+    for (let i = 0; i < controllerIdCount; i++) {
       const program = byteArray.slice(0, PUBKEY_LENGTH);
       byteArray = byteArray.slice(PUBKEY_LENGTH);
       programs.push(program);
@@ -472,31 +423,30 @@ export class Transaction {
       instructions.push(instruction);
     }
 
-    // Populate Transaction object
-    transaction.recentBlockhash = new PublicKey(recentBlockhash).toBase58();
+    transaction.recentBlockhash = new PubKey(recentBlockhash).toBase58();
     for (let i = 0; i < signatureCount; i++) {
       const sigPubkeyPair = {
         signature: Buffer.from(signatures[i]),
-        publicKey: new PublicKey(accounts[i]),
+        pubKey: new PubKey(accounts[i]),
       };
       transaction.signatures.push(sigPubkeyPair);
     }
     for (let i = 0; i < instructionCount; i++) {
       let instructionData = {
         keys: [],
-        programId: new PublicKey(programs[instructions[i].programIndex]),
+        controllerId: new PubKey(programs[instructions[i].programIndex]),
         data: Buffer.from(instructions[i].data),
       };
       for (let j = 0; j < instructions[i].accountIndex.length; j++) {
-        const pubkey = new PublicKey(accounts[instructions[i].accountIndex[j]]);
+        const pubkey = new PubKey(accounts[instructions[i].accountIndex[j]]);
         instructionData.keys.push({
           pubkey,
           isSigner: transaction.signatures.some(
-            keyObj => keyObj.publicKey.toString() === pubkey.toString(),
+            keyObj => keyObj.pubKey.toString() === pubkey.toString(),
           ),
         });
       }
-      let instruction = new TransactionInstruction(instructionData);
+      let instruction = new TxOperation(instructionData);
       transaction.instructions.push(instruction);
     }
     return transaction;

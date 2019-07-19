@@ -1,11 +1,11 @@
 // @flow
-import {Account} from '../src/account';
-import {PublicKey} from '../src/publickey';
+import {BusAccount} from '../src/bus-account';
+import {PubKey} from '../src/pubkey';
 
 test('generate new account', () => {
-  const account = new Account();
-  expect(PublicKey.isPublicKey(account.publicKey)).toBeTruthy();
-  expect(account.secretKey).toHaveLength(64);
+  const account = new BusAccount();
+  expect(PubKey.isPubKey(account.pubKey)).toBeTruthy();
+  expect(account.privateKey).toHaveLength(64);
 });
 
 test('account from secret key', () => {
@@ -75,8 +75,8 @@ test('account from secret key', () => {
     153,
     34,
   ]);
-  const account = new Account(secretKey);
-  expect(account.publicKey.toBase58()).toBe(
+  const account = new BusAccount(secretKey);
+  expect(account.pubKey.toBase58()).toBe(
     '2q7pyhPwAwZ3QMfZrnAbDhnh9mDUqycszcpf86VgQxhF',
   );
 });

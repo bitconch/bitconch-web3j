@@ -1,7 +1,5 @@
 import {Client as RpcWebSocketClient} from 'rpc-websockets';
 
-// Define TEST_LIVE in the environment to test against the real full node
-// identified by `url` instead of using the mock
 export const mockRpcEnabled = !process.env.TEST_LIVE;
 
 let mockNotice = true;
@@ -10,7 +8,6 @@ export class Client {
   client: RpcWebSocketClient;
 
   constructor(url, options) {
-    //console.log('MockClient', url, options);
     if (!mockRpcEnabled) {
       if (mockNotice) {
         console.log(
@@ -39,7 +36,6 @@ export class Client {
     if (!mockRpcEnabled) {
       return this.client.on(event, callback);
     }
-    //console.log('on', event);
   }
 
   async call(method: string, params: Object): Promise<Object> {

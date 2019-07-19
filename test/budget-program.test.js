@@ -1,76 +1,70 @@
 // @flow
 
-import {Account} from '../src/account';
-import {BudgetProgram} from '../src/budget-program';
+import {BusAccount} from '../src/bus-account';
+import {BudgetController} from '../src/budget-controller';
 
 test('pay', () => {
-  const from = new Account();
-  const program = new Account();
-  const to = new Account();
+  const from = new BusAccount();
+  const program = new BusAccount();
+  const to = new BusAccount();
   let transaction;
 
-  transaction = BudgetProgram.pay(
-    from.publicKey,
-    program.publicKey,
-    to.publicKey,
+  transaction = BudgetController.pay(
+    from.pubKey,
+    program.pubKey,
+    to.pubKey,
     123,
   );
   expect(transaction.keys).toHaveLength(2);
-  // TODO: Validate transaction contents more
 
-  transaction = BudgetProgram.pay(
-    from.publicKey,
-    program.publicKey,
-    to.publicKey,
+  transaction = BudgetController.pay(
+    from.pubKey,
+    program.pubKey,
+    to.pubKey,
     123,
-    BudgetProgram.signatureCondition(from.publicKey),
+    BudgetController.signatureCond(from.pubKey),
   );
   expect(transaction.keys).toHaveLength(3);
-  // TODO: Validate transaction contents more
 
-  transaction = BudgetProgram.pay(
-    from.publicKey,
-    program.publicKey,
-    to.publicKey,
+  transaction = BudgetController.pay(
+    from.pubKey,
+    program.pubKey,
+    to.pubKey,
     123,
-    BudgetProgram.signatureCondition(from.publicKey),
-    BudgetProgram.timestampCondition(from.publicKey, new Date()),
+    BudgetController.signatureCond(from.pubKey),
+    BudgetController.datetimeCond(from.pubKey, new Date()),
   );
   expect(transaction.keys).toHaveLength(3);
-  // TODO: Validate transaction contents more
 
-  transaction = BudgetProgram.payOnBoth(
-    from.publicKey,
-    program.publicKey,
-    to.publicKey,
+  transaction = BudgetController.payOnAll(
+    from.pubKey,
+    program.pubKey,
+    to.pubKey,
     123,
-    BudgetProgram.signatureCondition(from.publicKey),
-    BudgetProgram.timestampCondition(from.publicKey, new Date()),
+    BudgetController.signatureCond(from.pubKey),
+    BudgetController.datetimeCond(from.pubKey, new Date()),
   );
   expect(transaction.keys).toHaveLength(3);
-  // TODO: Validate transaction contents more
 });
 
 test('apply', () => {
-  const from = new Account();
-  const program = new Account();
-  const to = new Account();
+  const from = new BusAccount();
+  const program = new BusAccount();
+  const to = new BusAccount();
   let transaction;
 
-  transaction = BudgetProgram.applyTimestamp(
-    from.publicKey,
-    program.publicKey,
-    to.publicKey,
+  transaction = BudgetController.sealWithDatetime(
+    from.pubKey,
+    program.pubKey,
+    to.pubKey,
     new Date(),
   );
   expect(transaction.keys).toHaveLength(3);
-  // TODO: Validate transaction contents more
 
-  transaction = BudgetProgram.applySignature(
-    from.publicKey,
-    program.publicKey,
-    to.publicKey,
+  transaction = BudgetController.sealWithSignature(
+    from.pubKey,
+    program.pubKey,
+    to.pubKey,
   );
   expect(transaction.keys).toHaveLength(3);
-  // TODO: Validate transaction contents more
 });

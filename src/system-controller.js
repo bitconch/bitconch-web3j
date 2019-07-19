@@ -2,50 +2,40 @@
 
 import * as BufferLayout from 'buffer-layout';
 
-import {Transaction} from './transaction';
-import {PublicKey} from './publickey';
-import * as Layout from './layout';
+import {Transaction} from './transaction-controller';
+import {PubKey} from './pubkey';
+import * as Layout from './typelayout';
 
-/**
- * Factory class for transactions to interact with the System program
- */
-export class SystemProgram {
-  /**
-   * Public key that identifies the System program
-   */
-  static get programId(): PublicKey {
-    return new PublicKey(
+
+export class SystemController {
+
+  static get controllerId(): PubKey {
+    return new PubKey(
       '0x000000000000000000000000000000000000000000000000000000000000000',
     );
   }
 
-  /**
-   * Generate a Transaction that creates a new account
-   */
-  static createAccount(
-    from: PublicKey,
-    newAccount: PublicKey,
-    // lamports: number,
+  static createNewAccount(
+    from: PubKey,
+    newAccount: PubKey,
     dif: number,
     space: number,
-    programId: PublicKey,
+    controllerId: PubKey,
   ): Transaction {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u32('instruction'),
-      // BufferLayout.ns64('lamports'),
       BufferLayout.ns64('dif'),
       BufferLayout.ns64('space'),
-      Layout.publicKey('programId'),
+      Layout.pubKey('controllerId'),
     ]);
 
     const data = Buffer.alloc(dataLayout.span);
     dataLayout.encode(
       {
-        instruction: 0, // Create Account instruction
-        // lamports,
+        instruction: 0, 
         dif,
         space,
-        programId: programId.toBuffer(),
+        controllerId: controllerId.toBuffer(),
       },
       data,
     );
@@ -55,15 +45,12 @@ export class SystemProgram {
         {pubkey: from, isSigner: true},
         {pubkey: newAccount, isSigner: false},
       ],
-      programId: SystemProgram.programId,
+      controllerId: SystemController.controllerId,
       data,
     });
   }
 
-  /**
-   * Generate a Transaction that transfers lamports from one account to another
-   */
-  static transfer(from: PublicKey, to: PublicKey, amount: number): Transaction {
+  static transfer(from: PubKey, to: PubKey, amount: number): Transaction {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u32('instruction'),
       BufferLayout.ns64('amount'),
@@ -72,7 +59,7 @@ export class SystemProgram {
     const data = Buffer.alloc(dataLayout.span);
     dataLayout.encode(
       {
-        instruction: 2, // Move instruction
+        instruction: 2, 
         amount,
       },
       data,
@@ -80,32 +67,29 @@ export class SystemProgram {
 
     return new Transaction().add({
       keys: [{pubkey: from, isSigner: true}, {pubkey: to, isSigner: false}],
-      programId: SystemProgram.programId,
+      controllerId: SystemController.controllerId,
       data,
     });
   }
 
-  /**
-   * Generate a Transaction that assigns an account to a program
-   */
-  static assign(from: PublicKey, programId: PublicKey): Transaction {
+  static assign(from: PubKey, controllerId: PubKey): Transaction {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u32('instruction'),
-      Layout.publicKey('programId'),
+      Layout.pubKey('controllerId'),
     ]);
 
     const data = Buffer.alloc(dataLayout.span);
     dataLayout.encode(
       {
-        instruction: 1, // Assign instruction
-        programId: programId.toBuffer(),
+        instruction: 1,
+        controllerId: controllerId.toBuffer(),
       },
       data,
     );
 
     return new Transaction().add({
       keys: [{pubkey: from, isSigner: true}],
-      programId: SystemProgram.programId,
+      controllerId: SystemController.controllerId,
       data,
     });
   }
