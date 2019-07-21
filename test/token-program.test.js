@@ -26,7 +26,7 @@ function mockSendTransaction() {
   mockRpc.push([
     url,
     {
-      method: 'sendTx',
+      method: 'sendTxn',
     },
     {
       error: null,

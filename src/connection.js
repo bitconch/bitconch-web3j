@@ -364,8 +364,8 @@ export class Connection {
   /**
    * 
    */
-  async confmTxRpcRlt(signature: TxnSignature): Promise<boolean> {
-    const unsafeRes = await this._rpcReq('confmTx', [signature]);
+  async confmTxn(signature: TxnSignature): Promise<boolean> {
+    const unsafeRes = await this._rpcReq('confirmTxn', [signature]);
     const res = ConfmTxnRpcResult(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
@@ -535,7 +535,7 @@ export class Connection {
   async sendOriginalTx(
     rawTransaction: Buffer,
   ): Promise<TxnSignature> {
-    const unsafeRes = await this._rpcReq('sendTx', [
+    const unsafeRes = await this._rpcReq('sendTxn', [
       [...rawTransaction],
     ]);
     const res = SendTxnRpcResult(unsafeRes);

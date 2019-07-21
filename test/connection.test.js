@@ -141,14 +141,14 @@ test('confirm transaction - error', () => {
   mockRpc.push([
     url,
     {
-      method: 'confmTx',
+      method: 'confirmTxn',
       params: [badTransactionSignature],
     },
     errorResponse,
   ]);
 
   expect(
-    connection.confmTxRpcRlt(badTransactionSignature),
+    connection.confmTxn(badTransactionSignature),
   ).rejects.toThrow(errorMessage);
 
   mockRpc.push([
@@ -357,7 +357,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'sendTx',
+      method: 'sendTxn',
     },
     {
       error: null,
@@ -376,7 +376,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'confmTx',
+      method: 'confirmTxn',
       params: [
         '3WE5w4B7v59x6qjyC4FbG2FEKYKQfvsJwqSxNVmtMjT8TQ31hsZieDHcSgqzxiAoTL56n2w5TncjqEKjLhtF4Vk',
       ],
@@ -389,7 +389,7 @@ test('transaction', async () => {
 
   let i = 0;
   for (;;) {
-    if (await connection.confmTxRpcRlt(signature)) {
+    if (await connection.confmTxn(signature)) {
       break;
     }
 
@@ -473,7 +473,7 @@ test('multi-instruction transaction', async () => {
   );
   let i = 0;
   for (;;) {
-    if (await connection.confmTxRpcRlt(signature)) {
+    if (await connection.confmTxn(signature)) {
       break;
     }
 
