@@ -4,27 +4,34 @@ import * as BufferLayout from 'buffer-layout';
 
 import {Transaction} from './transaction-controller';
 import {PubKey} from './pubkey';
-import * as Layout from './typelayout';
+import * as Layout from './resize';
 
-
+/**
+ * Factory class for transactions to interact with the System program
+ */
 export class SystemController {
-
+  /**
+   * Public key that identifies the System program
+   */
   static get controllerId(): PubKey {
     return new PubKey(
       '0x000000000000000000000000000000000000000000000000000000000000000',
     );
   }
 
+  /**
+   * Generate a Transaction that creates a new account
+   */
   static createNewAccount(
     from: PubKey,
-    newAccount: PubKey,
-    dif: number,
+    createNewAccount: PubKey,
+    lamports: number,
     space: number,
     controllerId: PubKey,
   ): Transaction {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u32('instruction'),
-      BufferLayout.ns64('dif'),
+      BufferLayout.ns64('lamports'),
       BufferLayout.ns64('space'),
       Layout.pubKey('controllerId'),
     ]);
@@ -32,8 +39,8 @@ export class SystemController {
     const data = Buffer.alloc(dataLayout.span);
     dataLayout.encode(
       {
-        instruction: 0, 
-        dif,
+        instruction: 0, // Create BusAccount instruction
+        lamports,
         space,
         controllerId: controllerId.toBuffer(),
       },
@@ -42,14 +49,17 @@ export class SystemController {
 
     return new Transaction().add({
       keys: [
-        {pubkey: from, isSigner: true},
-        {pubkey: newAccount, isSigner: false},
+        {pubkey: from, isSigner: true, isDebitable: true},
+        {pubkey: createNewAccount, isSigner: false, isDebitable: true},
       ],
       controllerId: SystemController.controllerId,
       data,
     });
   }
 
+  /**
+   * Generate a Transaction that transfers lamports from one account to another
+   */
   static transfer(from: PubKey, to: PubKey, amount: number): Transaction {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u32('instruction'),
@@ -59,19 +69,25 @@ export class SystemController {
     const data = Buffer.alloc(dataLayout.span);
     dataLayout.encode(
       {
-        instruction: 2, 
+        instruction: 2, // Move instruction
         amount,
       },
       data,
     );
 
     return new Transaction().add({
-      keys: [{pubkey: from, isSigner: true}, {pubkey: to, isSigner: false}],
+      keys: [
+        {pubkey: from, isSigner: true, isDebitable: true},
+        {pubkey: to, isSigner: false, isDebitable: false},
+      ],
       controllerId: SystemController.controllerId,
       data,
     });
   }
 
+  /**
+   * Generate a Transaction that assigns an account to a program
+   */
   static assign(from: PubKey, controllerId: PubKey): Transaction {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u32('instruction'),
@@ -81,14 +97,14 @@ export class SystemController {
     const data = Buffer.alloc(dataLayout.span);
     dataLayout.encode(
       {
-        instruction: 1,
+        instruction: 1, // Assign instruction
         controllerId: controllerId.toBuffer(),
       },
       data,
     );
 
     return new Transaction().add({
-      keys: [{pubkey: from, isSigner: true}],
+      keys: [{pubkey: from, isSigner: true, isDebitable: true}],
       controllerId: SystemController.controllerId,
       data,
     });

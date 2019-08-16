@@ -2,20 +2,20 @@
 
 import {Connection} from '../connection';
 import {sleep} from './sleep';
-import type {TxnSignature} from '../transaction-controller';
-import {DEFAULT_TICKS_PER_ROUND, NUM_TICKS_PER_SECOND} from '../timing';
+import type {TxSignature} from '../transaction-controller';
+import {DEFAULT_TICKS_PER_SLOT, NUM_TICKS_PER_SEC} from '../timing';
 
 /**
- *
+ * Sign, send and confirm a raw transaction
  */
-export async function sendAndConfmOriginalTxn(
+export async function sendAndConfmOriginalTx(
   connection: Connection,
   rawTransaction: Buffer,
-): Promise<TxnSignature> {
+): Promise<TxSignature> {
   const start = Date.now();
   let signature = await connection.sendOriginalTx(rawTransaction);
 
-  // 
+  // Wait up to a couple slots for a confirmation
   let status = null;
   let statusRetries = 6;
   for (;;) {
@@ -24,8 +24,8 @@ export async function sendAndConfmOriginalTxn(
       break;
     }
 
-    // 
-    await sleep((500 * DEFAULT_TICKS_PER_ROUND) / NUM_TICKS_PER_SECOND);
+    // Sleep for approximately half a slot
+    await sleep((500 * DEFAULT_TICKS_PER_SLOT) / NUM_TICKS_PER_SEC);
 
     if (--statusRetries <= 0) {
       const duration = (Date.now() - start) / 1000;

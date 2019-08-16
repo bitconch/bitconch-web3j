@@ -5,6 +5,6 @@ directory by running `npm install`.
 Additionally most of the examples attempt to connect to a local cluster.  Start
 your local cluster first by running:
 ```bash
-$ npx bitconch-localnet update
-$ npx bitconch-localnet up
+$ npx solana-localnet update
+$ npx solana-localnet up
 ```

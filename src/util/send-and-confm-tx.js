@@ -6,24 +6,24 @@ import {Connection} from '../connection';
 import {Transaction} from '../transaction-controller';
 import {sleep} from './sleep';
 import type {BusAccount} from '../bus-account';
-import type {TxnSignature} from '../transaction-controller';
-import {DEFAULT_TICKS_PER_ROUND, NUM_TICKS_PER_SECOND} from '../timing';
+import type {TxSignature} from '../transaction-controller';
+import {DEFAULT_TICKS_PER_SLOT, NUM_TICKS_PER_SEC} from '../timing';
 
 /**
- * 
+ * Sign, send and confirm a transaction
  */
-export async function sendAndConfmTxn(
+export async function sendAndconfmTx(
   connection: Connection,
   transaction: Transaction,
   ...signers: Array<BusAccount>
-): Promise<TxnSignature> {
+): Promise<TxSignature> {
   let sendRetries = 10;
   let signature;
   for (;;) {
     const start = Date.now();
-    signature = await connection.sendTxn(transaction, ...signers);
+    signature = await connection.sendTx(transaction, ...signers);
 
-    // 
+    // Wait up to a couple slots for a confirmation
     let status = null;
     let statusRetries = 6;
     for (;;) {
@@ -35,8 +35,8 @@ export async function sendAndConfmTxn(
       if (--statusRetries <= 0) {
         break;
       }
-      // 
-      await sleep((500 * DEFAULT_TICKS_PER_ROUND) / NUM_TICKS_PER_SECOND);
+      // Sleep for approximately half a slot
+      await sleep((500 * DEFAULT_TICKS_PER_SLOT) / NUM_TICKS_PER_SEC);
     }
 
     if (status && 'Ok' in status) {
@@ -57,7 +57,7 @@ export async function sendAndConfmTxn(
       );
     }
 
-    // 
+    // Retry in 0..100ms to try to avoid another AccountInUse collision
     await sleep(Math.random() * 100);
   }
 

@@ -7,12 +7,12 @@ test('invalid', () => {
   }).toThrow();
 });
 
-test('nightly', () => {
-  expect(testnetChannelEndpoint('nightly')).toEqual(
-    'https://api.nightly.bitconch.io',
+test('edge', () => {
+  expect(testnetChannelEndpoint('edge')).toEqual(
+    'https://api.edge.testnet.solana.com',
   );
 });
 
 test('default', () => {
-  testnetChannelEndpoint(); 
+  testnetChannelEndpoint(); // Should not throw
 });

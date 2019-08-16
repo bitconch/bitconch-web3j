@@ -6,29 +6,29 @@ import {ControllerLoader} from './controller-loader';
 import type {Connection} from './connection';
 
 /**
- * 
+ * Factory class for transactions to interact with a program loader
  */
 export class BpfControllerLoader {
   /**
-   * 
+   * Public key that identifies the BpfControllerLoader
    */
   static get controllerId(): PubKey {
-    return new PubKey('BPFControllerLoader1111111111111111111111111111111111');
+    return new PubKey('BPFLoader1111111111111111111111111111111111');
   }
 
   /**
-   * 
+   * Load a BPF program
    *
-   * @param connection 
-   * @param owner 
-   * @param elfBytes 
+   * @param connection The connection to use
+   * @param owner User account to load the program into
+   * @param elfBytes The entire ELF containing the BPF program
    */
   static load(
     connection: Connection,
     payer: BusAccount,
     elf: Array<number>,
   ): Promise<PubKey> {
-    const controller = new BusAccount();
-    return ControllerLoader.load(connection, payer, controller, BpfControllerLoader.controllerId, elf);
+    const program = new BusAccount();
+    return ControllerLoader.load(connection, payer, program, BpfControllerLoader.controllerId, elf);
   }
 }

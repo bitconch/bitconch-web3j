@@ -1,12 +1,13 @@
 // @flow
 import {BusAccount, Connection, BpfControllerLoader, ControllerLoader, SystemController} from '../src';
-import {DEFAULT_TICKS_PER_ROUND, NUM_TICKS_PER_SECOND} from '../src/timing';
+import {DEFAULT_TICKS_PER_SLOT, NUM_TICKS_PER_SEC} from '../src/timing';
 import {mockRpc, mockRpcEnabled} from './__mocks__/node-fetch';
 import {mockGetRecentBlockhash} from './mockrpc/get-recent-blockhash';
 import {url} from './url';
 import {sleep} from '../src/util/sleep';
 
 if (!mockRpcEnabled) {
+  // The default of 5 seconds is too slow for live testing sometimes
   jest.setTimeout(30000);
 }
 
@@ -25,7 +26,7 @@ test('get account info - error', () => {
   mockRpc.push([
     url,
     {
-      method: 'getAccountInfo',
+      method: 'fetchAccountDetail',
       params: [account.pubKey.toBase58()],
     },
     errorResponse,
@@ -36,9 +37,9 @@ test('get account info - error', () => {
   );
 });
 
-test('fullnodeExit', async () => {
+test('fullnodeQuit', async () => {
   if (!mockRpcEnabled) {
-    console.log('fullnodeExit skipped on live node');
+    console.log('fullnodeQuit skipped on live node');
     return;
   }
   const connection = new Connection(url);
@@ -54,7 +55,7 @@ test('fullnodeExit', async () => {
     },
   ]);
 
-  const result = await connection.fullnodeExit();
+  const result = await connection.fullnodeQuit();
   expect(result).toBe(false);
 });
 
@@ -65,7 +66,7 @@ test('get balance', async () => {
   mockRpc.push([
     url,
     {
-      method: 'getDif',
+      method: 'fetchAccountBalance',
       params: [account.pubKey.toBase58()],
     },
     {
@@ -78,13 +79,13 @@ test('get balance', async () => {
   expect(balance).toBeGreaterThanOrEqual(0);
 });
 
-test('get round leader', async () => {
+test('get slot leader', async () => {
   const connection = new Connection(url);
 
   mockRpc.push([
     url,
     {
-      method: 'getRoundLeader',
+      method: 'fetchSlotLeader',
     },
     {
       error: null,
@@ -92,11 +93,13 @@ test('get round leader', async () => {
     },
   ]);
 
-  const roundLeader = await connection.fetchRoundLeader();
+  const slotLeader = await connection.fetchSlotLeader();
   if (mockRpcEnabled) {
-    expect(roundLeader).toBe('11111111111111111111111111111111');
+    expect(slotLeader).toBe('11111111111111111111111111111111');
   } else {
-    expect(typeof roundLeader).toBe('string');
+    // No idea what the correct slotLeader value should be on a live cluster, so
+    // just check the type
+    expect(typeof slotLeader).toBe('string');
   }
 });
 
@@ -106,13 +109,13 @@ test('get cluster nodes', async () => {
   mockRpc.push([
     url,
     {
-      method: 'getClusterNodes',
+      method: 'fetchClusterNodes',
     },
     {
       error: null,
       result: [
         {
-          id: '11111111111111111111111111111111',
+          pubkey: '11111111111111111111111111111111',
           gossip: '127.0.0.0:1234',
           tpu: '127.0.0.0:1235',
           rpc: null,
@@ -124,13 +127,25 @@ test('get cluster nodes', async () => {
   const clusterNodes = await connection.fetchClusterNodes();
   if (mockRpcEnabled) {
     expect(clusterNodes).toHaveLength(1);
-    expect(clusterNodes[0].id).toBe('11111111111111111111111111111111');
+    expect(clusterNodes[0].pubkey).toBe('11111111111111111111111111111111');
     expect(typeof clusterNodes[0].gossip).toBe('string');
     expect(typeof clusterNodes[0].tpu).toBe('string');
     expect(clusterNodes[0].rpc).toBeNull();
   } else {
+    // There should be at least one node (the node that we're talking to)
     expect(clusterNodes.length).toBeGreaterThan(0);
   }
+});
+
+test('getEpochVoteAccounts', async () => {
+  if (mockRpcEnabled) {
+    console.log('non-live test skipped');
+    return;
+  }
+
+  const connection = new Connection(url);
+  const voteAccounts = await connection.getEpochVoteAccounts();
+  expect(voteAccounts.length).toBeGreaterThan(0);
 });
 
 test('confirm transaction - error', () => {
@@ -141,20 +156,20 @@ test('confirm transaction - error', () => {
   mockRpc.push([
     url,
     {
-      method: 'confirmTxn',
+      method: 'confmTxRpcRlt',
       params: [badTransactionSignature],
     },
     errorResponse,
   ]);
 
   expect(
-    connection.confmTxn(badTransactionSignature),
+    connection.confmTxRpcRlt(badTransactionSignature),
   ).rejects.toThrow(errorMessage);
 
   mockRpc.push([
     url,
     {
-      method: 'getSignatureState',
+      method: 'fetchSignatureState',
       params: [badTransactionSignature],
     },
     errorResponse,
@@ -171,7 +186,7 @@ test('get transaction count', async () => {
   mockRpc.push([
     url,
     {
-      method: 'getTxnCnt',
+      method: 'fetchTxAmount',
       params: [],
     },
     {
@@ -180,7 +195,26 @@ test('get transaction count', async () => {
     },
   ]);
 
-  const count = await connection.fetchTxnAmount();
+  const count = await connection.fetchTxAmount();
+  expect(count).toBeGreaterThanOrEqual(0);
+});
+
+test('get total supply', async () => {
+  const connection = new Connection(url);
+
+  mockRpc.push([
+    url,
+    {
+      method: 'getTotalSupply',
+      params: [],
+    },
+    {
+      error: null,
+      result: 1000000,
+    },
+  ]);
+
+  const count = await connection.getTotalSupply();
   expect(count).toBeGreaterThanOrEqual(0);
 });
 
@@ -189,8 +223,12 @@ test('get recent blockhash', async () => {
 
   mockGetRecentBlockhash();
 
-  const recentBlockhash = await connection.fetchRecentBlockhash();
-  expect(recentBlockhash.length).toBeGreaterThanOrEqual(43);
+  const [
+    recentPackagehash,
+    feeCalculator,
+  ] = await connection.fetchRecentBlockhash();
+  expect(recentPackagehash.length).toBeGreaterThanOrEqual(43);
+  expect(feeCalculator.lamportsPerSignature).toBeGreaterThanOrEqual(0);
 });
 
 test('request airdrop', async () => {
@@ -200,7 +238,7 @@ test('request airdrop', async () => {
   mockRpc.push([
     url,
     {
-      method: 'requestDif',
+      method: 'reqDrone',
       params: [account.pubKey.toBase58(), 40],
     },
     {
@@ -212,7 +250,7 @@ test('request airdrop', async () => {
   mockRpc.push([
     url,
     {
-      method: 'requestDif',
+      method: 'reqDrone',
       params: [account.pubKey.toBase58(), 2],
     },
     {
@@ -224,7 +262,7 @@ test('request airdrop', async () => {
   mockRpc.push([
     url,
     {
-      method: 'getDif',
+      method: 'fetchAccountBalance',
       params: [account.pubKey.toBase58()],
     },
     {
@@ -242,7 +280,7 @@ test('request airdrop', async () => {
   mockRpc.push([
     url,
     {
-      method: 'getAccountInfo',
+      method: 'fetchAccountDetail',
       params: [account.pubKey.toBase58()],
     },
     {
@@ -282,18 +320,17 @@ test('request airdrop', async () => {
           0,
           0,
         ],
-        // lamports: 42,
-        dif: 42,
+        lamports: 42,
         data: [],
         executable: false,
       },
     },
   ]);
 
-  const accountInfo = await connection.fetchAccountDetail(account.pubKey);
-  expect(accountInfo.dif).toBe(42);
-  expect(accountInfo.data).toHaveLength(0);
-  expect(accountInfo.owner).toEqual(SystemController.controllerId);
+  const fetchAccountDetail = await connection.fetchAccountDetail(account.pubKey);
+  expect(fetchAccountDetail.lamports).toBe(42);
+  expect(fetchAccountDetail.data).toHaveLength(0);
+  expect(fetchAccountDetail.owner).toEqual(SystemController.controllerId);
 });
 
 test('transaction', async () => {
@@ -304,8 +341,8 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'requestDif',
-      params: [accountFrom.pubKey.toBase58(), 12],
+      method: 'reqDrone',
+      params: [accountFrom.pubKey.toBase58(), 100010],
     },
     {
       error: null,
@@ -316,21 +353,21 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'getDif',
+      method: 'fetchAccountBalance',
       params: [accountFrom.pubKey.toBase58()],
     },
     {
       error: null,
-      result: 12,
+      result: 100010,
     },
   ]);
-  await connection.reqDrone(accountFrom.pubKey, 12);
-  expect(await connection.fetchAccountBalance(accountFrom.pubKey)).toBe(12);
+  await connection.reqDrone(accountFrom.pubKey, 100010);
+  expect(await connection.fetchAccountBalance(accountFrom.pubKey)).toBe(100010);
 
   mockRpc.push([
     url,
     {
-      method: 'requestDif',
+      method: 'reqDrone',
       params: [accountTo.pubKey.toBase58(), 21],
     },
     {
@@ -342,7 +379,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'getDif',
+      method: 'fetchAccountBalance',
       params: [accountTo.pubKey.toBase58()],
     },
     {
@@ -357,7 +394,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'sendTxn',
+      method: 'sendTx',
     },
     {
       error: null,
@@ -371,12 +408,12 @@ test('transaction', async () => {
     accountTo.pubKey,
     10,
   );
-  const signature = await connection.sendTxn(transaction, accountFrom);
+  const signature = await connection.sendTx(transaction, accountFrom);
 
   mockRpc.push([
     url,
     {
-      method: 'confirmTxn',
+      method: 'confmTxRpcRlt',
       params: [
         '3WE5w4B7v59x6qjyC4FbG2FEKYKQfvsJwqSxNVmtMjT8TQ31hsZieDHcSgqzxiAoTL56n2w5TncjqEKjLhtF4Vk',
       ],
@@ -389,10 +426,10 @@ test('transaction', async () => {
 
   let i = 0;
   for (;;) {
-    if (await connection.confmTxn(signature)) {
+    if (await connection.confmTxRpcRlt(signature)) {
       break;
     }
-
+    console.log('not confirmed', signature);
     expect(mockRpcEnabled).toBe(false);
     expect(++i).toBeLessThan(10);
     await sleep(500);
@@ -401,7 +438,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'getSignatureState',
+      method: 'fetchSignatureState',
       params: [
         '3WE5w4B7v59x6qjyC4FbG2FEKYKQfvsJwqSxNVmtMjT8TQ31hsZieDHcSgqzxiAoTL56n2w5TncjqEKjLhtF4Vk',
       ],
@@ -418,7 +455,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'getDif',
+      method: 'fetchAccountBalance',
       params: [accountFrom.pubKey.toBase58()],
     },
     {
@@ -427,14 +464,15 @@ test('transaction', async () => {
     },
   ]);
 
+  // accountFrom may have less than 100000 due to transaction fees
   const balance = await connection.fetchAccountBalance(accountFrom.pubKey);
   expect(balance).toBeGreaterThan(0);
-  expect(balance).toBeLessThanOrEqual(2);
+  expect(balance).toBeLessThanOrEqual(100000);
 
   mockRpc.push([
     url,
     {
-      method: 'getDif',
+      method: 'fetchAccountBalance',
       params: [accountTo.pubKey.toBase58()],
     },
     {
@@ -455,25 +493,29 @@ test('multi-instruction transaction', async () => {
   const accountTo = new BusAccount();
   const connection = new Connection(url);
 
-  await connection.reqDrone(accountFrom.pubKey, 12);
-  expect(await connection.fetchAccountBalance(accountFrom.pubKey)).toBe(12);
+  await connection.reqDrone(accountFrom.pubKey, 100000);
+  expect(await connection.fetchAccountBalance(accountFrom.pubKey)).toBe(100000);
 
   await connection.reqDrone(accountTo.pubKey, 21);
   expect(await connection.fetchAccountBalance(accountTo.pubKey)).toBe(21);
 
+  // 1. Move(accountFrom, accountTo)
+  // 2. Move(accountTo, accountFrom)
   const transaction = SystemController.transfer(
     accountFrom.pubKey,
     accountTo.pubKey,
-    10,
-  ).add(SystemController.transfer(accountTo.pubKey, accountFrom.pubKey, 10));
-  const signature = await connection.sendTxn(
+    100,
+  ).add(
+    SystemController.transfer(accountTo.pubKey, accountFrom.pubKey, 100),
+  );
+  const signature = await connection.sendTx(
     transaction,
     accountFrom,
     accountTo,
   );
   let i = 0;
   for (;;) {
-    if (await connection.confmTxn(signature)) {
+    if (await connection.confmTxRpcRlt(signature)) {
       break;
     }
 
@@ -485,10 +527,11 @@ test('multi-instruction transaction', async () => {
     Ok: null,
   });
 
+  // accountFrom may have less than 100000 due to transaction fees
   expect(await connection.fetchAccountBalance(accountFrom.pubKey)).toBeGreaterThan(0);
   expect(
     await connection.fetchAccountBalance(accountFrom.pubKey),
-  ).toBeLessThanOrEqual(12);
+  ).toBeLessThanOrEqual(100000);
 
   expect(await connection.fetchAccountBalance(accountTo.pubKey)).toBe(21);
 });
@@ -501,22 +544,23 @@ test('account change notification', async () => {
 
   const connection = new Connection(url);
   const owner = new BusAccount();
-  const controllerAccount = new BusAccount();
+  const programAccount = new BusAccount();
 
   const mockCallback = jest.fn();
 
   const subscriptionId = connection.onAccountChange(
-    controllerAccount.pubKey,
+    programAccount.pubKey,
     mockCallback,
   );
 
-  await connection.reqDrone(owner.pubKey, 42);
-  await ControllerLoader.load(connection, owner, controllerAccount, BpfControllerLoader.controllerId, [
+  await connection.reqDrone(owner.pubKey, 100000);
+  await ControllerLoader.load(connection, owner, programAccount, BpfControllerLoader.controllerId, [
     1,
     2,
     3,
   ]);
 
+  // Wait for mockCallback to receive a call
   let i = 0;
   for (;;) {
     if (mockCallback.mock.calls.length > 0) {
@@ -524,14 +568,16 @@ test('account change notification', async () => {
     }
 
     if (++i === 30) {
-      throw new Error('Account change notification not observed');
+      throw new Error('BusAccount change notification not observed');
     }
-    await sleep((250 * DEFAULT_TICKS_PER_ROUND) / NUM_TICKS_PER_SECOND);
+    // Sleep for a 1/4 of a slot, notifications only occur after a block is
+    // processed
+    await sleep((250 * DEFAULT_TICKS_PER_SLOT) / NUM_TICKS_PER_SEC);
   }
 
   await connection.removeListenerOfAccountChange(subscriptionId);
 
-  expect(mockCallback.mock.calls[0][0].dif).toBe(1);
+  expect(mockCallback.mock.calls[0][0].lamports).toBe(1);
   expect(mockCallback.mock.calls[0][0].owner).toEqual(BpfControllerLoader.controllerId);
 });
 
@@ -545,33 +591,39 @@ test('program account change notification', async () => {
   const owner = new BusAccount();
   const programAccount = new BusAccount();
 
+  // const mockCallback = jest.fn();
 
   let notified = false;
   const subscriptionId = connection.onControllerAccountChange(
     BpfControllerLoader.controllerId,
     keyedAccountInfo => {
       if (keyedAccountInfo.accountId !== programAccount.pubKey.toString()) {
+        //console.log('Ignoring another account', keyedAccountInfo);
         return;
       }
-      expect(keyedAccountInfo.accountDetail.dif).toBe(1);
-      expect(keyedAccountInfo.accountDetail.owner).toEqual(BpfControllerLoader.controllerId);
+      expect(keyedAccountInfo.fetchAccountDetail.lamports).toBe(1);
+      expect(keyedAccountInfo.fetchAccountDetail.owner).toEqual(BpfControllerLoader.controllerId);
       notified = true;
     },
   );
 
-  await connection.reqDrone(owner.pubKey, 42);
+  await connection.reqDrone(owner.pubKey, 100000);
   await ControllerLoader.load(connection, owner, programAccount, BpfControllerLoader.controllerId, [
     1,
     2,
     3,
   ]);
 
+  // Wait for mockCallback to receive a call
   let i = 0;
   while (!notified) {
+    //for (;;) {
     if (++i === 30) {
       throw new Error('Program change notification not observed');
     }
-    await sleep((250 * DEFAULT_TICKS_PER_ROUND) / NUM_TICKS_PER_SECOND);
+    // Sleep for a 1/4 of a slot, notifications only occur after a block is
+    // processed
+    await sleep((250 * DEFAULT_TICKS_PER_SLOT) / NUM_TICKS_PER_SEC);
   }
 
   await connection.removeControllerAccountChangeListener(subscriptionId);

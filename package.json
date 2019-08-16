@@ -1,23 +1,20 @@
 {
-  "name": "@bitconch/bitconch-web3j",
-  "version": "1.1.4",
-  "description": "Bitconch Javascript API",
+  "name": "@solana/web3.js",
+  "version": "0.0.0-development",
+  "description": "Solana Javascript API",
   "keywords": [
     "api",
-    "blockchain",
-    "javascript",
-    "bitconch"
+    "blockchain"
   ],
-  "testnetDefaultChannel": "edge",
   "license": "MIT",
-  "author": "Bitconch Dev",
-  "homepage": "https://bitconch.io/",
+  "author": "Solana Maintainers <maintainers@solana.com>",
+  "homepage": "https://solana.com/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bitconch/bitconch-web3j.git"
+    "url": "https://github.com/solana-labs/solana-web3.js.git"
   },
   "bugs": {
-    "url": "http://github.com/bitconch/bitconch-web3j.git/issues"
+    "url": "http://github.com/solana-labs/solana-web3.js.git/issues"
   },
   "publishConfig": {
     "access": "public"
@@ -25,21 +22,22 @@
   "main": "lib/index.cjs.js",
   "module": "lib/index.esm.js",
   "bin": {
-    "mini_server": "bin/mini_server.sh"
+    "solana-bpf-sdk-install": "bin/bpf-sdk-install.sh",
+    "solana-localnet": "bin/localnet.sh"
   },
+  "testnetDefaultChannel": "edge",
   "files": [
     "/bin",
     "/doc",
+    "/examples",
+    "/bpf-sdk",
     "/lib",
-    "/rollup.config.js",
     "/module.flow.js",
     "/src"
   ],
   "scripts": {
-    "bpf-sdk:install": "set -ex; npm run bpf-sdk:fetch; npm run bpf-sdk:clean",
-    "bpf-sdk:fetch": "curl http://solana-sdk.s3.amazonaws.com/$npm_package_testnetDefaultChannel/bpf-sdk.tar.bz2 -o bpf-sdk.tar.bz2",
+    "bpf-sdk:install": "bin/bpf-sdk-install.sh",
     "bpf-sdk:remove-symlinks": "find bpf-sdk -type l -print -exec cp {} {}.tmp \\; -exec mv {}.tmp {} \\;",
-    "bpf-sdk:clean": "rm bpf-sdk.tar.bz2",
     "build": "cross-env NODE_ENV=production rollup -c",
     "clean": "rimraf ./coverage ./lib",
     "codecov": "set -ex; npm run test:cover; cat ./coverage/lcov.info | codecov",
@@ -50,7 +48,6 @@
     "flow": "set -ex; flow stop; flow-typed install jest@24; flow",
     "flow:stop": "flow stop",
     "flow:watch": "flow stop; watch 'flow' . --wait=1 --ignoreDirectoryPattern=/doc/",
-    "install": "npm run bpf-sdk:install",
     "lint": "set -ex; npm run pretty; eslint .",
     "lint:fix": "npm run lint -- --fix",
     "lint:watch": "watch 'npm run lint:fix' . --wait=1 --ignoreDirectoryPattern=/doc/",
@@ -58,10 +55,10 @@
     "localnet:logs": "bin/localnet.sh logs -f",
     "localnet:up": "bin/localnet.sh up $npm_package_testnetDefaultChannel",
     "localnet:update": "bin/localnet.sh update $npm_package_testnetDefaultChannel",
-    "ok": "set -ex; npm run lint; npm run flow; npm run test; npm run doc",
-    "prepare": "set -ex; npm run clean; npm run bpf-sdk:install; npm run build",
+    "ok": "run-s --serial lint flow test doc",
+    "prepare": "run-s clean bpf-sdk:install bpf-sdk:remove-symlinks build",
     "pretty": "prettier --write '{,{examples,src,test}/**/}*.js'",
-    "re": "semantic-release --repository-url git@github.com:bitconch/bitconch-web3j.git",
+    "re": "semantic-release --repository-url git@github.com:solana-labs/solana-web3.js.git",
     "test": "cross-env NODE_ENV=test jest --useStderr",
     "test:cover": "cross-env NODE_ENV=test jest --coverage --useStderr",
     "test:live": "cross-env NODE_ENV=test TEST_LIVE=1 jest --useStderr",
@@ -76,10 +73,11 @@
     "jayson": "^3.0.1",
     "mz": "^2.7.0",
     "node-fetch": "^2.2.0",
+    "npm-run-all": "^4.1.5",
     "rpc-websockets": "^4.3.3",
     "superstruct": "^0.6.0",
     "tweetnacl": "^1.0.0",
-    "ws": "^6.1.0"
+    "ws": "^7.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.3.3",
@@ -88,39 +86,40 @@
     "@babel/plugin-transform-runtime": "^7.2.0",
     "@babel/preset-env": "^7.3.1",
     "@babel/preset-flow": "^7.0.0",
-    "babel-eslint": "10.0.1",
+    "acorn": "^6.1.1",
+    "babel-eslint": "10.0.2",
     "babel-plugin-module-resolver": "3.2.0",
     "codecov": "^3.0.4",
     "cross-env": "5.2.0",
     "elfy": "^0.1.0",
-    "enzyme": "3.9.0",
+    "enzyme": "3.10.0",
     "esdoc": "^1.1.0",
     "esdoc-ecmascript-proposal-plugin": "^1.0.0",
     "esdoc-flow-type-plugin": "^1.1.0",
     "esdoc-importpath-plugin": "^1.0.2",
     "esdoc-standard-plugin": "^1.0.0",
     "eslint": "5.16.0",
-    "eslint-config-prettier": "^4.0.0",
-    "eslint-plugin-import": "2.17.2",
-    "eslint-plugin-jest": "22.5.1",
+    "eslint-config-prettier": "^5.0.0",
+    "eslint-plugin-import": "2.18.0",
+    "eslint-plugin-jest": "22.7.1",
     "eslint-plugin-prettier": "^3.0.0",
-    "flow-bin": "0.97.0",
-    "flow-typed": "2.5.1",
+    "flow-bin": "0.101.1",
+    "flow-typed": "2.5.2",
     "fs-file-tree": "1.0.7",
-    "jest": "24.7.1",
-    "marked": "^0.6.0",
+    "jest": "24.8.0",
+    "marked": "^0.7.0",
     "prettier": "^1.14.3",
     "rimraf": "2.6.3",
-    "rollup": "1.11.3",
+    "rollup": "1.15.2",
     "rollup-plugin-babel": "^4.3.2",
-    "rollup-plugin-commonjs": "9.3.4",
+    "rollup-plugin-commonjs": "^10.0.0",
     "rollup-plugin-json": "^4.0.0",
     "rollup-plugin-node-builtins": "^2.1.2",
     "rollup-plugin-node-globals": "^1.2.1",
-    "rollup-plugin-node-resolve": "4.2.3",
+    "rollup-plugin-node-resolve": "5.0.4",
     "rollup-plugin-replace": "2.2.0",
-    "rollup-plugin-terser": "^4.0.4",
-    "semantic-release": "^15.13.17",
+    "rollup-plugin-terser": "^5.0.0",
+    "semantic-release": "^15.13.21",
     "watch": "^1.0.2"
   }
 }

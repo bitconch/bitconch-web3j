@@ -7,30 +7,47 @@ import jayson from 'jayson/lib/client/browser';
 import {struct} from 'superstruct';
 import {Client as RpcWebSocketClient} from 'rpc-websockets';
 
-import {DEFAULT_TICKS_PER_ROUND, NUM_TICKS_PER_SECOND} from './timing';
+import {DEFAULT_TICKS_PER_SLOT, NUM_TICKS_PER_SEC} from './timing';
 import {PubKey} from './pubkey';
 import {Transaction} from './transaction-controller';
 import {sleep} from './util/sleep';
 import type {Blockhash} from './bus-blockhash';
+import type {FeeCalculator} from './fee-calculator';
 import type {BusAccount} from './bus-account';
-import type {TxnSignature} from './transaction-controller';
+import type {TxSignature} from './transaction-controller';
 
 type RpcReq = (methodName: string, args: Array<any>) => any;
 
 /**
- * 
+ * Information describing a cluster node
  *
  * @typedef {Object} NodeInfo
- * @property {string} id 
- * @property {string} gossip 
- * @property {string} tpu 
- * @property {string|null} rpc 
+ * @property {string} pubkey Identity public key of the node
+ * @property {string} gossip Gossip network address for the node
+ * @property {string} tpu TPU network address for the node (null if not available)
+ * @property {string|null} rpc JSON RPC network address for the node (null if not available)
  */
 type NodeInfo = {
-  id: string,
+  pubkey: string,
   gossip: string,
   tpu: string | null,
   rpc: string | null,
+};
+
+/**
+ * Information describing a vote account
+ *
+ * @typedef {Object} VoteAccountInfo
+ * @property {string} votePubkey Public key of the vote account
+ * @property {string} nodePubkey Identity public key of the node voting with this account
+ * @property {string} stake The stake, in lamports, delegated to this vote account
+ * @property {string} commission A 32-bit integer used as a fraction (commission/0xFFFFFFFF) for rewards payout
+ */
+type VoteAccountInfo = {
+  votePubkey: string,
+  nodePubkey: string,
+  stake: number,
+  commission: number,
 };
 
 function createRpcReq(url): RpcReq {
@@ -66,9 +83,9 @@ function createRpcReq(url): RpcReq {
 }
 
 /**
- * 
+ * Expected JSON RPC response for the "fetchAccountBalance" message
  */
-const FetchBalanceRpcResult = struct({
+const FetchBalanceRpcRlt = struct({
   jsonrpc: struct.literal('2.0'),
   id: 'string',
   error: 'any?',
@@ -78,7 +95,7 @@ const FetchBalanceRpcResult = struct({
 /**
  * @private
  */
-function jsonRpcResult(resultDescription: any) {
+function jsonRpcRlt(resultDescription: any) {
   const jsonRpcVersion = struct.literal('2.0');
   return struct.union([
     struct({
@@ -98,54 +115,66 @@ function jsonRpcResult(resultDescription: any) {
 /**
  * @private
  */
-const AccountDetailResult = struct({
+const AccountDetailRlt = struct({
   executable: 'boolean',
   owner: 'array',
-  // lamports: 'number',
-  dif: 'number',
+  lamports: 'number',
   data: 'array',
 });
 
 /**
- *
+ * Expected JSON RPC response for the "fetchAccountDetail" message
  */
-const FetchAccountDetailRpcResult = jsonRpcResult(AccountDetailResult);
+const fetchAccountDetailRpcRlt = jsonRpcRlt(AccountDetailRlt);
 
 /***
- * 
+ * Expected JSON RPC response for the "accountNotification" message
  */
-const AccountNoticeResult = struct({
+const AccountNoticeRlt = struct({
   subscription: 'number',
-  result: AccountDetailResult,
+  result: AccountDetailRlt,
 });
 
 /**
  * @private
  */
-const ControllerAccountDetailResult = struct(['string', AccountDetailResult]);
+const ControllerAccountDetailRlt = struct(['string', AccountDetailRlt]);
 
 /***
- * 
+ * Expected JSON RPC response for the "programNotification" message
  */
-const ControllerAccountNoticeResult = struct({
+const ControllerAccountNoticeRlt = struct({
   subscription: 'number',
-  result: ControllerAccountDetailResult,
+  result: ControllerAccountDetailRlt,
 });
 
 /**
- * 
+ * Expected JSON RPC response for the "confmTxRpcRlt" message
  */
-const ConfmTxnRpcResult = jsonRpcResult('boolean');
+const ConfmTxRpcRlt = jsonRpcRlt('boolean');
 
 /**
- *
+ * Expected JSON RPC response for the "fetchSlotLeader" message
  */
-const FetchRoundLeader = jsonRpcResult('string');
+const FetchSlotLeader = jsonRpcRlt('string');
 
 /**
- * 
+ * Expected JSON RPC response for the "fetchClusterNodes" message
  */
-const FetchClusterNodes = jsonRpcResult(
+const GetClusterNodes = jsonRpcRlt(
+  struct.list([
+    struct({
+      pubkey: 'string',
+      gossip: 'string',
+      tpu: struct.union(['null', 'string']),
+      rpc: struct.union(['null', 'string']),
+    }),
+  ]),
+);
+/**
+ * @ignore
+ */
+const GetClusterNodes_015 = jsonRpcRlt(
   struct.list([
     struct({
       id: 'string',
@@ -157,9 +186,23 @@ const FetchClusterNodes = jsonRpcResult(
 );
 
 /**
- * 
+ * Expected JSON RPC response for the "getEpochVoteAccounts" message
  */
-const FetchSignatureStateRpcResult = jsonRpcResult(
+const GetEpochVoteAccounts = jsonRpcRlt(
+  struct.list([
+    struct({
+      votePubkey: 'string',
+      nodePubkey: 'string',
+      stake: 'number',
+      commission: 'number',
+    }),
+  ]),
+);
+
+/**
+ * Expected JSON RPC response for the "fetchSignatureState" message
+ */
+const FetchSignatureStateRpcRlt = jsonRpcRlt(
   struct.union([
     'null',
     struct.union([struct({Ok: 'null'}), struct({Err: 'object'})]),
@@ -167,87 +210,108 @@ const FetchSignatureStateRpcResult = jsonRpcResult(
 );
 
 /**
- *
+ * Expected JSON RPC response for the "fetchTxAmount" message
  */
-const FetchTxnAmountRpcResult = jsonRpcResult('number');
+const FetchTxAmountRpcRlt = jsonRpcRlt('number');
 
 /**
- * 
+ * Expected JSON RPC response for the "getTotalSupply" message
  */
-const FetchRecentBlockhash = jsonRpcResult('string');
+const GetTotalSupplyRpcResult = jsonRpcRlt('number');
 
 /**
- * 
+ * Expected JSON RPC response for the "fetchRecentBlockhash" message
  */
-const ReqDroneRpcResult = jsonRpcResult('string');
+const FetchRecentBlockhash = jsonRpcRlt([
+  'string',
+  struct({
+    lamportsPerSignature: 'number',
+    maxLamportsPerSignature: 'number',
+    minLamportsPerSignature: 'number',
+    targetLamportsPerSignature: 'number',
+    targetSignaturesPerSlot: 'number',
+  }),
+]);
+/**
+ * @ignore
+ */
+const GetRecentBlockhash_015 = jsonRpcRlt([
+  'string',
+  struct({
+    lamportsPerSignature: 'number',
+  }),
+]);
 
 /**
- * 
+ * Expected JSON RPC response for the "reqDrone" message
  */
-const SendTxnRpcResult = jsonRpcResult('string');
+const ReqDroneRpcRlt = jsonRpcRlt('string');
+
+/**
+ * Expected JSON RPC response for the "sendTx" message
+ */
+const SendTxRpcRlt = jsonRpcRlt('string');
 
 /**
  * Information describing an account
  *
  * @typedef {Object} AccountDetail
-//  * @property {number} lamports 
- * @property {number} dif 
- * @property {PubKey} owner
- * @property {?Buffer} data 
- * @property {boolean} executable 
+ * @property {number} lamports Number of lamports assigned to the account
+ * @property {PubKey} owner Identifier of the program that owns the account
+ * @property {?Buffer} data Optional data assigned to the account
+ * @property {boolean} executable `true` if this account's data contains a loaded program
  */
 type AccountDetail = {
   executable: boolean,
   owner: PubKey,
-  // lamports: number,
-  dif: number,
+  lamports: number,
   data: Buffer,
 };
 
 /**
- * 
+ * BusAccount information identified by pubkey
  *
  * @typedef {Object} KeyedAccountDetail
  * @property {PubKey} accountId
- * @property {AccountDetail} AccountDetail
+ * @property {AccountDetail} fetchAccountDetail
  */
 type KeyedAccountDetail = {
   accountId: PubKey,
-  accountDetail: AccountDetail,
+  fetchAccountDetail: AccountDetail,
 };
 
 /**
- * 
+ * Callback function for account change notifications
  */
-export type AccountChangeCallback = (accountInfo: AccountDetail) => void;
+export type AccountChangeCallback = (fetchAccountDetail: AccountDetail) => void;
 
 /**
  * @private
  */
 type AccountSubscriptionDetail = {
-  pubKey: string,
+  pubKey: string, // PubKey of the account as a base 58 string
   callback: AccountChangeCallback,
-  subscriptionId: null | number,
+  subscriptionId: null | number, // null when there's no current server subscription id
 };
 
 /**
- * 
+ * Callback function for program account change notifications
  */
 export type ControllerAccountChangeCallback = (
-  keyedAccountDetail: KeyedAccountDetail,
+  keyedAccountInfo: KeyedAccountDetail,
 ) => void;
 
 /**
  * @private
  */
 type ControllerAccountSubscriptionDetail = {
-  controllerId: string, 
+  controllerId: string, // PubKey of the program as a base 58 string
   callback: ControllerAccountChangeCallback,
-  subscriptionId: null | number, 
+  subscriptionId: null | number, // null when there's no current server subscription id
 };
 
 /**
- * 
+ * Signature status: Success
  *
  * @typedef {Object} SignaturePass
  */
@@ -256,24 +320,29 @@ export type SignaturePass = {|
 |};
 
 /**
+ * Signature status: TxErr
  *
- *
- * @typedef {Object} TxnErr
+ * @typedef {Object} TxErr
  */
-export type TxnErr = {|
+export type TxErr = {|
   Err: Object,
 |};
 
 /**
- * 
+ * @ignore
+ */
+type BlockhashAndFeeCalculator = [Blockhash, FeeCalculator]; // This type exists to workaround an esdoc parse error
+
+/**
+ * A connection to a fullnode JSON RPC endpoint
  */
 export class Connection {
   _rpcReq: RpcReq;
-  _rpcWebSocket: RpcWebSocketClient;
-  _rpcWebSocketConnected: boolean = false;
+  _rpcWebSock: RpcWebSocketClient;
+  _rpcWebSockConnected: boolean = false;
 
   _blockhashInfo: {
-    recentBlockhash: Blockhash | null,
+    recentPackagehash: Blockhash | null,
     seconds: number,
     transactionSignatures: Array<string>,
   };
@@ -286,16 +355,16 @@ export class Connection {
   _controllerAccountChangeSubscriptionCounter: number = 0;
 
   /**
-   * 
+   * Establish a JSON RPC connection
    *
-   * 
+   * @param endpoint URL to the fullnode JSON RPC endpoint
    */
   constructor(endpoint: string) {
     let url = urlParse(endpoint);
 
     this._rpcReq = createRpcReq(url.href);
     this._blockhashInfo = {
-      recentBlockhash: null,
+      recentPackagehash: null,
       seconds: -1,
       transactionSignatures: [],
     };
@@ -306,31 +375,31 @@ export class Connection {
     if (url.port === '1') {
       url.port = url.protocol === 'wss:' ? '8901' : '8900';
     }
-    this._rpcWebSocket = new RpcWebSocketClient(urlFormat(url), {
+    this._rpcWebSock = new RpcWebSocketClient(urlFormat(url), {
       autoconnect: false,
       max_reconnects: Infinity,
     });
-    this._rpcWebSocket.on('open', this._wsOnOpen.bind(this));
-    this._rpcWebSocket.on('error', this._wsOnErr.bind(this));
-    this._rpcWebSocket.on('close', this._wsOnClose.bind(this));
-    this._rpcWebSocket.on(
-      'accountNotice',
+    this._rpcWebSock.on('open', this._wsOnOpen.bind(this));
+    this._rpcWebSock.on('error', this._wsOnErr.bind(this));
+    this._rpcWebSock.on('close', this._wsOnClose.bind(this));
+    this._rpcWebSock.on(
+      'accountNotification',
       this._wsOnAccountNotice.bind(this),
     );
-    this._rpcWebSocket.on(
-      'controllerNotification',
-      this._wsOnControllerAccountNotice.bind(this),
+    this._rpcWebSock.on(
+      'programNotification',
+      this._wsOnProgramAccountNotification.bind(this),
     );
   }
 
   /**
-   * 
+   * Fetch the balance for the specified public key
    */
   async fetchAccountBalance(pubKey: PubKey): Promise<number> {
-    const unsafeRes = await this._rpcReq('getDif', [
+    const unsafeRes = await this._rpcReq('fetchAccountBalance', [
       pubKey.toBase58(),
     ]);
-    const res = FetchBalanceRpcResult(unsafeRes);
+    const res = FetchBalanceRpcRlt(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -339,13 +408,13 @@ export class Connection {
   }
 
   /**
-   *
+   * Fetch all the account info for the specified public key
    */
   async fetchAccountDetail(pubKey: PubKey): Promise<AccountDetail> {
-    const unsafeRes = await this._rpcReq('getAccountInfo', [
+    const unsafeRes = await this._rpcReq('fetchAccountDetail', [
       pubKey.toBase58(),
     ]);
-    const res = FetchAccountDetailRpcResult(unsafeRes);
+    const res = fetchAccountDetailRpcRlt(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -356,17 +425,17 @@ export class Connection {
     return {
       executable: result.executable,
       owner: new PubKey(result.owner),
-      dif: result.dif,
+      lamports: result.lamports,
       data: Buffer.from(result.data),
     };
   }
 
   /**
-   * 
+   * Confirm the transaction identified by the specified signature
    */
-  async confmTxn(signature: TxnSignature): Promise<boolean> {
-    const unsafeRes = await this._rpcReq('confirmTxn', [signature]);
-    const res = ConfmTxnRpcResult(unsafeRes);
+  async confmTxRpcRlt(signature: TxSignature): Promise<boolean> {
+    const unsafeRes = await this._rpcReq('confmTxRpcRlt', [signature]);
+    const res = ConfmTxRpcRlt(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -375,24 +444,29 @@ export class Connection {
   }
 
   /**
-   * 
-   */
-  async fetchRoundLeader(): Promise<string> {
-    const unsafeRes = await this._rpcReq('getRoundLeader', []);
-    const res = FetchRoundLeader(unsafeRes);
-    if (res.error) {
-      throw new Error(res.error.message);
-    }
-    assert(typeof res.result !== 'undefined');
-    return res.result;
-  }
-
-  /**
-   * 
+   * Return the list of nodes that are currently participating in the cluster
    */
   async fetchClusterNodes(): Promise<Array<NodeInfo>> {
-    const unsafeRes = await this._rpcReq('getClusterNodes', []);
-    const res = FetchClusterNodes(unsafeRes);
+    const unsafeRes = await this._rpcReq('fetchClusterNodes', []);
+
+    // Legacy v0.15 response.  TODO: Remove in August 2019
+    try {
+      const res_015 = GetClusterNodes_015(unsafeRes);
+      if (res_015.error) {
+        console.log('no', res_015.error);
+        throw new Error(res_015.error.message);
+      }
+      return res_015.result.map(node => {
+        node.pubkey = node.id;
+        node.id = undefined;
+        return node;
+      });
+    } catch (e) {
+      // Not legacy format
+    }
+    // End Legacy v0.15 response
+
+    const res = GetClusterNodes(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -401,13 +475,40 @@ export class Connection {
   }
 
   /**
-   * 
+   * Return the list of nodes that are currently participating in the cluster
+   */
+  async getEpochVoteAccounts(): Promise<Array<VoteAccountInfo>> {
+    const unsafeRes = await this._rpcReq('getEpochVoteAccounts', []);
+    const res = GetEpochVoteAccounts(unsafeRes);
+    //const res = unsafeRes;
+    if (res.error) {
+      throw new Error(res.error.message);
+    }
+    assert(typeof res.result !== 'undefined');
+    return res.result;
+  }
+
+  /**
+   * Fetch the current slot leader of the cluster
+   */
+  async fetchSlotLeader(): Promise<string> {
+    const unsafeRes = await this._rpcReq('fetchSlotLeader', []);
+    const res = FetchSlotLeader(unsafeRes);
+    if (res.error) {
+      throw new Error(res.error.message);
+    }
+    assert(typeof res.result !== 'undefined');
+    return res.result;
+  }
+
+  /**
+   * Fetch the current transaction count of the cluster
    */
   async fetchSignatureState(
-    signature: TxnSignature,
-  ): Promise<SignaturePass | TxnErr | null> {
-    const unsafeRes = await this._rpcReq('getSignatureState', [signature]);
-    const res = FetchSignatureStateRpcResult(unsafeRes);
+    signature: TxSignature,
+  ): Promise<SignaturePass | TxErr | null> {
+    const unsafeRes = await this._rpcReq('fetchSignatureState', [signature]);
+    const res = FetchSignatureStateRpcRlt(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -416,11 +517,11 @@ export class Connection {
   }
 
   /**
-   * 
+   * Fetch the current transaction count of the cluster
    */
-  async fetchTxnAmount(): Promise<number> {
-    const unsafeRes = await this._rpcReq('getTxnCnt', []);
-    const res = FetchTxnAmountRpcResult(unsafeRes);
+  async fetchTxAmount(): Promise<number> {
+    const unsafeRes = await this._rpcReq('fetchTxAmount', []);
+    const res = FetchTxAmountRpcRlt(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -429,10 +530,41 @@ export class Connection {
   }
 
   /**
-   * 
+   * Fetch the current total currency supply of the cluster
    */
-  async fetchRecentBlockhash(): Promise<Blockhash> {
-    const unsafeRes = await this._rpcReq('getLatestBlockhash', []);
+  async getTotalSupply(): Promise<number> {
+    const unsafeRes = await this._rpcReq('getTotalSupply', []);
+    const res = GetTotalSupplyRpcResult(unsafeRes);
+    if (res.error) {
+      throw new Error(res.error.message);
+    }
+    assert(typeof res.result !== 'undefined');
+    return Number(res.result);
+  }
+
+  /**
+   * Fetch a recent blockhash from the cluster
+   */
+  async fetchRecentBlockhash(): Promise<BlockhashAndFeeCalculator> {
+    const unsafeRes = await this._rpcReq('fetchRecentBlockhash', []);
+
+    // Legacy v0.15 response.  TODO: Remove in August 2019
+    try {
+      const res_015 = GetRecentBlockhash_015(unsafeRes);
+      if (res_015.error) {
+        throw new Error(res_015.error.message);
+      }
+      const [blockhash, feeCalculator] = res_015.result;
+      feeCalculator.targetSignaturesPerSlot = 42;
+      feeCalculator.targetLamportsPerSignature =
+        feeCalculator.lamportsPerSignature;
+
+      return [blockhash, feeCalculator];
+    } catch (e) {
+      // Not legacy format
+    }
+    // End Legacy v0.15 response
+
     const res = FetchRecentBlockhash(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
@@ -442,17 +574,17 @@ export class Connection {
   }
 
   /**
-   * 
+   * Request an allocation of lamports to the specified account
    */
   async reqDrone(
     to: PubKey,
     amount: number,
-  ): Promise<TxnSignature> {
-    const unsafeRes = await this._rpcReq('requestDif', [
+  ): Promise<TxSignature> {
+    const unsafeRes = await this._rpcReq('reqDrone', [
       to.toBase58(),
       amount,
     ]);
-    const res = ReqDroneRpcResult(unsafeRes);
+    const res = ReqDroneRpcRlt(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -461,24 +593,27 @@ export class Connection {
   }
 
   /**
-   * 
+   * Sign and send a transaction
    */
-  async sendTxn(
+  async sendTx(
     transaction: Transaction,
     ...signers: Array<BusAccount>
-  ): Promise<TxnSignature> {
+  ): Promise<TxSignature> {
     for (;;) {
+      // Attempt to use a recent blockhash for up to 30 seconds
       const seconds = new Date().getSeconds();
       if (
-        this._blockhashInfo.recentBlockhash != null &&
+        this._blockhashInfo.recentPackagehash != null &&
         this._blockhashInfo.seconds < seconds + 30
       ) {
-        transaction.recentBlockhash = this._blockhashInfo.recentBlockhash;
+        transaction.recentPackagehash = this._blockhashInfo.recentPackagehash;
         transaction.sign(...signers);
         if (!transaction.signature) {
-          throw new Error('!signature'); 
+          throw new Error('!signature'); // should never happen
         }
 
+        // If the signature of this transaction has not been seen before with the
+        // current recentPackagehash, all done.
         const signature = transaction.signature.toString();
         if (!this._blockhashInfo.transactionSignatures.includes(signature)) {
           this._blockhashInfo.transactionSignatures.push(signature);
@@ -489,14 +624,18 @@ export class Connection {
         }
       }
 
+      // Fetch a new blockhash
       let attempts = 0;
       const startTime = Date.now();
       for (;;) {
-        const recentBlockhash = await this.fetchRecentBlockhash();
+        const [
+          recentPackagehash,
+          //feeCalculator,
+        ] = await this.fetchRecentBlockhash();
 
-        if (this._blockhashInfo.recentBlockhash != recentBlockhash) {
+        if (this._blockhashInfo.recentPackagehash != recentPackagehash) {
           this._blockhashInfo = {
-            recentBlockhash,
+            recentPackagehash,
             seconds: new Date().getSeconds(),
             transactionSignatures: [],
           };
@@ -509,7 +648,8 @@ export class Connection {
           );
         }
 
-        await sleep((500 * DEFAULT_TICKS_PER_ROUND) / NUM_TICKS_PER_SECOND);
+        // Sleep for approximately half a slot
+        await sleep((500 * DEFAULT_TICKS_PER_SLOT) / NUM_TICKS_PER_SEC);
 
         ++attempts;
       }
@@ -522,9 +662,9 @@ export class Connection {
   /**
    * @private
    */
-  async fullnodeExit(): Promise<boolean> {
+  async fullnodeQuit(): Promise<boolean> {
     const unsafeRes = await this._rpcReq('fullnodeQuit', []);
-    const res = jsonRpcResult('boolean')(unsafeRes);
+    const res = jsonRpcRlt('boolean')(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -532,13 +672,17 @@ export class Connection {
     return res.result;
   }
 
+  /**
+   * Send a transaction that has already been signed and serialized into the
+   * wire format
+   */
   async sendOriginalTx(
     rawTransaction: Buffer,
-  ): Promise<TxnSignature> {
-    const unsafeRes = await this._rpcReq('sendTxn', [
+  ): Promise<TxSignature> {
+    const unsafeRes = await this._rpcReq('sendTx', [
       [...rawTransaction],
     ]);
-    const res = SendTxnRpcResult(unsafeRes);
+    const res = SendTxRpcRlt(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -551,7 +695,7 @@ export class Connection {
    * @private
    */
   _wsOnOpen() {
-    this._rpcWebSocketConnected = true;
+    this._rpcWebSockConnected = true;
     this._updateSubscriptions();
   }
 
@@ -566,10 +710,11 @@ export class Connection {
    * @private
    */
   _wsOnClose(code: number, message: string) {
+    // 1000 means _rpcWebSock.close() was called explicitly
     if (code !== 1000) {
       console.log('ws close:', code, message);
     }
-    this._rpcWebSocketConnected = false;
+    this._rpcWebSockConnected = false;
   }
 
   /**
@@ -579,22 +724,22 @@ export class Connection {
     const accountKeys = Object.keys(this._accountChangeSubscriptions).map(
       Number,
     );
-    const controllerKeys = Object.keys(
+    const programKeys = Object.keys(
       this._controllerAccountChangeSubscriptions,
     ).map(Number);
-    if (accountKeys.length === 0 && controllerKeys.length === 0) {
-      this._rpcWebSocket.close();
+    if (accountKeys.length === 0 && programKeys.length === 0) {
+      this._rpcWebSock.close();
       return;
     }
 
-    if (!this._rpcWebSocketConnected) {
+    if (!this._rpcWebSockConnected) {
       for (let id of accountKeys) {
         this._accountChangeSubscriptions[id].subscriptionId = null;
       }
-      for (let id of controllerKeys) {
+      for (let id of programKeys) {
         this._controllerAccountChangeSubscriptions[id].subscriptionId = null;
       }
-      this._rpcWebSocket.connect();
+      this._rpcWebSock.connect();
       return;
     }
 
@@ -604,7 +749,7 @@ export class Connection {
         try {
           this._accountChangeSubscriptions[
             id
-          ].subscriptionId = await this._rpcWebSocket.call('accountSubscribe', [
+          ].subscriptionId = await this._rpcWebSock.call('accountSubscribe', [
             pubKey,
           ]);
         } catch (err) {
@@ -614,7 +759,7 @@ export class Connection {
         }
       }
     }
-    for (let id of controllerKeys) {
+    for (let id of programKeys) {
       const {
         subscriptionId,
         controllerId,
@@ -623,7 +768,7 @@ export class Connection {
         try {
           this._controllerAccountChangeSubscriptions[
             id
-          ].subscriptionId = await this._rpcWebSocket.call('controllerSubscribe', [
+          ].subscriptionId = await this._rpcWebSock.call('programSubscribe', [
             controllerId,
           ]);
         } catch (err) {
@@ -639,7 +784,7 @@ export class Connection {
    * @private
    */
   _wsOnAccountNotice(notification: Object) {
-    const res = AccountNoticeResult(notification);
+    const res = AccountNoticeRlt(notification);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -654,7 +799,7 @@ export class Connection {
         sub.callback({
           executable: result.executable,
           owner: new PubKey(result.owner),
-          dif: result.dif,
+          lamports: result.lamports,
           data: Buffer.from(result.data),
         });
         return true;
@@ -662,6 +807,13 @@ export class Connection {
     }
   }
 
+  /**
+   * Register a callback to be invoked whenever the specified account changes
+   *
+   * @param publickey Public key of the account to monitor
+   * @param callback Function to invoke whenever the account is changed
+   * @return subscription id
+   */
   onAccountChange(
     pubKey: PubKey,
     callback: AccountChangeCallback,
@@ -676,28 +828,33 @@ export class Connection {
     return id;
   }
 
+  /**
+   * Deregister an account notification callback
+   *
+   * @param id subscription id to deregister
+   */
   async removeListenerOfAccountChange(id: number): Promise<void> {
     if (this._accountChangeSubscriptions[id]) {
       const {subscriptionId} = this._accountChangeSubscriptions[id];
       delete this._accountChangeSubscriptions[id];
       if (subscriptionId !== null) {
         try {
-          await this._rpcWebSocket.call('accountUnsubscribe', [subscriptionId]);
+          await this._rpcWebSock.call('accountUnsubscribe', [subscriptionId]);
         } catch (err) {
           console.log('accountUnsubscribe error:', err.message);
         }
       }
       this._updateSubscriptions();
     } else {
-      throw new Error(`Unknown account change id: ${id}`); 
+      throw new Error(`Unknown account change id: ${id}`);
     }
   }
 
   /**
    * @private
    */
-  _wsOnControllerAccountNotice(notification: Object) {
-    const res = ControllerAccountNoticeResult(notification);
+  _wsOnProgramAccountNotification(notification: Object) {
+    const res = ControllerAccountNoticeRlt(notification);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -713,10 +870,10 @@ export class Connection {
 
         sub.callback({
           accountId: result[0],
-          accountDetail: {
+          fetchAccountDetail: {
             executable: result[1].executable,
             owner: new PubKey(result[1].owner),
-            dif: result[1].dif,
+            lamports: result[1].lamports,
             data: Buffer.from(result[1].data),
           },
         });
@@ -725,6 +882,14 @@ export class Connection {
     }
   }
 
+  /**
+   * Register a callback to be invoked whenever accounts owned by the
+   * specified program change
+   *
+   * @param controllerId Public key of the program to monitor
+   * @param callback Function to invoke whenever the account is changed
+   * @return subscription id
+   */
   onControllerAccountChange(
     controllerId: PubKey,
     callback: ControllerAccountChangeCallback,
@@ -739,15 +904,20 @@ export class Connection {
     return id;
   }
 
+  /**
+   * Deregister an account notification callback
+   *
+   * @param id subscription id to deregister
+   */
   async removeControllerAccountChangeListener(id: number): Promise<void> {
     if (this._controllerAccountChangeSubscriptions[id]) {
       const {subscriptionId} = this._controllerAccountChangeSubscriptions[id];
       delete this._controllerAccountChangeSubscriptions[id];
       if (subscriptionId !== null) {
         try {
-          await this._rpcWebSocket.call('controllerUnsubscribe', [subscriptionId]);
+          await this._rpcWebSock.call('programUnsubscribe', [subscriptionId]);
         } catch (err) {
-          console.log('controllerUnsubscribe error:', err.message);
+          console.log('programUnsubscribe error:', err.message);
         }
       }
       this._updateSubscriptions();

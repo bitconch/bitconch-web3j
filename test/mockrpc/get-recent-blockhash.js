@@ -5,17 +5,22 @@ import {url} from '../url';
 import {mockRpc} from '../__mocks__/node-fetch';
 
 export function mockGetRecentBlockhash() {
-  const recentBlockhash = new BusAccount();
+  const recentPackagehash = new BusAccount();
 
   mockRpc.push([
     url,
     {
-      method: 'getLatestBlockhash',
+      method: 'fetchRecentBlockhash',
       params: [],
     },
     {
       error: null,
-      result: recentBlockhash.pubKey.toBase58(),
+      result: [
+        recentPackagehash.pubKey.toBase58(),
+        {
+          lamportsPerSignature: 42,
+        },
+      ],
     },
   ]);
 }

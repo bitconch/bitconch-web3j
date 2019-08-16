@@ -5,50 +5,65 @@ import * as BufferLayout from 'buffer-layout';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
 
-import * as Layout from './typelayout';
+import * as Layout from './resize';
 import {PubKey} from './pubkey';
 import {BusAccount} from './bus-account';
 import * as shortvec from './util/shortvec-encoding';
 import type {Blockhash} from './bus-blockhash';
 
 /**
- * @typedef {string} TxnSignature
+ * @typedef {string} TxSignature
  */
-export type TxnSignature = string;
+export type TxSignature = string;
 
 /**
- */
-export const PACKET_DATA_SIZE = 512;
-
-/**
+ * Maximum over-the-wire size of a Transaction
  *
- * @typedef {Object} TransactionInstructionCtorFields
+ * 1280 is IPv6 minimum MTU
+ * 40 bytes is the size of the IPv6 header
+ * 8 bytes is the size of the fragment header
+ */
+export const PACKET_DATA_SIZE = 1280 - 40 - 8;
+
+/**
+ * List of TxOperation object fields that may be initialized at construction
+ *
+ * @typedef {Object} TxInstructionControlFields
  * @property {?Array<PubKey>} keys
  * @property {?PubKey} controllerId
  * @property {?Buffer} data
  */
-type TxnInstructionControlFields = {|
-  keys?: Array<{pubkey: PubKey, isSigner: boolean}>,
+type TxInstructionControlFields = {|
+  keys?: Array<{pubkey: PubKey, isSigner: boolean, isDebitable: boolean}>,
   controllerId?: PubKey,
   data?: Buffer,
 |};
 
 /**
+ * Transaction Instruction class
  */
 export class TxOperation {
   /**
+   * Public keys to include in this transaction
+   * Boolean represents whether this pubkey needs to sign the transaction
    */
-  keys: Array<{pubkey: PubKey, isSigner: boolean}> = [];
+  keys: Array<{
+    pubkey: PubKey,
+    isSigner: boolean,
+    isDebitable: boolean,
+  }> = [];
 
   /**
+   * Program Id to execute
    */
   controllerId: PubKey;
 
   /**
+   * Program input
    */
   data: Buffer = Buffer.alloc(0);
 
-  constructor(opts?: TxnInstructionControlFields) {
+  constructor(opts?: TxInstructionControlFields) {
     opts && Object.assign(this, opts);
   }
 }
@@ -62,14 +77,15 @@ type SignaturePubkeyPair = {|
 |};
 
 /**
+ * List of Transaction object fields that may be initialized at construction
  *
- * @typedef {Object} TxnControlFields
- * @property (?recentBlockhash} 
- * @property (?signatures} 
+ * @typedef {Object} TxControlFields
+ * @property (?recentPackagehash} A recent block hash
+ * @property (?signatures} One or more signatures
  *
  */
-type TxnControlFields = {|
-  recentBlockhash?: Blockhash,
+type TxControlFields = {|
+  recentPackagehash?: Blockhash | null,
   signatures?: Array<SignaturePubkeyPair>,
 |};
 
@@ -78,10 +94,13 @@ type TxnControlFields = {|
  */
 export class Transaction {
   /**
+   * Signatures for the transaction.  Typically created by invoking the
+   * `sign()` method
    */
   signatures: Array<SignaturePubkeyPair> = [];
 
   /**
+   * The first (payer) Transaction signature
    */
   get signature(): Buffer | null {
     if (this.signatures.length > 0) {
@@ -91,33 +110,41 @@ export class Transaction {
   }
 
   /**
+   * The operations to atomically execute
    */
-  instructions: Array<TxOperation> = [];
+  operations: Array<TxOperation> = [];
 
   /**
+   * A recent transaction id.  Must be populated by the caller
    */
-  recentBlockhash: ?Blockhash;
+  recentPackagehash: Blockhash | null;
 
   /**
+   * Construct an empty Transaction
    */
-  constructor(opts?: TxnControlFields) {
+  constructor(opts?: TxControlFields) {
     opts && Object.assign(this, opts);
   }
 
   /**
+   * Add one or more operations to this Transaction
    */
   add(
-    ...items: Array<Transaction | TxnInstructionControlFields>
+    ...items: Array<
+      Transaction | TxOperation | TxInstructionControlFields,
+    >
   ): Transaction {
     if (items.length === 0) {
-      throw new Error('No instructions');
+      throw new Error('No operations');
     }
 
     items.forEach(item => {
       if (item instanceof Transaction) {
-        this.instructions = this.instructions.concat(item.instructions);
+        this.operations = this.operations.concat(item.operations);
+      } else if (item instanceof TxOperation) {
+        this.operations.push(item);
       } else {
-        this.instructions.push(new TxOperation(item));
+        this.operations.push(new TxOperation(item));
       }
     });
     return this;
@@ -126,35 +153,52 @@ export class Transaction {
   /**
    * @private
    */
-  _fetchSignData(): Buffer {
-    const {recentBlockhash} = this;
-    if (!recentBlockhash) {
-      throw new Error('Transaction recentBlockhash required');
+  _fetchSignDat(): Buffer {
+    const {recentPackagehash} = this;
+    if (!recentPackagehash) {
+      throw new Error('Transaction recentPackagehash required');
     }
 
-    if (this.instructions.length < 1) {
-      throw new Error('No instructions provided');
+    if (this.operations.length < 1) {
+      throw new Error('No operations provided');
     }
 
     const keys = this.signatures.map(({pubKey}) => pubKey.toString());
     let numRequiredSignatures = 0;
+    let numCreditOnlySignedAccounts = 0;
+    let numCreditOnlyUnsignedAccounts = 0;
 
-    const controllerIds = [];
-    this.instructions.forEach(instruction => {
-      const controllerId = instruction.controllerId.toString();
-      if (!controllerIds.includes(controllerId)) {
-        controllerIds.push(controllerId);
-      }
+    const programIds = [];
 
+    this.operations.forEach(instruction => {
       instruction.keys.forEach(keySignerPair => {
         const keyStr = keySignerPair.pubkey.toString();
         if (!keys.includes(keyStr)) {
           if (keySignerPair.isSigner) {
             numRequiredSignatures += 1;
+            if (!keySignerPair.isDebitable) {
+              numCreditOnlySignedAccounts += 1;
+            }
+          } else {
+            if (!keySignerPair.isDebitable) {
+              numCreditOnlyUnsignedAccounts += 1;
+            }
           }
           keys.push(keyStr);
         }
       });
+
+      const controllerId = instruction.controllerId.toString();
+      if (!programIds.includes(controllerId)) {
+        programIds.push(controllerId);
+      }
+    });
+
+    programIds.forEach(controllerId => {
+      if (!keys.includes(controllerId)) {
+        keys.push(controllerId);
+        numCreditOnlyUnsignedAccounts += 1;
+      }
     });
 
     if (numRequiredSignatures > this.signatures.length) {
@@ -168,17 +212,14 @@ export class Transaction {
     let keyCount = [];
     shortvec.encodeLength(keyCount, keys.length);
 
-    let controllerIdCount = [];
-    shortvec.encodeLength(controllerIdCount, controllerIds.length);
-
-    const instructions = this.instructions.map(instruction => {
+    const operations = this.operations.map(instruction => {
       const {data, controllerId} = instruction;
       let keyIndicesCount = [];
       shortvec.encodeLength(keyIndicesCount, instruction.keys.length);
       let dataCount = [];
       shortvec.encodeLength(dataCount, instruction.data.length);
       return {
-        controllerIdIndex: controllerIds.indexOf(controllerId.toString()),
+        programIdIndex: keys.indexOf(controllerId.toString()),
         keyIndicesCount: Buffer.from(keyIndicesCount),
         keyIndices: Buffer.from(
           instruction.keys.map(keyObj =>
@@ -190,20 +231,20 @@ export class Transaction {
       };
     });
 
-    instructions.forEach(instruction => {
-      invariant(instruction.controllerIdIndex >= 0);
+    operations.forEach(instruction => {
+      invariant(instruction.programIdIndex >= 0);
       instruction.keyIndices.forEach(keyIndex => invariant(keyIndex >= 0));
     });
 
     let instructionCount = [];
-    shortvec.encodeLength(instructionCount, instructions.length);
+    shortvec.encodeLength(instructionCount, operations.length);
     let instructionBuffer = Buffer.alloc(PACKET_DATA_SIZE);
     Buffer.from(instructionCount).copy(instructionBuffer);
     let instructionBufferLength = instructionCount.length;
 
-    instructions.forEach(instruction => {
+    operations.forEach(instruction => {
       const instructionLayout = BufferLayout.struct([
-        BufferLayout.u8('controllerIdIndex'),
+        BufferLayout.u8('programIdIndex'),
 
         BufferLayout.blob(
           instruction.keyIndicesCount.length,
@@ -232,27 +273,22 @@ export class Transaction {
 
     const signDataLayout = BufferLayout.struct([
       BufferLayout.blob(1, 'numRequiredSignatures'),
+      BufferLayout.blob(1, 'numCreditOnlySignedAccounts'),
+      BufferLayout.blob(1, 'numCreditOnlyUnsignedAccounts'),
       BufferLayout.blob(keyCount.length, 'keyCount'),
       BufferLayout.seq(Layout.pubKey('key'), keys.length, 'keys'),
-      Layout.pubKey('recentBlockhash'),
-
-      BufferLayout.blob(controllerIdCount.length, 'controllerIdCount'),
-      BufferLayout.seq(
-        Layout.pubKey('controllerId'),
-        controllerIds.length,
-        'controllerIds',
-      ),
+      Layout.pubKey('recentPackagehash'),
     ]);
 
     const transaction = {
       numRequiredSignatures: Buffer.from([this.signatures.length]),
+      numCreditOnlySignedAccounts: Buffer.from([numCreditOnlySignedAccounts]),
+      numCreditOnlyUnsignedAccounts: Buffer.from([
+        numCreditOnlyUnsignedAccounts,
+      ]),
       keyCount: Buffer.from(keyCount),
       keys: keys.map(key => new PubKey(key).toBuffer()),
-      recentBlockhash: Buffer.from(bs58.decode(recentBlockhash)),
-      controllerIdCount: Buffer.from(controllerIdCount),
-      controllerIds: controllerIds.map(controllerId =>
-        new PubKey(controllerId).toBuffer(),
-      ),
+      recentPackagehash: Buffer.from(bs58.decode(recentPackagehash)),
     };
 
     let signData = Buffer.alloc(2048);
@@ -263,20 +299,39 @@ export class Transaction {
     return signData;
   }
 
+  /**
+   * Sign the Transaction with the specified accounts.  Multiple signatures may
+   * be applied to a Transaction. The first signature is considered "primary"
+   * and is used when testing for Transaction confirmation.
+   *
+   * Transaction fields should not be modified after the first call to `sign`,
+   * as doing so may invalidate the signature and cause the Transaction to be
+   * rejected.
+   *
+   * The Transaction must be assigned a valid `recentPackagehash` before invoking this method
+   */
   sign(...signers: Array<BusAccount>) {
     this.signPartial(...signers);
   }
 
+  /**
+   * Partially sign a Transaction with the specified accounts.  The `BusAccount`
+   * inputs will be used to sign the Transaction immediately, while any
+   * `PubKey` inputs will be referenced in the signed Transaction but need to
+   * be filled in later by calling `addSigner()` with the matching `BusAccount`.
+   *
+   * All the caveats from the `sign` method apply to `signPartial`
+   */
   signPartial(...partialSigners: Array<PubKey | BusAccount>) {
     if (partialSigners.length === 0) {
       throw new Error('No signers');
     }
     const signatures: Array<SignaturePubkeyPair> = partialSigners.map(
-      accountOrPubKey => {
+      accountOrPublicKey => {
         const pubKey =
-          accountOrPubKey instanceof BusAccount
-            ? accountOrPubKey.pubKey
-            : accountOrPubKey;
+          accountOrPublicKey instanceof BusAccount
+            ? accountOrPublicKey.pubKey
+            : accountOrPublicKey;
         return {
           signature: null,
           pubKey,
@@ -284,21 +339,26 @@ export class Transaction {
       },
     );
     this.signatures = signatures;
-    const signData = this._fetchSignData();
+    const signData = this._fetchSignDat();
 
-    partialSigners.forEach((accountOrPubKey, index) => {
-      if (accountOrPubKey instanceof PubKey) {
+    partialSigners.forEach((accountOrPublicKey, index) => {
+      if (accountOrPublicKey instanceof PubKey) {
         return;
       }
       const signature = nacl.sign.detached(
         signData,
-        accountOrPubKey.privateKey,
+        accountOrPublicKey.privateKey,
       );
       invariant(signature.length === 64);
       signatures[index].signature = Buffer.from(signature);
     });
   }
 
+  /**
+   * Fill in a signature for a partially signed Transaction.  The `signer` must
+   * be the corresponding `BusAccount` for a `PubKey` that was previously provided to
+   * `signPartial`
+   */
   addSigner(signer: BusAccount) {
     const index = this.signatures.findIndex(sigpair =>
       signer.pubKey.equals(sigpair.pubKey),
@@ -307,19 +367,24 @@ export class Transaction {
       throw new Error(`Unknown signer: ${signer.pubKey.toString()}`);
     }
 
-    const signData = this._fetchSignData();
+    const signData = this._fetchSignDat();
     const signature = nacl.sign.detached(signData, signer.privateKey);
     invariant(signature.length === 64);
     this.signatures[index].signature = Buffer.from(signature);
   }
 
+  /**
+   * Serialize the Transaction in the wire format.
+   *
+   * The Transaction must have a valid `signature` before invoking this method
+   */
   serialize(): Buffer {
     const {signatures} = this;
     if (!signatures) {
       throw new Error('Transaction has not been signed');
     }
 
-    const signData = this._fetchSignData();
+    const signData = this._fetchSignDat();
     const signatureCount = [];
     shortvec.encodeLength(signatureCount, signatures.length);
     const transactionLength =
@@ -347,37 +412,56 @@ export class Transaction {
   }
 
   /**
+   * Deprecated method
    * @private
    */
   get keys(): Array<PubKey> {
-    invariant(this.instructions.length === 1);
-    return this.instructions[0].keys.map(keyObj => keyObj.pubkey);
+    invariant(this.operations.length === 1);
+    return this.operations[0].keys.map(keyObj => keyObj.pubkey);
   }
 
   /**
+   * Deprecated method
    * @private
    */
   get controllerId(): PubKey {
-    invariant(this.instructions.length === 1);
-    return this.instructions[0].controllerId;
+    invariant(this.operations.length === 1);
+    return this.operations[0].controllerId;
   }
 
   /**
+   * Deprecated method
    * @private
    */
   get data(): Buffer {
-    invariant(this.instructions.length === 1);
-    return this.instructions[0].data;
+    invariant(this.operations.length === 1);
+    return this.operations[0].data;
   }
 
   /**
+   * Parse a wire transaction into a Transaction object.
    */
   static from(buffer: Buffer): Transaction {
     const PUBKEY_LENGTH = 32;
     const SIGNATURE_LENGTH = 64;
 
+    function isCreditDebit(
+      i: number,
+      numRequiredSignatures: number,
+      numCreditOnlySignedAccounts: number,
+      numCreditOnlyUnsignedAccounts: number,
+      numKeys: number,
+    ): boolean {
+      return (
+        i < numRequiredSignatures - numCreditOnlySignedAccounts ||
+        (i >= numRequiredSignatures &&
+          i < numKeys - numCreditOnlyUnsignedAccounts)
+      );
+    }
+
     let transaction = new Transaction();
 
+    // Slice up wire data
     let byteArray = [...buffer];
 
     const signatureCount = shortvec.decodeLength(byteArray);
@@ -388,7 +472,12 @@ export class Transaction {
       signatures.push(signature);
     }
 
-    byteArray = byteArray.slice(1); 
+    const numRequiredSignatures = byteArray.shift();
+    // byteArray = byteArray.slice(1); // Skip numRequiredSignatures byte
+    const numCreditOnlySignedAccounts = byteArray.shift();
+    // byteArray = byteArray.slice(1); // Skip numCreditOnlySignedAccounts byte
+    const numCreditOnlyUnsignedAccounts = byteArray.shift();
+    // byteArray = byteArray.slice(1); // Skip numCreditOnlyUnsignedAccounts byte
 
     const accountCount = shortvec.decodeLength(byteArray);
     let accounts = [];
@@ -398,19 +487,11 @@ export class Transaction {
       accounts.push(account);
     }
 
-    const recentBlockhash = byteArray.slice(0, PUBKEY_LENGTH);
+    const recentPackagehash = byteArray.slice(0, PUBKEY_LENGTH);
     byteArray = byteArray.slice(PUBKEY_LENGTH);
 
-    const controllerIdCount = shortvec.decodeLength(byteArray);
-    let programs = [];
-    for (let i = 0; i < controllerIdCount; i++) {
-      const program = byteArray.slice(0, PUBKEY_LENGTH);
-      byteArray = byteArray.slice(PUBKEY_LENGTH);
-      programs.push(program);
-    }
-
     const instructionCount = shortvec.decodeLength(byteArray);
-    let instructions = [];
+    let operations = [];
     for (let i = 0; i < instructionCount; i++) {
       let instruction = {};
       instruction.programIndex = byteArray.shift();
@@ -420,10 +501,11 @@ export class Transaction {
       const dataLength = shortvec.decodeLength(byteArray);
       instruction.data = byteArray.slice(0, dataLength);
       byteArray = byteArray.slice(dataLength);
-      instructions.push(instruction);
+      operations.push(instruction);
     }
 
-    transaction.recentBlockhash = new PubKey(recentBlockhash).toBase58();
+    // Populate Transaction object
+    transaction.recentPackagehash = new PubKey(recentPackagehash).toBase58();
     for (let i = 0; i < signatureCount; i++) {
       const sigPubkeyPair = {
         signature: Buffer.from(signatures[i]),
@@ -434,20 +516,28 @@ export class Transaction {
     for (let i = 0; i < instructionCount; i++) {
       let instructionData = {
         keys: [],
-        controllerId: new PubKey(programs[instructions[i].programIndex]),
-        data: Buffer.from(instructions[i].data),
+        controllerId: new PubKey(accounts[operations[i].programIndex]),
+        data: Buffer.from(operations[i].data),
       };
-      for (let j = 0; j < instructions[i].accountIndex.length; j++) {
-        const pubkey = new PubKey(accounts[instructions[i].accountIndex[j]]);
+      for (let j = 0; j < operations[i].accountIndex.length; j++) {
+        const pubkey = new PubKey(accounts[operations[i].accountIndex[j]]);
+
         instructionData.keys.push({
           pubkey,
           isSigner: transaction.signatures.some(
             keyObj => keyObj.pubKey.toString() === pubkey.toString(),
           ),
+          isDebitable: isCreditDebit(
+            j,
+            numRequiredSignatures,
+            numCreditOnlySignedAccounts,
+            numCreditOnlyUnsignedAccounts,
+            accounts.length,
+          ),
         });
       }
       let instruction = new TxOperation(instructionData);
-      transaction.instructions.push(instruction);
+      transaction.operations.push(instruction);
     }
     return transaction;
   }

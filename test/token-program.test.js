@@ -4,17 +4,18 @@ import {Connection, PubKey, Token, TokenCount} from '../src';
 import {SYSTEM_TOKEN_CONTROLLER_ID} from '../src/token-controller';
 import {mockRpc, mockRpcEnabled} from './__mocks__/node-fetch';
 import {url} from './url';
-import {newAccountWithDif} from './new-account-with-dif';
+import {newAccountWithLamports} from './new-account-with-lamports';
 import {mockGetRecentBlockhash} from './mockrpc/get-recent-blockhash';
 import {sleep} from '../src/util/sleep';
 
+// The default of 5 seconds is too slow for live testing sometimes
 jest.setTimeout(60000);
 
 function mockGetSignatureStatus(result: Object = {Ok: null}) {
   mockRpc.push([
     url,
     {
-      method: 'getSignatureState',
+      method: 'fetchSignatureState',
     },
     {
       error: null,
@@ -26,7 +27,7 @@ function mockSendTransaction() {
   mockRpc.push([
     url,
     {
-      method: 'sendTxn',
+      method: 'sendTx',
     },
     {
       error: null,
@@ -36,8 +37,10 @@ function mockSendTransaction() {
   ]);
 }
 
+// A token created by the first test and used by all subsequent tests
 let testToken: Token;
 
+// Initial owner of the token supply
 let initialOwner;
 let initialOwnerTokenAccount: PubKey;
 
@@ -45,20 +48,24 @@ test('create new token', async () => {
   const connection = new Connection(url);
   connection._disableBlockhashCaching = mockRpcEnabled;
 
-  initialOwner = await newAccountWithDif(connection, 1024);
+  initialOwner = await newAccountWithLamports(connection, 1024);
 
   {
+    // mock SystemController.createNewAccount transaction for Token.createNewToken()
     mockGetRecentBlockhash();
     mockSendTransaction();
     mockGetSignatureStatus();
 
+    // mock Token.createNewAccount() transaction
     mockSendTransaction();
     mockGetSignatureStatus(null);
     mockGetSignatureStatus();
 
+    // mock SystemController.createNewAccount transaction for Token.createNewToken()
     mockSendTransaction();
     mockGetSignatureStatus();
 
+    // mock Token.createNewToken() transaction
     mockSendTransaction();
     mockGetSignatureStatus(null);
     mockGetSignatureStatus();
@@ -74,17 +81,18 @@ test('create new token', async () => {
   );
 
   {
+    // mock Token.fetchTokenDetail()'s fetchAccountDetail
     mockRpc.push([
       url,
       {
-        method: 'getAccountInfo',
+        method: 'fetchAccountDetail',
         params: [testToken.token.toBase58()],
       },
       {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_CONTROLLER_ID.toBuffer()],
-          dif: 1,
+          lamports: 1,
           data: [
             1,
             16,
@@ -133,25 +141,26 @@ test('create new token', async () => {
     ]);
   }
 
-  const tokenInfo = await testToken.fetchTokenDetail();
+  const fetchTokenDetail = await testToken.fetchTokenDetail();
 
-  expect(tokenInfo.supply.toNumber()).toBe(10000);
-  expect(tokenInfo.decimals).toBe(2);
-  expect(tokenInfo.name).toBe('Test token');
-  expect(tokenInfo.symbol).toBe('TEST');
+  expect(fetchTokenDetail.supply.toNumber()).toBe(10000);
+  expect(fetchTokenDetail.decimals).toBe(2);
+  expect(fetchTokenDetail.name).toBe('Test token');
+  expect(fetchTokenDetail.symbol).toBe('TEST');
 
   {
+    // mock Token.fetchAccountDetail()'s fetchAccountDetail
     mockRpc.push([
       url,
       {
-        method: 'getAccountInfo',
+        method: 'fetchAccountDetail',
         params: [initialOwnerTokenAccount.toBase58()],
       },
       {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_CONTROLLER_ID.toBuffer()],
-          dif: 1,
+          lamports: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -203,41 +212,44 @@ test('create new token', async () => {
     ]);
   }
 
-  const accountInfo = await testToken.fetchAccountDetail(initialOwnerTokenAccount);
+  const fetchAccountDetail = await testToken.fetchAccountDetail(initialOwnerTokenAccount);
 
-  expect(accountInfo.token.equals(testToken.token)).toBe(true);
-  expect(accountInfo.owner.equals(initialOwner.pubKey)).toBe(true);
-  expect(accountInfo.amount.toNumber()).toBe(10000);
-  expect(accountInfo.source).toBe(null);
-  expect(accountInfo.originalAmount.toNumber()).toBe(0);
+  expect(fetchAccountDetail.token.equals(testToken.token)).toBe(true);
+  expect(fetchAccountDetail.owner.equals(initialOwner.pubKey)).toBe(true);
+  expect(fetchAccountDetail.amount.toNumber()).toBe(10000);
+  expect(fetchAccountDetail.source).toBe(null);
+  expect(fetchAccountDetail.originalAmount.toNumber()).toBe(0);
 });
 
 test('create new token account', async () => {
   const connection = new Connection(url);
   connection._disableBlockhashCaching = mockRpcEnabled;
-  const destOwner = await newAccountWithDif(connection);
+  const destOwner = await newAccountWithLamports(connection);
 
   {
+    // mock SystemController.createNewAccount transaction for Token.createNewAccount()
     mockSendTransaction();
     mockGetSignatureStatus();
 
+    // mock Token.createNewAccount() transaction
     mockSendTransaction();
     mockGetSignatureStatus();
   }
 
   const dest = await testToken.createNewAccount(destOwner);
   {
+    // mock Token.fetchAccountDetail()'s fetchAccountDetail
     mockRpc.push([
       url,
       {
-        method: 'getAccountInfo',
+        method: 'fetchAccountDetail',
         params: [dest.toBase58()],
       },
       {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_CONTROLLER_ID.toBuffer()],
-          dif: 1,
+          lamports: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -258,23 +270,25 @@ test('create new token account', async () => {
     ]);
   }
 
-  const accountInfo = await testToken.fetchAccountDetail(dest);
+  const fetchAccountDetail = await testToken.fetchAccountDetail(dest);
 
-  expect(accountInfo.token.equals(testToken.token)).toBe(true);
-  expect(accountInfo.owner.equals(destOwner.pubKey)).toBe(true);
-  expect(accountInfo.amount.toNumber()).toBe(0);
-  expect(accountInfo.source).toBe(null);
+  expect(fetchAccountDetail.token.equals(testToken.token)).toBe(true);
+  expect(fetchAccountDetail.owner.equals(destOwner.pubKey)).toBe(true);
+  expect(fetchAccountDetail.amount.toNumber()).toBe(0);
+  expect(fetchAccountDetail.source).toBe(null);
 });
 
 test('transfer', async () => {
   const connection = new Connection(url);
   connection._disableBlockhashCaching = mockRpcEnabled;
-  const destOwner = await newAccountWithDif(connection);
+  const destOwner = await newAccountWithLamports(connection);
 
   {
+    // mock SystemController.createNewAccount transaction for Token.createNewAccount()
     mockSendTransaction();
     mockGetSignatureStatus();
 
+    // mock Token.createNewAccount() transaction
     mockSendTransaction();
     mockGetSignatureStatus();
   }
@@ -282,17 +296,18 @@ test('transfer', async () => {
   const dest = await testToken.createNewAccount(destOwner);
 
   {
+    // mock Token.transfer()'s fetchAccountDetail
     mockRpc.push([
       url,
       {
-        method: 'getAccountInfo',
+        method: 'fetchAccountDetail',
         params: [initialOwnerTokenAccount.toBase58()],
       },
       {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_CONTROLLER_ID.toBuffer()],
-          dif: 1,
+          lamports: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -312,6 +327,7 @@ test('transfer', async () => {
       },
     ]);
 
+    // mock Token.transfer() transaction
     mockSendTransaction();
     mockGetSignatureStatus();
   }
@@ -319,17 +335,18 @@ test('transfer', async () => {
   await testToken.transfer(initialOwner, initialOwnerTokenAccount, dest, 123);
 
   {
+    // mock Token.fetchAccountDetail()'s fetchAccountDetail
     mockRpc.push([
       url,
       {
-        method: 'getAccountInfo',
+        method: 'fetchAccountDetail',
         params: [dest.toBase58()],
       },
       {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_CONTROLLER_ID.toBuffer()],
-          dif: 1,
+          lamports: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -359,12 +376,14 @@ test('transfer', async () => {
 test('approve/revoke', async () => {
   const connection = new Connection(url);
   connection._disableBlockhashCaching = mockRpcEnabled;
-  const delegateOwner = await newAccountWithDif(connection);
+  const delegateOwner = await newAccountWithLamports(connection);
 
   {
+    // mock SystemController.createNewAccount transaction for Token.createNewAccount()
     mockSendTransaction();
     mockGetSignatureStatus();
 
+    // mock Token.createNewAccount() transaction
     mockSendTransaction();
     mockGetSignatureStatus();
   }
@@ -374,6 +393,7 @@ test('approve/revoke', async () => {
   );
 
   {
+    // mock Token.approve() transaction
     mockSendTransaction();
     mockGetSignatureStatus();
   }
@@ -386,17 +406,18 @@ test('approve/revoke', async () => {
   );
 
   {
+    // mock Token.fetchAccountDetail()'s fetchAccountDetail
     mockRpc.push([
       url,
       {
-        method: 'getAccountInfo',
+        method: 'fetchAccountDetail',
         params: [delegate.toBase58()],
       },
       {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_CONTROLLER_ID.toBuffer()],
-          dif: 1,
+          lamports: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -439,6 +460,7 @@ test('approve/revoke', async () => {
   }
 
   {
+    // mock Token.revoke() transaction
     mockSendTransaction();
     mockGetSignatureStatus();
   }
@@ -446,17 +468,18 @@ test('approve/revoke', async () => {
   await testToken.revoke(initialOwner, initialOwnerTokenAccount, delegate);
 
   {
+    // mock Token.fetchAccountDetail()'s fetchAccountDetail
     mockRpc.push([
       url,
       {
-        method: 'getAccountInfo',
+        method: 'fetchAccountDetail',
         params: [delegate.toBase58()],
       },
       {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_CONTROLLER_ID.toBuffer()],
-          dif: 1,
+          lamports: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -505,16 +528,18 @@ test('invalid approve', async () => {
   }
 
   const connection = new Connection(url);
-  const owner = await newAccountWithDif(connection);
+  const owner = await newAccountWithLamports(connection);
 
   const account1 = await testToken.createNewAccount(owner);
   const account1Delegate = await testToken.createNewAccount(owner, account1);
   const account2 = await testToken.createNewAccount(owner);
 
+  // account2 is not a delegate account of account1
   await expect(
     testToken.approve(owner, account1, account2, 123),
   ).rejects.toThrow();
 
+  // account1Delegate is not a delegate account of account2
   await expect(
     testToken.approve(owner, account2, account1Delegate, 123),
   ).rejects.toThrow();
@@ -527,7 +552,7 @@ test('fail on approve overspend', async () => {
   }
 
   const connection = new Connection(url);
-  const owner = await newAccountWithDif(connection);
+  const owner = await newAccountWithLamports(connection);
 
   const account1 = await testToken.createNewAccount(owner);
   const account1Delegate = await testToken.createNewAccount(owner, account1);
@@ -570,8 +595,8 @@ test('set owner', async () => {
   }
 
   const connection = new Connection(url);
-  const owner = await newAccountWithDif(connection);
-  const newOwner = await newAccountWithDif(connection);
+  const owner = await newAccountWithLamports(connection);
+  const newOwner = await newAccountWithLamports(connection);
 
   const account = await testToken.createNewAccount(owner);
 

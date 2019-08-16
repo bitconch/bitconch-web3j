@@ -3,15 +3,15 @@
 */
 
 //eslint-disable-next-line import/no-commonjs
-const bitconchWeb3 = require('..');
-//const bitconchWeb3 = require('@bitconch/bitconch-web3j');
+const solanaWeb3 = require('..');
+//const solanaWeb3 = require('@solana/web3.js');
 
-const account = new bitconchWeb3.Account();
+const account = new solanaWeb3.Account();
 
 let url;
-url = 'https://api.testnet.bitconch.io:10099';
-//url = 'http://localhost:10099';
-const connection = new bitconchWeb3.Connection(url);
+url = 'https://api.testnet.solana.com';
+//url = 'http://localhost:8899';
+const connection = new solanaWeb3.Connection(url);
 
 connection.getBalance(account.publicKey).then(balance => {
   console.log(`${account.publicKey} has a balance of ${balance}`);

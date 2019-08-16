@@ -9,7 +9,7 @@ test('generate new account', () => {
 });
 
 test('account from secret key', () => {
-  const secretKey = Buffer.from([
+  const privateKey = Buffer.from([
     153,
     218,
     149,
@@ -75,7 +75,7 @@ test('account from secret key', () => {
     153,
     34,
   ]);
-  const account = new BusAccount(secretKey);
+  const account = new BusAccount(privateKey);
   expect(account.pubKey.toBase58()).toBe(
     '2q7pyhPwAwZ3QMfZrnAbDhnh9mDUqycszcpf86VgQxhF',
   );

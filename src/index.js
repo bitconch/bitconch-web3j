@@ -1,4 +1,4 @@
-// @flow
+ /// @flow
 export {BusAccount} from './bus-account';
 export {BpfControllerLoader} from './bpfcontroller-loader';
 export {BudgetController} from './budget-controller';
@@ -9,8 +9,8 @@ export {PubKey} from './pubkey';
 export {SystemController} from './system-controller';
 export {Token, TokenCount} from './token-controller';
 export {Transaction, TxOperation} from './transaction-controller';
-export {sendAndConfmTxn} from './util/send-and-confm-tx';
+export {sendAndconfmTx} from './util/send-and-confm-tx';
 export {
-  sendAndConfmOriginalTxn,
+  sendAndConfmOriginalTx,
 } from './util/send-and-confm-original-tx';
 export {testnetChannelEndpoint} from './util/testnet';

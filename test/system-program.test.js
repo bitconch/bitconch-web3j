@@ -2,21 +2,22 @@
 
 import {BusAccount, BudgetController, SystemController} from '../src';
 
-test('createAccount', () => {
+test('createNewAccount', () => {
   const from = new BusAccount();
-  const newAccount = new BusAccount();
+  const createNewAccount = new BusAccount();
   let transaction;
 
   transaction = SystemController.createNewAccount(
     from.pubKey,
-    newAccount.pubKey,
+    createNewAccount.pubKey,
     123,
-    BudgetController.size,
+    BudgetController.space,
     BudgetController.controllerId,
   );
 
   expect(transaction.keys).toHaveLength(2);
   expect(transaction.controllerId).toEqual(SystemController.controllerId);
+  // TODO: Validate transaction contents more
 });
 
 test('transfer', () => {
@@ -28,6 +29,7 @@ test('transfer', () => {
 
   expect(transaction.keys).toHaveLength(2);
   expect(transaction.controllerId).toEqual(SystemController.controllerId);
+  // TODO: Validate transaction contents more
 });
 
 test('assign', () => {
@@ -39,4 +41,5 @@ test('assign', () => {
 
   expect(transaction.keys).toHaveLength(1);
   expect(transaction.controllerId).toEqual(SystemController.controllerId);
+  // TODO: Validate transaction contents more
 });
