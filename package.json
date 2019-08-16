@@ -1,20 +1,20 @@
 {
   "name": "@bitconch/bitconch-web3j",
   "version": "0.0.0-development",
-  "description": "Solana Javascript API",
+  "description": "Bitconch Javascript API",
   "keywords": [
     "api",
     "blockchain"
   ],
   "license": "MIT",
-  "author": "Solana Maintainers <maintainers@solana.com>",
-  "homepage": "https://solana.com/",
+  "author": "Bitconch Maintainers",
+  "homepage": "https://bitconch.io/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/solana-labs/solana-web3.js.git"
+    "url": "https://github.com/luhuimao/bitconch-web3j.git"
   },
   "bugs": {
-    "url": "http://github.com/solana-labs/solana-web3.js.git/issues"
+    "url": "http://github.com/luhuimao/bitconch-web3j.git/issues"
   },
   "publishConfig": {
     "access": "public"
