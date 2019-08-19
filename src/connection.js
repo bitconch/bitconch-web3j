@@ -83,7 +83,7 @@ function createRpcReq(url): RpcReq {
 }
 
 /**
- * Expected JSON RPC response for the "fetchAccountBalance" message
+ * Expected JSON RPC response for the "fetchBalance" message
  */
 const FetchBalanceRpcRlt = struct({
   jsonrpc: struct.literal('2.0'),
@@ -395,8 +395,8 @@ export class Connection {
   /**
    * Fetch the balance for the specified public key
    */
-  async fetchAccountBalance(pubKey: PubKey): Promise<number> {
-    const unsafeRes = await this._rpcReq('fetchAccountBalance', [
+  async fetchBalance(pubKey: PubKey): Promise<number> {
+    const unsafeRes = await this._rpcReq('fetchBalance', [
       pubKey.toBase58(),
     ]);
     const res = FetchBalanceRpcRlt(unsafeRes);
