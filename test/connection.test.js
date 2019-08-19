@@ -156,7 +156,7 @@ test('confirm transaction - error', () => {
   mockRpc.push([
     url,
     {
-      method: 'confmTxn',
+      method: 'confirmTxn',
       params: [badTransactionSignature],
     },
     errorResponse,
@@ -413,7 +413,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'confmTxn',
+      method: 'confirmTxn',
       params: [
         '3WE5w4B7v59x6qjyC4FbG2FEKYKQfvsJwqSxNVmtMjT8TQ31hsZieDHcSgqzxiAoTL56n2w5TncjqEKjLhtF4Vk',
       ],

@@ -434,7 +434,7 @@ export class Connection {
    * Confirm the transaction identified by the specified signature
    */
   async confmTxn(signature: TxnSignature): Promise<boolean> {
-    const unsafeRes = await this._rpcReq('confmTxn', [signature]);
+    const unsafeRes = await this._rpcReq('confirmTxn', [signature]);
     const res = ConfmTxnRpcResult(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
