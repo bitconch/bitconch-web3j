@@ -12,9 +12,9 @@ import * as shortvec from './util/shortvec-encoding';
 import type {Blockhash} from './bus-blockhash';
 
 /**
- * @typedef {string} TxSignature
+ * @typedef {string} TxnSignature
  */
-export type TxSignature = string;
+export type TxnSignature = string;
 
 /**
  * Maximum over-the-wire size of a Transaction
@@ -79,12 +79,12 @@ type SignaturePubkeyPair = {|
 /**
  * List of Transaction object fields that may be initialized at construction
  *
- * @typedef {Object} TxControlFields
+ * @typedef {Object} TxnControlFields
  * @property (?recentPackagehash} A recent block hash
  * @property (?signatures} One or more signatures
  *
  */
-type TxControlFields = {|
+type TxnControlFields = {|
   recentPackagehash?: Blockhash | null,
   signatures?: Array<SignaturePubkeyPair>,
 |};
@@ -122,7 +122,7 @@ export class Transaction {
   /**
    * Construct an empty Transaction
    */
-  constructor(opts?: TxControlFields) {
+  constructor(opts?: TxnControlFields) {
     opts && Object.assign(this, opts);
   }
 
@@ -153,7 +153,7 @@ export class Transaction {
   /**
    * @private
    */
-  _fetchSignDat(): Buffer {
+  _fetchSignData(): Buffer {
     const {recentPackagehash} = this;
     if (!recentPackagehash) {
       throw new Error('Transaction recentPackagehash required');
@@ -339,7 +339,7 @@ export class Transaction {
       },
     );
     this.signatures = signatures;
-    const signData = this._fetchSignDat();
+    const signData = this._fetchSignData();
 
     partialSigners.forEach((accountOrPublicKey, index) => {
       if (accountOrPublicKey instanceof PubKey) {
@@ -367,7 +367,7 @@ export class Transaction {
       throw new Error(`Unknown signer: ${signer.pubKey.toString()}`);
     }
 
-    const signData = this._fetchSignDat();
+    const signData = this._fetchSignData();
     const signature = nacl.sign.detached(signData, signer.privateKey);
     invariant(signature.length === 64);
     this.signatures[index].signature = Buffer.from(signature);
@@ -384,7 +384,7 @@ export class Transaction {
       throw new Error('Transaction has not been signed');
     }
 
-    const signData = this._fetchSignDat();
+    const signData = this._fetchSignData();
     const signatureCount = [];
     shortvec.encodeLength(signatureCount, signatures.length);
     const transactionLength =

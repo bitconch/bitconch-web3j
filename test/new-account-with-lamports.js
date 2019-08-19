@@ -14,7 +14,7 @@ export async function newAccountWithLamports(
     mockRpc.push([
       url,
       {
-        method: 'reqDrone',
+        method: 'requestDif',
         params: [account.pubKey.toBase58(), lamports],
       },
       {

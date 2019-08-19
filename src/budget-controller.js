@@ -7,28 +7,28 @@ import {PubKey} from './pubkey';
 import {SystemController} from './system-controller';
 
 /**
- * Represents a condition that is met by executing a `matchSignature()`
+ * Represents a condition that is met by executing a `sealWithSignature()`
  * transaction
  *
- * @typedef {Object} SignatureState
+ * @typedef {Object} SignatureCond
  * @property {string} type Must equal the string 'timestamp'
- * @property {PubKey} from Public key from which `matchSignature()` will be accepted from
+ * @property {PubKey} from Public key from which `sealWithSignature()` will be accepted from
  */
-export type SignatureState = {
+export type SignatureCond = {
   type: 'signature',
   from: PubKey,
 };
 
 /**
- * Represents a condition that is met by executing a `matchTimestamp()`
+ * Represents a condition that is met by executing a `sealWithDatetime()`
  * transaction
  *
- * @typedef {Object} TimestampState
+ * @typedef {Object} TimestampCond
  * @property {string} type Must equal the string 'timestamp'
- * @property {PubKey} from Public key from which `matchTimestamp()` will be accepted from
+ * @property {PubKey} from Public key from which `sealWithDatetime()` will be accepted from
  * @property {Date} when The timestamp that was observed
  */
-export type TimestampState = {
+export type TimestampCond = {
   type: 'timestamp',
   from: PubKey,
   when: Date,
@@ -49,9 +49,9 @@ export type Payment = {
 /**
  * A condition that can unlock a payment
  *
- * @typedef {SignatureState|TimestampState} BudgetState
+ * @typedef {SignatureCond|TimestampCond} BudgetCond
  */
-export type BudgetState = SignatureState | TimestampState;
+export type BudgetCond = SignatureCond | TimestampCond;
 
 /**
  * @private
@@ -101,7 +101,7 @@ function serializeTime(when: Date): Buffer {
 /**
  * @private
  */
-function serializeState(condition: BudgetState) {
+function serializeCond(condition: BudgetCond) {
   switch (condition.type) {
     case 'timestamp': {
       const date = serializeTime(condition.when);
@@ -146,7 +146,7 @@ export class BudgetController {
   /**
    * Creates a timestamp condition
    */
-  static timestampState(from: PubKey, when: Date): TimestampState {
+  static datetimeCond(from: PubKey, when: Date): TimestampCond {
     return {
       type: 'timestamp',
       from,
@@ -157,7 +157,7 @@ export class BudgetController {
   /**
    * Creates a signature condition
    */
-  static signatureState(from: PubKey): SignatureState {
+  static signatureCond(from: PubKey): SignatureCond {
     return {
       type: 'signature',
       from,
@@ -172,7 +172,7 @@ export class BudgetController {
     program: PubKey,
     to: PubKey,
     amount: number,
-    ...conditions: Array<BudgetState>
+    ...conditions: Array<BudgetCond>
   ): Transaction {
     const data = Buffer.alloc(1024);
     let pos = 0;
@@ -214,7 +214,7 @@ export class BudgetController {
         {
           const condition = conditions[0];
 
-          const conditionData = serializeState(condition);
+          const conditionData = serializeCond(condition);
           conditionData.copy(data, pos);
           pos += conditionData.length;
 
@@ -247,7 +247,7 @@ export class BudgetController {
         pos += 4;
 
         for (let condition of conditions) {
-          const conditionData = serializeState(condition);
+          const conditionData = serializeCond(condition);
           conditionData.copy(data, pos);
           pos += conditionData.length;
 
@@ -287,13 +287,13 @@ export class BudgetController {
   /**
    * Generates a transaction that transfers lamports once both conditions are met
    */
-  static bothToPay(
+  static payOnAll(
     from: PubKey,
     program: PubKey,
     to: PubKey,
     amount: number,
-    condition1: BudgetState,
-    condition2: BudgetState,
+    condition1: BudgetCond,
+    condition2: BudgetCond,
   ): Transaction {
     const data = Buffer.alloc(1024);
     let pos = 0;
@@ -304,7 +304,7 @@ export class BudgetController {
     pos += 4;
 
     for (let condition of [condition1, condition2]) {
-      const conditionData = serializeState(condition);
+      const conditionData = serializeCond(condition);
       conditionData.copy(data, pos);
       pos += conditionData.length;
     }
@@ -337,7 +337,7 @@ export class BudgetController {
    * Generates a transaction that applies a timestamp, which could enable a
    * pending payment to proceed.
    */
-  static matchTimestamp(
+  static sealWithDatetime(
     from: PubKey,
     program: PubKey,
     to: PubKey,
@@ -364,7 +364,7 @@ export class BudgetController {
    * Generates a transaction that applies a signature, which could enable a
    * pending payment to proceed.
    */
-  static matchSignature(
+  static sealWithSignature(
     from: PubKey,
     program: PubKey,
     to: PubKey,

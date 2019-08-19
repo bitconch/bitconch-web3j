@@ -14,7 +14,7 @@ import {sleep} from './util/sleep';
 import type {Blockhash} from './bus-blockhash';
 import type {FeeCalculator} from './fee-calculator';
 import type {BusAccount} from './bus-account';
-import type {TxSignature} from './transaction-controller';
+import type {TxnSignature} from './transaction-controller';
 
 type RpcReq = (methodName: string, args: Array<any>) => any;
 
@@ -83,9 +83,9 @@ function createRpcReq(url): RpcReq {
 }
 
 /**
- * Expected JSON RPC response for the "fetchBalance" message
+ * Expected JSON RPC response for the "fetchAccountBalance" message
  */
-const FetchBalanceRpcRlt = struct({
+const FetchBalanceRpcResult = struct({
   jsonrpc: struct.literal('2.0'),
   id: 'string',
   error: 'any?',
@@ -95,7 +95,7 @@ const FetchBalanceRpcRlt = struct({
 /**
  * @private
  */
-function jsonRpcRlt(resultDescription: any) {
+function jsonRpcResult(resultDescription: any) {
   const jsonRpcVersion = struct.literal('2.0');
   return struct.union([
     struct({
@@ -115,7 +115,7 @@ function jsonRpcRlt(resultDescription: any) {
 /**
  * @private
  */
-const AccountDetailRlt = struct({
+const AccountDetailResult = struct({
   executable: 'boolean',
   owner: 'array',
   lamports: 'number',
@@ -125,43 +125,43 @@ const AccountDetailRlt = struct({
 /**
  * Expected JSON RPC response for the "fetchAccountDetail" message
  */
-const fetchAccountDetailRpcRlt = jsonRpcRlt(AccountDetailRlt);
+const fetchAccountDetailRpcResult = jsonRpcResult(AccountDetailResult);
 
 /***
  * Expected JSON RPC response for the "accountNotification" message
  */
-const AccountNoticeRlt = struct({
+const AccountNoticeResult = struct({
   subscription: 'number',
-  result: AccountDetailRlt,
+  result: AccountDetailResult,
 });
 
 /**
  * @private
  */
-const ControllerAccountDetailRlt = struct(['string', AccountDetailRlt]);
+const ControllerAccountDetailResult = struct(['string', AccountDetailResult]);
 
 /***
  * Expected JSON RPC response for the "programNotification" message
  */
-const ControllerAccountNoticeRlt = struct({
+const ControllerAccountNoticeResult = struct({
   subscription: 'number',
-  result: ControllerAccountDetailRlt,
+  result: ControllerAccountDetailResult,
 });
 
 /**
- * Expected JSON RPC response for the "confmTxRpcRlt" message
+ * Expected JSON RPC response for the "confmTxn" message
  */
-const ConfmTxRpcRlt = jsonRpcRlt('boolean');
+const ConfmTxnRpcResult = jsonRpcResult('boolean');
 
 /**
- * Expected JSON RPC response for the "fetchSlotLeader" message
+ * Expected JSON RPC response for the "fetchRoundLeader" message
  */
-const FetchSlotLeader = jsonRpcRlt('string');
+const FetchRoundLeader = jsonRpcResult('string');
 
 /**
  * Expected JSON RPC response for the "fetchClusterNodes" message
  */
-const GetClusterNodes = jsonRpcRlt(
+const GetClusterNodes = jsonRpcResult(
   struct.list([
     struct({
       pubkey: 'string',
@@ -174,7 +174,7 @@ const GetClusterNodes = jsonRpcRlt(
 /**
  * @ignore
  */
-const GetClusterNodes_015 = jsonRpcRlt(
+const GetClusterNodes_015 = jsonRpcResult(
   struct.list([
     struct({
       id: 'string',
@@ -188,7 +188,7 @@ const GetClusterNodes_015 = jsonRpcRlt(
 /**
  * Expected JSON RPC response for the "getEpochVoteAccounts" message
  */
-const GetEpochVoteAccounts = jsonRpcRlt(
+const GetEpochVoteAccounts = jsonRpcResult(
   struct.list([
     struct({
       votePubkey: 'string',
@@ -202,7 +202,7 @@ const GetEpochVoteAccounts = jsonRpcRlt(
 /**
  * Expected JSON RPC response for the "fetchSignatureState" message
  */
-const FetchSignatureStateRpcRlt = jsonRpcRlt(
+const FetchSignatureStateRpcResult = jsonRpcResult(
   struct.union([
     'null',
     struct.union([struct({Ok: 'null'}), struct({Err: 'object'})]),
@@ -210,19 +210,19 @@ const FetchSignatureStateRpcRlt = jsonRpcRlt(
 );
 
 /**
- * Expected JSON RPC response for the "fetchTxAmount" message
+ * Expected JSON RPC response for the "fetchTxnAmount" message
  */
-const FetchTxAmountRpcRlt = jsonRpcRlt('number');
+const FetchTxnAmountRpcResult = jsonRpcResult('number');
 
 /**
  * Expected JSON RPC response for the "getTotalSupply" message
  */
-const GetTotalSupplyRpcResult = jsonRpcRlt('number');
+const GetTotalSupplyRpcResult = jsonRpcResult('number');
 
 /**
  * Expected JSON RPC response for the "fetchRecentBlockhash" message
  */
-const FetchRecentBlockhash = jsonRpcRlt([
+const FetchRecentBlockhash = jsonRpcResult([
   'string',
   struct({
     lamportsPerSignature: 'number',
@@ -235,7 +235,7 @@ const FetchRecentBlockhash = jsonRpcRlt([
 /**
  * @ignore
  */
-const GetRecentBlockhash_015 = jsonRpcRlt([
+const GetRecentBlockhash_015 = jsonRpcResult([
   'string',
   struct({
     lamportsPerSignature: 'number',
@@ -245,12 +245,12 @@ const GetRecentBlockhash_015 = jsonRpcRlt([
 /**
  * Expected JSON RPC response for the "reqDrone" message
  */
-const ReqDroneRpcRlt = jsonRpcRlt('string');
+const ReqDroneRpcResult = jsonRpcResult('string');
 
 /**
- * Expected JSON RPC response for the "sendTx" message
+ * Expected JSON RPC response for the "sendTxn" message
  */
-const SendTxRpcRlt = jsonRpcRlt('string');
+const SendTxnRpcResult = jsonRpcResult('string');
 
 /**
  * Information describing an account
@@ -320,11 +320,11 @@ export type SignaturePass = {|
 |};
 
 /**
- * Signature status: TxErr
+ * Signature status: TxnErr
  *
- * @typedef {Object} TxErr
+ * @typedef {Object} TxnErr
  */
-export type TxErr = {|
+export type TxnErr = {|
   Err: Object,
 |};
 
@@ -395,11 +395,11 @@ export class Connection {
   /**
    * Fetch the balance for the specified public key
    */
-  async fetchBalance(pubKey: PubKey): Promise<number> {
-    const unsafeRes = await this._rpcReq('fetchBalance', [
+  async fetchAccountBalance(pubKey: PubKey): Promise<number> {
+    const unsafeRes = await this._rpcReq('getDif', [
       pubKey.toBase58(),
     ]);
-    const res = FetchBalanceRpcRlt(unsafeRes);
+    const res = FetchBalanceRpcResult(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -411,10 +411,10 @@ export class Connection {
    * Fetch all the account info for the specified public key
    */
   async fetchAccountDetail(pubKey: PubKey): Promise<AccountDetail> {
-    const unsafeRes = await this._rpcReq('fetchAccountDetail', [
+    const unsafeRes = await this._rpcReq('getAccountInfo', [
       pubKey.toBase58(),
     ]);
-    const res = fetchAccountDetailRpcRlt(unsafeRes);
+    const res = fetchAccountDetailRpcResult(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -433,9 +433,9 @@ export class Connection {
   /**
    * Confirm the transaction identified by the specified signature
    */
-  async confmTxRpcRlt(signature: TxSignature): Promise<boolean> {
-    const unsafeRes = await this._rpcReq('confmTxRpcRlt', [signature]);
-    const res = ConfmTxRpcRlt(unsafeRes);
+  async confmTxn(signature: TxnSignature): Promise<boolean> {
+    const unsafeRes = await this._rpcReq('confmTxn', [signature]);
+    const res = ConfmTxnRpcResult(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -447,7 +447,7 @@ export class Connection {
    * Return the list of nodes that are currently participating in the cluster
    */
   async fetchClusterNodes(): Promise<Array<NodeInfo>> {
-    const unsafeRes = await this._rpcReq('fetchClusterNodes', []);
+    const unsafeRes = await this._rpcReq('getClusterNodes', []);
 
     // Legacy v0.15 response.  TODO: Remove in August 2019
     try {
@@ -491,9 +491,9 @@ export class Connection {
   /**
    * Fetch the current slot leader of the cluster
    */
-  async fetchSlotLeader(): Promise<string> {
-    const unsafeRes = await this._rpcReq('fetchSlotLeader', []);
-    const res = FetchSlotLeader(unsafeRes);
+  async fetchRoundLeader(): Promise<string> {
+    const unsafeRes = await this._rpcReq('getRoundLeader', []);
+    const res = FetchRoundLeader(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -505,10 +505,10 @@ export class Connection {
    * Fetch the current transaction count of the cluster
    */
   async fetchSignatureState(
-    signature: TxSignature,
-  ): Promise<SignaturePass | TxErr | null> {
-    const unsafeRes = await this._rpcReq('fetchSignatureState', [signature]);
-    const res = FetchSignatureStateRpcRlt(unsafeRes);
+    signature: TxnSignature,
+  ): Promise<SignaturePass | TxnErr | null> {
+    const unsafeRes = await this._rpcReq('getSignatureState', [signature]);
+    const res = FetchSignatureStateRpcResult(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -519,9 +519,9 @@ export class Connection {
   /**
    * Fetch the current transaction count of the cluster
    */
-  async fetchTxAmount(): Promise<number> {
-    const unsafeRes = await this._rpcReq('fetchTxAmount', []);
-    const res = FetchTxAmountRpcRlt(unsafeRes);
+  async fetchTxnAmount(): Promise<number> {
+    const unsafeRes = await this._rpcReq('getTxnCnt', []);
+    const res = FetchTxnAmountRpcResult(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -546,7 +546,7 @@ export class Connection {
    * Fetch a recent blockhash from the cluster
    */
   async fetchRecentBlockhash(): Promise<BlockhashAndFeeCalculator> {
-    const unsafeRes = await this._rpcReq('fetchRecentBlockhash', []);
+    const unsafeRes = await this._rpcReq('getLatestBlockhash', []);
 
     // Legacy v0.15 response.  TODO: Remove in August 2019
     try {
@@ -579,12 +579,12 @@ export class Connection {
   async reqDrone(
     to: PubKey,
     amount: number,
-  ): Promise<TxSignature> {
-    const unsafeRes = await this._rpcReq('reqDrone', [
+  ): Promise<TxnSignature> {
+    const unsafeRes = await this._rpcReq('requestDif', [
       to.toBase58(),
       amount,
     ]);
-    const res = ReqDroneRpcRlt(unsafeRes);
+    const res = ReqDroneRpcResult(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -595,10 +595,10 @@ export class Connection {
   /**
    * Sign and send a transaction
    */
-  async sendTx(
+  async sendTxn(
     transaction: Transaction,
     ...signers: Array<BusAccount>
-  ): Promise<TxSignature> {
+  ): Promise<TxnSignature> {
     for (;;) {
       // Attempt to use a recent blockhash for up to 30 seconds
       const seconds = new Date().getSeconds();
@@ -656,15 +656,15 @@ export class Connection {
     }
 
     const wireTransaction = transaction.serialize();
-    return await this.sendOriginalTx(wireTransaction);
+    return await this.sendNativeTxn(wireTransaction);
   }
 
   /**
    * @private
    */
-  async fullnodeQuit(): Promise<boolean> {
+  async fullnodeExit(): Promise<boolean> {
     const unsafeRes = await this._rpcReq('fullnodeQuit', []);
-    const res = jsonRpcRlt('boolean')(unsafeRes);
+    const res = jsonRpcResult('boolean')(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -676,13 +676,13 @@ export class Connection {
    * Send a transaction that has already been signed and serialized into the
    * wire format
    */
-  async sendOriginalTx(
+  async sendNativeTxn(
     rawTransaction: Buffer,
-  ): Promise<TxSignature> {
-    const unsafeRes = await this._rpcReq('sendTx', [
+  ): Promise<TxnSignature> {
+    const unsafeRes = await this._rpcReq('sendTxn', [
       [...rawTransaction],
     ]);
-    const res = SendTxRpcRlt(unsafeRes);
+    const res = SendTxnRpcResult(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -784,7 +784,7 @@ export class Connection {
    * @private
    */
   _wsOnAccountNotice(notification: Object) {
-    const res = AccountNoticeRlt(notification);
+    const res = AccountNoticeResult(notification);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -854,7 +854,7 @@ export class Connection {
    * @private
    */
   _wsOnProgramAccountNotification(notification: Object) {
-    const res = ControllerAccountNoticeRlt(notification);
+    const res = ControllerAccountNoticeResult(notification);
     if (res.error) {
       throw new Error(res.error.message);
     }

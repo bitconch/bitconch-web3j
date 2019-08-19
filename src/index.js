@@ -11,6 +11,6 @@ export {Token, TokenCount} from './token-controller';
 export {Transaction, TxOperation} from './transaction-controller';
 export {sendAndconfmTx} from './util/send-and-confm-tx';
 export {
-  sendAndConfmOriginalTx,
+  sendAndConfmNativeTxn,
 } from './util/send-and-confm-original-tx';
 export {testnetChannelEndpoint} from './util/testnet';

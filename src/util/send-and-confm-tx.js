@@ -6,7 +6,7 @@ import {Connection} from '../connection';
 import {Transaction} from '../transaction-controller';
 import {sleep} from './sleep';
 import type {BusAccount} from '../bus-account';
-import type {TxSignature} from '../transaction-controller';
+import type {TxnSignature} from '../transaction-controller';
 import {DEFAULT_TICKS_PER_SLOT, NUM_TICKS_PER_SEC} from '../timing';
 
 /**
@@ -16,12 +16,12 @@ export async function sendAndconfmTx(
   connection: Connection,
   transaction: Transaction,
   ...signers: Array<BusAccount>
-): Promise<TxSignature> {
+): Promise<TxnSignature> {
   let sendRetries = 10;
   let signature;
   for (;;) {
     const start = Date.now();
-    signature = await connection.sendTx(transaction, ...signers);
+    signature = await connection.sendTxn(transaction, ...signers);
 
     // Wait up to a couple slots for a confirmation
     let status = null;

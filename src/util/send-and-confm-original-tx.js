@@ -2,18 +2,18 @@
 
 import {Connection} from '../connection';
 import {sleep} from './sleep';
-import type {TxSignature} from '../transaction-controller';
+import type {TxnSignature} from '../transaction-controller';
 import {DEFAULT_TICKS_PER_SLOT, NUM_TICKS_PER_SEC} from '../timing';
 
 /**
  * Sign, send and confirm a raw transaction
  */
-export async function sendAndConfmOriginalTx(
+export async function sendAndConfmNativeTxn(
   connection: Connection,
   rawTransaction: Buffer,
-): Promise<TxSignature> {
+): Promise<TxnSignature> {
   const start = Date.now();
-  let signature = await connection.sendOriginalTx(rawTransaction);
+  let signature = await connection.sendNativeTxn(rawTransaction);
 
   // Wait up to a couple slots for a confirmation
   let status = null;

@@ -15,7 +15,7 @@ function mockGetSignatureStatus(result: Object = {Ok: null}) {
   mockRpc.push([
     url,
     {
-      method: 'fetchSignatureState',
+      method: 'getSignatureState',
     },
     {
       error: null,
@@ -27,7 +27,7 @@ function mockSendTransaction() {
   mockRpc.push([
     url,
     {
-      method: 'sendTx',
+      method: 'sendTxn',
     },
     {
       error: null,
@@ -85,7 +85,7 @@ test('create new token', async () => {
     mockRpc.push([
       url,
       {
-        method: 'fetchAccountDetail',
+        method: 'getAccountInfo',
         params: [testToken.token.toBase58()],
       },
       {
@@ -153,7 +153,7 @@ test('create new token', async () => {
     mockRpc.push([
       url,
       {
-        method: 'fetchAccountDetail',
+        method: 'getAccountInfo',
         params: [initialOwnerTokenAccount.toBase58()],
       },
       {
@@ -242,7 +242,7 @@ test('create new token account', async () => {
     mockRpc.push([
       url,
       {
-        method: 'fetchAccountDetail',
+        method: 'getAccountInfo',
         params: [dest.toBase58()],
       },
       {
@@ -300,7 +300,7 @@ test('transfer', async () => {
     mockRpc.push([
       url,
       {
-        method: 'fetchAccountDetail',
+        method: 'getAccountInfo',
         params: [initialOwnerTokenAccount.toBase58()],
       },
       {
@@ -339,7 +339,7 @@ test('transfer', async () => {
     mockRpc.push([
       url,
       {
-        method: 'fetchAccountDetail',
+        method: 'getAccountInfo',
         params: [dest.toBase58()],
       },
       {
@@ -410,7 +410,7 @@ test('approve/revoke', async () => {
     mockRpc.push([
       url,
       {
-        method: 'fetchAccountDetail',
+        method: 'getAccountInfo',
         params: [delegate.toBase58()],
       },
       {
@@ -472,7 +472,7 @@ test('approve/revoke', async () => {
     mockRpc.push([
       url,
       {
-        method: 'fetchAccountDetail',
+        method: 'getAccountInfo',
         params: [delegate.toBase58()],
       },
       {

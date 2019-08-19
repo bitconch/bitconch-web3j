@@ -11,7 +11,7 @@ import {BusAccount} from './bus-account';
 import {PubKey} from './pubkey';
 import {SystemController} from './system-controller';
 import {Transaction, TxOperation} from './transaction-controller';
-import type {TxSignature} from './transaction-controller';
+import type {TxnSignature} from './transaction-controller';
 import {sendAndconfmTx} from './util/send-and-confm-tx';
 import type {Connection} from './connection';
 
@@ -388,7 +388,7 @@ export class Token {
     source: PubKey,
     destination: PubKey,
     amount: number | TokenCount,
-  ): Promise<?TxSignature> {
+  ): Promise<?TxnSignature> {
     return await sendAndconfmTx(
       this.connection,
       new Transaction().add(

@@ -10,7 +10,7 @@ export function mockGetRecentBlockhash() {
   mockRpc.push([
     url,
     {
-      method: 'fetchRecentBlockhash',
+      method: 'getLatestBlockhash',
       params: [],
     },
     {

@@ -26,7 +26,7 @@ test('get account info - error', () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchAccountDetail',
+      method: 'getAccountInfo',
       params: [account.pubKey.toBase58()],
     },
     errorResponse,
@@ -39,7 +39,7 @@ test('get account info - error', () => {
 
 test('fullnodeQuit', async () => {
   if (!mockRpcEnabled) {
-    console.log('fullnodeQuit skipped on live node');
+    console.log('fullnodeExit skipped on live node');
     return;
   }
   const connection = new Connection(url);
@@ -55,7 +55,7 @@ test('fullnodeQuit', async () => {
     },
   ]);
 
-  const result = await connection.fullnodeQuit();
+  const result = await connection.fullnodeExit();
   expect(result).toBe(false);
 });
 
@@ -66,7 +66,7 @@ test('get balance', async () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchAccountBalance',
+      method: 'getDif',
       params: [account.pubKey.toBase58()],
     },
     {
@@ -85,7 +85,7 @@ test('get slot leader', async () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchSlotLeader',
+      method: 'getRoundLeader',
     },
     {
       error: null,
@@ -93,7 +93,7 @@ test('get slot leader', async () => {
     },
   ]);
 
-  const slotLeader = await connection.fetchSlotLeader();
+  const slotLeader = await connection.fetchRoundLeader();
   if (mockRpcEnabled) {
     expect(slotLeader).toBe('11111111111111111111111111111111');
   } else {
@@ -109,7 +109,7 @@ test('get cluster nodes', async () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchClusterNodes',
+      method: 'getClusterNodes',
     },
     {
       error: null,
@@ -156,20 +156,20 @@ test('confirm transaction - error', () => {
   mockRpc.push([
     url,
     {
-      method: 'confmTxRpcRlt',
+      method: 'confmTxn',
       params: [badTransactionSignature],
     },
     errorResponse,
   ]);
 
   expect(
-    connection.confmTxRpcRlt(badTransactionSignature),
+    connection.confmTxn(badTransactionSignature),
   ).rejects.toThrow(errorMessage);
 
   mockRpc.push([
     url,
     {
-      method: 'fetchSignatureState',
+      method: 'getSignatureState',
       params: [badTransactionSignature],
     },
     errorResponse,
@@ -186,7 +186,7 @@ test('get transaction count', async () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchTxAmount',
+      method: 'getTxnCnt',
       params: [],
     },
     {
@@ -195,7 +195,7 @@ test('get transaction count', async () => {
     },
   ]);
 
-  const count = await connection.fetchTxAmount();
+  const count = await connection.fetchTxnAmount();
   expect(count).toBeGreaterThanOrEqual(0);
 });
 
@@ -238,7 +238,7 @@ test('request airdrop', async () => {
   mockRpc.push([
     url,
     {
-      method: 'reqDrone',
+      method: 'requestDif',
       params: [account.pubKey.toBase58(), 40],
     },
     {
@@ -250,7 +250,7 @@ test('request airdrop', async () => {
   mockRpc.push([
     url,
     {
-      method: 'reqDrone',
+      method: 'requestDif',
       params: [account.pubKey.toBase58(), 2],
     },
     {
@@ -262,7 +262,7 @@ test('request airdrop', async () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchAccountBalance',
+      method: 'getDif',
       params: [account.pubKey.toBase58()],
     },
     {
@@ -280,7 +280,7 @@ test('request airdrop', async () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchAccountDetail',
+      method: 'getAccountInfo',
       params: [account.pubKey.toBase58()],
     },
     {
@@ -341,7 +341,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'reqDrone',
+      method: 'requestDif',
       params: [accountFrom.pubKey.toBase58(), 100010],
     },
     {
@@ -353,7 +353,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchAccountBalance',
+      method: 'getDif',
       params: [accountFrom.pubKey.toBase58()],
     },
     {
@@ -367,7 +367,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'reqDrone',
+      method: 'requestDif',
       params: [accountTo.pubKey.toBase58(), 21],
     },
     {
@@ -379,7 +379,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchAccountBalance',
+      method: 'getDif',
       params: [accountTo.pubKey.toBase58()],
     },
     {
@@ -394,7 +394,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'sendTx',
+      method: 'sendTxn',
     },
     {
       error: null,
@@ -408,12 +408,12 @@ test('transaction', async () => {
     accountTo.pubKey,
     10,
   );
-  const signature = await connection.sendTx(transaction, accountFrom);
+  const signature = await connection.sendTxn(transaction, accountFrom);
 
   mockRpc.push([
     url,
     {
-      method: 'confmTxRpcRlt',
+      method: 'confmTxn',
       params: [
         '3WE5w4B7v59x6qjyC4FbG2FEKYKQfvsJwqSxNVmtMjT8TQ31hsZieDHcSgqzxiAoTL56n2w5TncjqEKjLhtF4Vk',
       ],
@@ -426,7 +426,7 @@ test('transaction', async () => {
 
   let i = 0;
   for (;;) {
-    if (await connection.confmTxRpcRlt(signature)) {
+    if (await connection.confmTxn(signature)) {
       break;
     }
     console.log('not confirmed', signature);
@@ -438,7 +438,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchSignatureState',
+      method: 'getSignatureState',
       params: [
         '3WE5w4B7v59x6qjyC4FbG2FEKYKQfvsJwqSxNVmtMjT8TQ31hsZieDHcSgqzxiAoTL56n2w5TncjqEKjLhtF4Vk',
       ],
@@ -455,7 +455,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchAccountBalance',
+      method: 'getDif',
       params: [accountFrom.pubKey.toBase58()],
     },
     {
@@ -472,7 +472,7 @@ test('transaction', async () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchAccountBalance',
+      method: 'getDif',
       params: [accountTo.pubKey.toBase58()],
     },
     {
@@ -508,14 +508,14 @@ test('multi-instruction transaction', async () => {
   ).add(
     SystemController.transfer(accountTo.pubKey, accountFrom.pubKey, 100),
   );
-  const signature = await connection.sendTx(
+  const signature = await connection.sendTxn(
     transaction,
     accountFrom,
     accountTo,
   );
   let i = 0;
   for (;;) {
-    if (await connection.confmTxRpcRlt(signature)) {
+    if (await connection.confmTxn(signature)) {
       break;
     }
 

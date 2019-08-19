@@ -19,7 +19,7 @@ test('transaction-payer', async () => {
   mockRpc.push([
     url,
     {
-      method: 'reqDrone',
+      method: 'requestDif',
       params: [accountPayer.pubKey.toBase58(), 100],
     },
     {
@@ -33,7 +33,7 @@ test('transaction-payer', async () => {
   mockRpc.push([
     url,
     {
-      method: 'reqDrone',
+      method: 'requestDif',
       params: [accountFrom.pubKey.toBase58(), 12],
     },
     {
@@ -47,7 +47,7 @@ test('transaction-payer', async () => {
   mockRpc.push([
     url,
     {
-      method: 'reqDrone',
+      method: 'requestDif',
       params: [accountTo.pubKey.toBase58(), 21],
     },
     {
@@ -62,7 +62,7 @@ test('transaction-payer', async () => {
   mockRpc.push([
     url,
     {
-      method: 'sendTx',
+      method: 'sendTxn',
     },
     {
       error: null,
@@ -77,7 +77,7 @@ test('transaction-payer', async () => {
     10,
   );
 
-  const signature = await connection.sendTx(
+  const signature = await connection.sendTxn(
     transaction,
     accountPayer,
     accountFrom,
@@ -86,7 +86,7 @@ test('transaction-payer', async () => {
   mockRpc.push([
     url,
     {
-      method: 'confmTxRpcRlt',
+      method: 'confmTxn',
       params: [
         '3WE5w4B7v59x6qjyC4FbG2FEKYKQfvsJwqSxNVmtMjT8TQ31hsZieDHcSgqzxiAoTL56n2w5TncjqEKjLhtF4Vk',
       ],
@@ -99,7 +99,7 @@ test('transaction-payer', async () => {
 
   let i = 0;
   for (;;) {
-    if (await connection.confmTxRpcRlt(signature)) {
+    if (await connection.confmTxn(signature)) {
       break;
     }
 
@@ -111,7 +111,7 @@ test('transaction-payer', async () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchSignatureState',
+      method: 'getSignatureState',
       params: [
         '3WE5w4B7v59x6qjyC4FbG2FEKYKQfvsJwqSxNVmtMjT8TQ31hsZieDHcSgqzxiAoTL56n2w5TncjqEKjLhtF4Vk',
       ],
@@ -128,7 +128,7 @@ test('transaction-payer', async () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchAccountBalance',
+      method: 'getDif',
       params: [accountPayer.pubKey.toBase58()],
     },
     {
@@ -147,7 +147,7 @@ test('transaction-payer', async () => {
   mockRpc.push([
     url,
     {
-      method: 'fetchAccountBalance',
+      method: 'getDif',
       params: [accountFrom.pubKey.toBase58()],
     },
     {
