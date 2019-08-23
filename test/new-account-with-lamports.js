@@ -6,7 +6,7 @@ import {url} from './url';
 
 export async function newAccountWithLamports(
   connection: Connection,
-  lamports: number = 1000000,
+  difs: number = 1000000,
 ): Promise<BusAccount> {
   const account = new BusAccount();
 
@@ -15,7 +15,7 @@ export async function newAccountWithLamports(
       url,
       {
         method: 'requestDif',
-        params: [account.pubKey.toBase58(), lamports],
+        params: [account.pubKey.toBase58(), difs],
       },
       {
         error: null,
@@ -26,6 +26,6 @@ export async function newAccountWithLamports(
     ]);
   }
 
-  await connection.reqDrone(account.pubKey, lamports);
+  await connection.reqDrone(account.pubKey, difs);
   return account;
 }

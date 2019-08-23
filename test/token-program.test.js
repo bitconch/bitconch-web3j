@@ -92,7 +92,7 @@ test('create new token', async () => {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_CONTROLLER_ID.toBuffer()],
-          lamports: 1,
+          difs: 1,
           data: [
             1,
             16,
@@ -160,7 +160,7 @@ test('create new token', async () => {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_CONTROLLER_ID.toBuffer()],
-          lamports: 1,
+          difs: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -249,7 +249,7 @@ test('create new token account', async () => {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_CONTROLLER_ID.toBuffer()],
-          lamports: 1,
+          difs: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -307,7 +307,7 @@ test('transfer', async () => {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_CONTROLLER_ID.toBuffer()],
-          lamports: 1,
+          difs: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -346,7 +346,7 @@ test('transfer', async () => {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_CONTROLLER_ID.toBuffer()],
-          lamports: 1,
+          difs: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -417,7 +417,7 @@ test('approve/revoke', async () => {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_CONTROLLER_ID.toBuffer()],
-          lamports: 1,
+          difs: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),
@@ -479,7 +479,7 @@ test('approve/revoke', async () => {
         error: null,
         result: {
           owner: [...SYSTEM_TOKEN_CONTROLLER_ID.toBuffer()],
-          lamports: 1,
+          difs: 1,
           data: [
             2,
             ...testToken.token.toBuffer(),

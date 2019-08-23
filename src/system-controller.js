@@ -25,13 +25,13 @@ export class SystemController {
   static createNewAccount(
     from: PubKey,
     createNewAccount: PubKey,
-    lamports: number,
+    difs: number,
     space: number,
     controllerId: PubKey,
   ): Transaction {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u32('instruction'),
-      BufferLayout.ns64('lamports'),
+      BufferLayout.ns64('difs'),
       BufferLayout.ns64('space'),
       Layout.pubKey('controllerId'),
     ]);
@@ -40,7 +40,7 @@ export class SystemController {
     dataLayout.encode(
       {
         instruction: 0, // Create BusAccount instruction
-        lamports,
+        difs,
         space,
         controllerId: controllerId.toBuffer(),
       },
@@ -58,7 +58,7 @@ export class SystemController {
   }
 
   /**
-   * Generate a Transaction that transfers lamports from one account to another
+   * Generate a Transaction that transfers difs from one account to another
    */
   static transfer(from: PubKey, to: PubKey, amount: number): Transaction {
     const dataLayout = BufferLayout.struct([

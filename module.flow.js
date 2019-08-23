@@ -46,7 +46,7 @@ declare module '@solana/web3.js' {
   declare export type AccountInfo = {
     executable: boolean,
     owner: PublicKey,
-    lamports: number,
+    difs: number,
     data: Buffer,
   };
 
@@ -124,7 +124,7 @@ declare module '@solana/web3.js' {
     static createAccount(
       from: PublicKey,
       newAccount: PublicKey,
-      lamports: number,
+      difs: number,
       space: number,
       programId: PublicKey,
     ): Transaction;

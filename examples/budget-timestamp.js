@@ -1,6 +1,6 @@
 /*
   Example of using the Budget program to perform a time-lock payment of 50
-  lamports from account1 to account2.
+  difs from account1 to account2.
 */
 
 //eslint-disable-next-line import/no-commonjs

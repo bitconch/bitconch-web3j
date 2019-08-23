@@ -320,7 +320,7 @@ test('request airdrop', async () => {
           0,
           0,
         ],
-        lamports: 42,
+        difs: 42,
         data: [],
         executable: false,
       },
@@ -328,7 +328,7 @@ test('request airdrop', async () => {
   ]);
 
   const fetchAccountDetail = await connection.fetchAccountDetail(account.pubKey);
-  expect(fetchAccountDetail.lamports).toBe(42);
+  expect(fetchAccountDetail.difs).toBe(42);
   expect(fetchAccountDetail.data).toHaveLength(0);
   expect(fetchAccountDetail.owner).toEqual(SystemController.controllerId);
 });
@@ -577,7 +577,7 @@ test('account change notification', async () => {
 
   await connection.removeListenerOfAccountChange(subscriptionId);
 
-  expect(mockCallback.mock.calls[0][0].lamports).toBe(1);
+  expect(mockCallback.mock.calls[0][0].difs).toBe(1);
   expect(mockCallback.mock.calls[0][0].owner).toEqual(BpfControllerLoader.controllerId);
 });
 
@@ -601,7 +601,7 @@ test('program account change notification', async () => {
         //console.log('Ignoring another account', keyedAccountInfo);
         return;
       }
-      expect(keyedAccountInfo.fetchAccountDetail.lamports).toBe(1);
+      expect(keyedAccountInfo.fetchAccountDetail.difs).toBe(1);
       expect(keyedAccountInfo.fetchAccountDetail.owner).toEqual(BpfControllerLoader.controllerId);
       notified = true;
     },

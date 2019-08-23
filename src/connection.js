@@ -40,7 +40,7 @@ type NodeInfo = {
  * @typedef {Object} VoteAccountInfo
  * @property {string} votePubkey Public key of the vote account
  * @property {string} nodePubkey Identity public key of the node voting with this account
- * @property {string} stake The stake, in lamports, delegated to this vote account
+ * @property {string} stake The stake, in difs, delegated to this vote account
  * @property {string} commission A 32-bit integer used as a fraction (commission/0xFFFFFFFF) for rewards payout
  */
 type VoteAccountInfo = {
@@ -118,7 +118,7 @@ function jsonRpcResult(resultDescription: any) {
 const AccountDetailResult = struct({
   executable: 'boolean',
   owner: 'array',
-  lamports: 'number',
+  difs: 'number',
   data: 'array',
 });
 
@@ -256,7 +256,7 @@ const SendTxnRpcResult = jsonRpcResult('string');
  * Information describing an account
  *
  * @typedef {Object} AccountDetail
- * @property {number} lamports Number of lamports assigned to the account
+ * @property {number} difs Number of difs assigned to the account
  * @property {PubKey} owner Identifier of the program that owns the account
  * @property {?Buffer} data Optional data assigned to the account
  * @property {boolean} executable `true` if this account's data contains a loaded program
@@ -264,7 +264,7 @@ const SendTxnRpcResult = jsonRpcResult('string');
 type AccountDetail = {
   executable: boolean,
   owner: PubKey,
-  lamports: number,
+  difs: number,
   data: Buffer,
 };
 
@@ -425,7 +425,7 @@ export class Connection {
     return {
       executable: result.executable,
       owner: new PubKey(result.owner),
-      lamports: result.lamports,
+      difs: result.difs,
       data: Buffer.from(result.data),
     };
   }
@@ -574,7 +574,7 @@ export class Connection {
   }
 
   /**
-   * Request an allocation of lamports to the specified account
+   * Request an allocation of difs to the specified account
    */
   async reqDrone(
     to: PubKey,
@@ -799,7 +799,7 @@ export class Connection {
         sub.callback({
           executable: result.executable,
           owner: new PubKey(result.owner),
-          lamports: result.lamports,
+          difs: result.difs,
           data: Buffer.from(result.data),
         });
         return true;
@@ -873,7 +873,7 @@ export class Connection {
           fetchAccountDetail: {
             executable: result[1].executable,
             owner: new PubKey(result[1].owner),
-            lamports: result[1].lamports,
+            difs: result[1].difs,
             data: Buffer.from(result[1].data),
           },
         });

@@ -64,7 +64,7 @@ function airDrop() {
 showBalance()
   .then(airDrop)
   .then(() => {
-    console.log(`\n== Move 1 lamport to approver1`);
+    console.log(`\n== Move 1 dif to approver1`);
     const transaction = solanaWeb3.SystemProgram.transfer(
       account1.publicKey,
       approver1.publicKey,
@@ -74,7 +74,7 @@ showBalance()
   })
   .then(confirmTransaction)
   .then(() => {
-    console.log(`\n== Move 1 lamport to approver2`);
+    console.log(`\n== Move 1 dif to approver2`);
     const transaction = solanaWeb3.SystemProgram.transfer(
       account1.publicKey,
       approver2.publicKey,

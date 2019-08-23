@@ -38,7 +38,7 @@ export type TimestampCond = {
  * Represents a payment to a given public key
  *
  * @typedef {Object} Payment
- * @property {number} amount Number of lamports
+ * @property {number} amount Number of difs
  * @property {PubKey} to Public key of the recipient
  */
 export type Payment = {
@@ -165,7 +165,7 @@ export class BudgetController {
   }
 
   /**
-   * Generates a transaction that transfers lamports once any of the conditions are met
+   * Generates a transaction that transfers difs once any of the conditions are met
    */
   static pay(
     from: PubKey,
@@ -285,7 +285,7 @@ export class BudgetController {
   }
 
   /**
-   * Generates a transaction that transfers lamports once both conditions are met
+   * Generates a transaction that transfers difs once both conditions are met
    */
   static payOnAll(
     from: PubKey,
