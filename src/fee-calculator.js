@@ -2,12 +2,12 @@
 
 /**
  * @typedef {Object} FeeCalculator
- * @property {number} lamportsPerSignature difs Cost in difs to validate a signature
- * @property {number} targetLamportsPerSignature
+ * @property {number} difsPerSignature difs Cost in difs to validate a signature
+ * @property {number} targetDifsPerSignature
  * @property {number} targetSignaturesPerSlot
  */
 export type FeeCalculator = {
-  lamportsPerSignature: number,
+  difsPerSignature: number,
   targetSignaturesPerSlot: number,
-  targetLamportsPerSignature: number,
+  targetDifsPerSignature: number,
 };

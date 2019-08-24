@@ -4,7 +4,7 @@ import {BusAccount, Connection} from '../src';
 import {mockRpc} from './__mocks__/node-fetch';
 import {url} from './url';
 
-export async function newAccountWithLamports(
+export async function newAccountWithDifs(
   connection: Connection,
   difs: number = 1000000,
 ): Promise<BusAccount> {

@@ -18,7 +18,7 @@ export function mockGetRecentBlockhash() {
       result: [
         recentPackagehash.pubKey.toBase58(),
         {
-          lamportsPerSignature: 42,
+          difsPerSignature: 42,
         },
       ],
     },

@@ -228,7 +228,7 @@ test('get recent blockhash', async () => {
     feeCalculator,
   ] = await connection.fetchRecentBlockhash();
   expect(recentPackagehash.length).toBeGreaterThanOrEqual(43);
-  expect(feeCalculator.lamportsPerSignature).toBeGreaterThanOrEqual(0);
+  expect(feeCalculator.difsPerSignature).toBeGreaterThanOrEqual(0);
 });
 
 test('request airdrop', async () => {

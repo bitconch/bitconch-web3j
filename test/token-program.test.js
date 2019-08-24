@@ -4,7 +4,7 @@ import {Connection, PubKey, Token, TokenCount} from '../src';
 import {SYSTEM_TOKEN_CONTROLLER_ID} from '../src/token-controller';
 import {mockRpc, mockRpcEnabled} from './__mocks__/node-fetch';
 import {url} from './url';
-import {newAccountWithLamports} from './new-account-with-lamports';
+import {newAccountWithDifs} from './new-account-with-difs';
 import {mockGetRecentBlockhash} from './mockrpc/get-recent-blockhash';
 import {sleep} from '../src/util/sleep';
 
@@ -48,7 +48,7 @@ test('create new token', async () => {
   const connection = new Connection(url);
   connection._disableBlockhashCaching = mockRpcEnabled;
 
-  initialOwner = await newAccountWithLamports(connection, 1024);
+  initialOwner = await newAccountWithDifs(connection, 1024);
 
   {
     // mock SystemController.createNewAccount transaction for Token.createNewToken()
@@ -224,7 +224,7 @@ test('create new token', async () => {
 test('create new token account', async () => {
   const connection = new Connection(url);
   connection._disableBlockhashCaching = mockRpcEnabled;
-  const destOwner = await newAccountWithLamports(connection);
+  const destOwner = await newAccountWithDifs(connection);
 
   {
     // mock SystemController.createNewAccount transaction for Token.createNewAccount()
@@ -281,7 +281,7 @@ test('create new token account', async () => {
 test('transfer', async () => {
   const connection = new Connection(url);
   connection._disableBlockhashCaching = mockRpcEnabled;
-  const destOwner = await newAccountWithLamports(connection);
+  const destOwner = await newAccountWithDifs(connection);
 
   {
     // mock SystemController.createNewAccount transaction for Token.createNewAccount()
@@ -376,7 +376,7 @@ test('transfer', async () => {
 test('approve/revoke', async () => {
   const connection = new Connection(url);
   connection._disableBlockhashCaching = mockRpcEnabled;
-  const delegateOwner = await newAccountWithLamports(connection);
+  const delegateOwner = await newAccountWithDifs(connection);
 
   {
     // mock SystemController.createNewAccount transaction for Token.createNewAccount()
@@ -528,7 +528,7 @@ test('invalid approve', async () => {
   }
 
   const connection = new Connection(url);
-  const owner = await newAccountWithLamports(connection);
+  const owner = await newAccountWithDifs(connection);
 
   const account1 = await testToken.createNewAccount(owner);
   const account1Delegate = await testToken.createNewAccount(owner, account1);
@@ -552,7 +552,7 @@ test('fail on approve overspend', async () => {
   }
 
   const connection = new Connection(url);
-  const owner = await newAccountWithLamports(connection);
+  const owner = await newAccountWithDifs(connection);
 
   const account1 = await testToken.createNewAccount(owner);
   const account1Delegate = await testToken.createNewAccount(owner, account1);
@@ -595,8 +595,8 @@ test('set owner', async () => {
   }
 
   const connection = new Connection(url);
-  const owner = await newAccountWithLamports(connection);
-  const newOwner = await newAccountWithLamports(connection);
+  const owner = await newAccountWithDifs(connection);
+  const newOwner = await newAccountWithDifs(connection);
 
   const account = await testToken.createNewAccount(owner);
 

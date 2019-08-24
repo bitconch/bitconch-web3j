@@ -225,10 +225,10 @@ const GetTotalSupplyRpcResult = jsonRpcResult('number');
 const FetchRecentBlockhash = jsonRpcResult([
   'string',
   struct({
-    lamportsPerSignature: 'number',
-    maxLamportsPerSignature: 'number',
-    minLamportsPerSignature: 'number',
-    targetLamportsPerSignature: 'number',
+    difsPerSignature: 'number',
+    maxDifsPerSignature: 'number',
+    minDifsPerSignature: 'number',
+    targetDifsPerSignature: 'number',
     targetSignaturesPerSlot: 'number',
   }),
 ]);
@@ -238,7 +238,7 @@ const FetchRecentBlockhash = jsonRpcResult([
 const GetRecentBlockhash_015 = jsonRpcResult([
   'string',
   struct({
-    lamportsPerSignature: 'number',
+    difsPerSignature: 'number',
   }),
 ]);
 
@@ -556,8 +556,8 @@ export class Connection {
       }
       const [blockhash, feeCalculator] = res_015.result;
       feeCalculator.targetSignaturesPerSlot = 42;
-      feeCalculator.targetLamportsPerSignature =
-        feeCalculator.lamportsPerSignature;
+      feeCalculator.targetDifsPerSignature =
+        feeCalculator.difsPerSignature;
 
       return [blockhash, feeCalculator];
     } catch (e) {

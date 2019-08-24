@@ -10,7 +10,7 @@ import {
 } from '../src';
 import {mockRpcEnabled} from './__mocks__/node-fetch';
 import {url} from './url';
-import {newAccountWithLamports} from './new-account-with-lamports';
+import {newAccountWithDifs} from './new-account-with-difs';
 
 if (!mockRpcEnabled) {
   // The default of 5 seconds is too slow for live testing sometimes
@@ -24,7 +24,7 @@ test('load BPF C program', async () => {
   }
 
   const connection = new Connection(url);
-  const from = await newAccountWithLamports(connection, 1024);
+  const from = await newAccountWithDifs(connection, 1024);
   const data = await fs.readFile('test/fixtures/noop-c/noop.so');
   const controllerId = await BpfControllerLoader.load(connection, from, data);
   const transaction = new Transaction().add({
@@ -41,7 +41,7 @@ test('load BPF Rust program', async () => {
   }
 
   const connection = new Connection(url);
-  const from = await newAccountWithLamports(connection, 100000);
+  const from = await newAccountWithDifs(connection, 100000);
   const data = await fs.readFile(
     'test/fixtures/noop-rust/solana_bpf_rust_noop.so',
   );
