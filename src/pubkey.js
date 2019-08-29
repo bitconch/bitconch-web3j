@@ -6,11 +6,11 @@ import bs58 from 'bs58';
 /**
  * A public key
  */
-export class PublicKey {
+export class PubKey {
   _bn: BN;
 
   /**
-   * Create a new PublicKey object
+   * Create a new PubKey object
    */
   constructor(value: number | string | Buffer | Array<number>) {
     if (typeof value === 'string') {
@@ -31,17 +31,17 @@ export class PublicKey {
   }
 
   /**
-   * Checks if the provided object is a PublicKey
+   * Checks if the provided object is a PubKey
    */
-  static isPublicKey(o: Object): boolean {
-    return o instanceof PublicKey;
+  static isPubKey(o: Object): boolean {
+    return o instanceof PubKey;
   }
 
   /**
    * Checks if two publicKeys are equal
    */
-  equals(publicKey: PublicKey): boolean {
-    return this._bn.eq(publicKey._bn);
+  equals(pubKey: PubKey): boolean {
+    return this._bn.eq(pubKey._bn);
   }
 
   /**

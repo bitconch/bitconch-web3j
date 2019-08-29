@@ -1,19 +1,19 @@
 // @flow
 
-import {Account} from './account';
-import {PublicKey} from './publickey';
-import {Loader} from './loader';
+import {BusAccount} from './bus-account';
+import {PubKey} from './pubkey';
+import {ControllerLoader} from './controller-loader';
 import type {Connection} from './connection';
 
 /**
  * Factory class for transactions to interact with a program loader
  */
-export class NativeLoader {
+export class NativeControllerLoader {
   /**
-   * Public key that identifies the NativeLoader
+   * Public key that identifies the NativeControllerLoader
    */
-  static get programId(): PublicKey {
-    return new PublicKey('NativeLoader1111111111111111111111111111111');
+  static get controllerId(): PubKey {
+    return new PubKey('NativeLoader1111111111111111111111111111111');
   }
 
   /**
@@ -25,16 +25,16 @@ export class NativeLoader {
    */
   static load(
     connection: Connection,
-    payer: Account,
+    payer: BusAccount,
     programName: string,
-  ): Promise<PublicKey> {
+  ): Promise<PubKey> {
     const bytes = [...Buffer.from(programName)];
-    const program = new Account();
-    return Loader.load(
+    const program = new BusAccount();
+    return ControllerLoader.load(
       connection,
       payer,
       program,
-      NativeLoader.programId,
+      NativeControllerLoader.controllerId,
       bytes,
     );
   }

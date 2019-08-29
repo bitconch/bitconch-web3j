@@ -11,22 +11,21 @@
 
   <script src="../lib/index.iife.js"></script>
   <!--
-    <script src="https://github.com/bitconch/bitconch-web3j/releases/download/v0.11.10/bitconchWeb3.min.js"></script>
+    <script src="https://github.com/solana-labs/solana-web3.js/releases/download/v0.11.10/solanaWeb3.min.js"></script>
   -->
 
   <script>
     // Create a new account
-    const account = new bitconchWeb3.Account();
+    const account = new solanaWeb3.Account();
 
     // Display the account's public key
     const accountPublicKey = document.getElementById('accountPublicKey');
     accountPublicKey.innerHTML = account.publicKey;
 
     // Fetch account balance
-    // let url = 'http://localhost:8899';
-    let url = 'http://localhost:10099';
-    //url = 'https://api.testnet.bitconch.com';
-    const connection = new bitconchWeb3.Connection(url);
+    let url = 'http://localhost:8899';
+    //url = 'https://api.testnet.solana.com';
+    const connection = new solanaWeb3.Connection(url);
 
     connection.getBalance(account.publicKey)
     .then((balance) => {

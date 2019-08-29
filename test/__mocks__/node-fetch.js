@@ -2,7 +2,7 @@
 
 import fetch from 'node-fetch';
 
-type RpcRequest = {
+type RpcReq = {
   method: string,
   params?: Array<any>,
 };
@@ -16,7 +16,7 @@ type RpcResponse = {
   result: ?RpcResponseResult,
 };
 
-export const mockRpc: Array<[string, RpcRequest, RpcResponse]> = [];
+export const mockRpc: Array<[string, RpcReq, RpcResponse]> = [];
 
 // Define TEST_LIVE in the environment to test against the real full node
 // identified by `url` instead of using the mock

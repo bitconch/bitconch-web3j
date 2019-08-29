@@ -22,11 +22,11 @@ src
 test
 internals
 .flowconfig
-.babelrc
+#.babelrc
 .eslintignore
 .esdoc.json
 .eslintrc.js
 .travis.yml
 jest.json
 renovate.json
-rollup.config.js
+#rollup.config.js

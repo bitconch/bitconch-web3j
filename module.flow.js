@@ -1,18 +1,18 @@
 /**
- * Flow Library definition for @bitconch/bitconch-web3j
+ * Flow Library definition for @solana/web3.js
  *
  * This file is manually generated from the contents of src/
  *
  * Usage: add the following line under the [libs] section of your project's
  * .flowconfig:
  * [libs]
- * node_modules/@bitconch/bitconch-web3j/module.flow.js
+ * node_modules/@solana/web3.js/module.flow.js
  *
  */
 
 import BN from 'bn.js';
 
-declare module '@bitconch/bitconch-web3j' {
+declare module '@solana/web3.js' {
   // === src/publickey.js ===
   declare export class PublicKey {
     constructor(number: string | Buffer | Array<number>): PublicKey;
@@ -32,6 +32,13 @@ declare module '@bitconch/bitconch-web3j' {
     secretKey: Buffer;
   }
 
+  // === src/fee-calculator.js ===
+  declare export type FeeCalculator = {
+    difsPerSignature: number,
+    targetSignaturesPerSlot: number,
+    targetDifsPerSignature: number,
+  };
+
   // === src/budget-program.js ===
   /* TODO */
 
@@ -39,8 +46,7 @@ declare module '@bitconch/bitconch-web3j' {
   declare export type AccountInfo = {
     executable: boolean,
     owner: PublicKey,
-    // lamports: number,
-    dif: number,
+    difs: number,
     data: Buffer,
   };
 
@@ -54,6 +60,13 @@ declare module '@bitconch/bitconch-web3j' {
   declare export type KeyedAccountInfo = {
     accountId: PublicKey,
     accountInfo: AccountInfo,
+  };
+
+  declare export type VoteAccountInfo = {
+    votePubkey: string,
+    nodePubkey: string,
+    stake: number,
+    commission: number,
   };
 
   declare type AccountChangeCallback = (accountInfo: AccountInfo) => void;
@@ -73,13 +86,15 @@ declare module '@bitconch/bitconch-web3j' {
     getAccountInfo(publicKey: PublicKey): Promise<AccountInfo>;
     getBalance(publicKey: PublicKey): Promise<number>;
     getClusterNodes(): Promise<Array<ContactInfo>>;
+    getEpochVoteAccounts(): Promise<Array<VoteAccountInfo>>;
     confirmTransaction(signature: TransactionSignature): Promise<boolean>;
     getSlotLeader(): Promise<string>;
     getSignatureStatus(
       signature: TransactionSignature,
     ): Promise<SignatureSuccess | TransactionError | null>;
     getTransactionCount(): Promise<number>;
-    getRecentBlockhash(): Promise<Blockhash>;
+    getTotalSupply(): Promise<number>;
+    getRecentBlockhash(): Promise<[Blockhash, FeeCalculator]>;
     requestAirdrop(
       to: PublicKey,
       amount: number,
@@ -109,8 +124,7 @@ declare module '@bitconch/bitconch-web3j' {
     static createAccount(
       from: PublicKey,
       newAccount: PublicKey,
-      // lamports: number,
-      dif: number,
+      difs: number,
       space: number,
       programId: PublicKey,
     ): Transaction;
@@ -126,13 +140,13 @@ declare module '@bitconch/bitconch-web3j' {
   declare export type TransactionSignature = string;
 
   declare type TransactionInstructionCtorFields = {|
-    keys: ?Array<{pubkey: PublicKey, isSigner: boolean}>,
+    keys: ?Array<{pubkey: PublicKey, isSigner: boolean, isDebitable: boolean}>,
     programId?: PublicKey,
     data?: Buffer,
   |};
 
   declare export class TransactionInstruction {
-    keys: Array<{pubkey: PublicKey, isSigner: boolean}>;
+    keys: Array<{pubkey: PublicKey, isSigner: boolean, isDebitable: boolean}>;
     programId: PublicKey;
     data: Buffer;
   }

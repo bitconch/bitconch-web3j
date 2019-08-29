@@ -31,7 +31,7 @@ function generateConfig(configType) {
         {
           file: 'lib/index.iife.js',
           format: 'iife',
-          name: 'bitconchWeb3',
+          name: 'solanaWeb3',
           sourcemap: true,
         },
       ];
@@ -87,6 +87,7 @@ function generateConfig(configType) {
         '@babel/runtime/helpers/getPrototypeOf',
         '@babel/runtime/helpers/inherits',
         '@babel/runtime/helpers/possibleConstructorReturn',
+        '@babel/runtime/helpers/slicedToArray',
         '@babel/runtime/helpers/toConsumableArray',
         '@babel/runtime/helpers/typeof',
         '@babel/runtime/regenerator',

@@ -2,13 +2,13 @@
 
 import {
   Connection,
-  NativeLoader,
+  NativeControllerLoader,
   Transaction,
-  sendAndConfirmTransaction,
+  sendAndconfmTx,
 } from '../src';
 import {mockRpcEnabled} from './__mocks__/node-fetch';
 import {url} from './url';
-import {newAccountWithDif} from './new-account-with-dif';
+import {newAccountWithDifs} from './new-account-with-difs';
 
 if (!mockRpcEnabled) {
   // The default of 5 seconds is too slow for live testing sometimes
@@ -22,16 +22,16 @@ test('load native program', async () => {
   }
 
   const connection = new Connection(url);
-  const from = await newAccountWithDif(connection, 1024);
-  const programId = await NativeLoader.load(
+  const from = await newAccountWithDifs(connection, 1024);
+  const controllerId = await NativeControllerLoader.load(
     connection,
     from,
-    'bitconch_noop_program',
+    'solana_noop_program',
   );
   const transaction = new Transaction().add({
-    keys: [{pubkey: from.publicKey, isSigner: true}],
-    programId,
+    keys: [{pubkey: from.pubKey, isSigner: true, isDebitable: true}],
+    controllerId,
   });
 
-  await sendAndConfirmTransaction(connection, transaction, from);
+  await sendAndconfmTx(connection, transaction, from);
 });

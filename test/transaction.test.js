@@ -1,26 +1,26 @@
 // @flow
 import nacl from 'tweetnacl';
 
-import {Account} from '../src/account';
-import {PublicKey} from '../src/publickey';
-import {Transaction} from '../src/transaction';
-import {SystemProgram} from '../src/system-program';
+import {BusAccount} from '../src/bus-account';
+import {PubKey} from '../src/pubkey';
+import {Transaction} from '../src/transaction-controller';
+import {SystemController} from '../src/system-controller';
 
 test('signPartial', () => {
-  const account1 = new Account();
-  const account2 = new Account();
-  const recentBlockhash = account1.publicKey.toBase58(); // Fake recentBlockhash
-  const transfer = SystemProgram.transfer(
-    account1.publicKey,
-    account2.publicKey,
+  const account1 = new BusAccount();
+  const account2 = new BusAccount();
+  const recentPackagehash = account1.pubKey.toBase58(); // Fake recentPackagehash
+  const transfer = SystemController.transfer(
+    account1.pubKey,
+    account2.pubKey,
     123,
   );
 
-  const transaction = new Transaction({recentBlockhash}).add(transfer);
+  const transaction = new Transaction({recentPackagehash}).add(transfer);
   transaction.sign(account1, account2);
 
-  const partialTransaction = new Transaction({recentBlockhash}).add(transfer);
-  partialTransaction.signPartial(account1, account2.publicKey);
+  const partialTransaction = new Transaction({recentPackagehash}).add(transfer);
+  partialTransaction.signPartial(account1, account2.pubKey);
   expect(partialTransaction.signatures[1].signature).toBeNull();
   partialTransaction.addSigner(account2);
 
@@ -28,28 +28,28 @@ test('signPartial', () => {
 });
 
 test('transfer signatures', () => {
-  const account1 = new Account();
-  const account2 = new Account();
-  const recentBlockhash = account1.publicKey.toBase58(); // Fake recentBlockhash
-  const transfer1 = SystemProgram.transfer(
-    account1.publicKey,
-    account2.publicKey,
+  const account1 = new BusAccount();
+  const account2 = new BusAccount();
+  const recentPackagehash = account1.pubKey.toBase58(); // Fake recentPackagehash
+  const transfer1 = SystemController.transfer(
+    account1.pubKey,
+    account2.pubKey,
     123,
   );
-  const transfer2 = SystemProgram.transfer(
-    account2.publicKey,
-    account1.publicKey,
+  const transfer2 = SystemController.transfer(
+    account2.pubKey,
+    account1.pubKey,
     123,
   );
 
-  const orgTransaction = new Transaction({recentBlockhash}).add(
+  const orgTransaction = new Transaction({recentPackagehash}).add(
     transfer1,
     transfer2,
   );
   orgTransaction.sign(account1, account2);
 
   const newTransaction = new Transaction({
-    recentBlockhash: orgTransaction.recentBlockhash,
+    recentPackagehash: orgTransaction.recentPackagehash,
     signatures: orgTransaction.signatures,
   }).add(transfer1, transfer2);
 
@@ -57,21 +57,21 @@ test('transfer signatures', () => {
 });
 
 test('dedup signatures', () => {
-  const account1 = new Account();
-  const account2 = new Account();
-  const recentBlockhash = account1.publicKey.toBase58(); // Fake recentBlockhash
-  const transfer1 = SystemProgram.transfer(
-    account1.publicKey,
-    account2.publicKey,
+  const account1 = new BusAccount();
+  const account2 = new BusAccount();
+  const recentPackagehash = account1.pubKey.toBase58(); // Fake recentPackagehash
+  const transfer1 = SystemController.transfer(
+    account1.pubKey,
+    account2.pubKey,
     123,
   );
-  const transfer2 = SystemProgram.transfer(
-    account1.publicKey,
-    account2.publicKey,
+  const transfer2 = SystemController.transfer(
+    account1.pubKey,
+    account2.pubKey,
     123,
   );
 
-  const orgTransaction = new Transaction({recentBlockhash}).add(
+  const orgTransaction = new Transaction({recentPackagehash}).add(
     transfer1,
     transfer2,
   );
@@ -82,83 +82,85 @@ test('parse wire format and serialize', () => {
   const keypair = nacl.sign.keyPair.fromSeed(
     Uint8Array.from(Array(32).fill(8)),
   );
-  const sender = new Account(Buffer.from(keypair.secretKey)); // Arbitrary known account
-  const recentBlockhash = 'EETubP5AKHgjPAhzPAFcb8BAY1hMH639CWCFTqi3hq1k'; // Arbitrary known recentBlockhash
-  const recipient = new PublicKey(
+  const sender = new BusAccount(Buffer.from(keypair.secretKey)); // Arbitrary known account
+  const recentPackagehash = 'EETubP5AKHgjPAhzPAFcb8BAY1hMH639CWCFTqi3hq1k'; // Arbitrary known recentPackagehash
+  const recipient = new PubKey(
     'J3dxNj7nDRRqRRXuEMynDG57DkZK4jYRuv3Garmb1i99',
   ); // Arbitrary known public key
-  const transfer = SystemProgram.transfer(sender.publicKey, recipient, 49);
-  const expectedTransaction = new Transaction({recentBlockhash}).add(transfer);
+  const transfer = SystemController.transfer(sender.pubKey, recipient, 49);
+  const expectedTransaction = new Transaction({recentPackagehash}).add(transfer);
   expectedTransaction.sign(sender);
 
   const wireTransaction = Buffer.from([
     1,
-    132,
+    47,
     50,
-    204,
+    66,
     17,
-    25,
-    230,
-    33,
-    52,
-    8,
-    149,
-    124,
-    56,
-    114,
-    17,
-    236,
-    92,
-    93,
-    53,
-    234,
-    122,
-    120,
     219,
-    193,
-    255,
-    2,
-    14,
-    87,
-    12,
-    207,
-    99,
-    241,
-    32,
-    151,
-    102,
-    70,
-    60,
-    218,
-    73,
-    232,
-    68,
-    33,
-    94,
-    134,
-    117,
-    138,
-    182,
-    179,
-    118,
-    249,
-    132,
-    52,
-    41,
-    162,
-    44,
-    0,
-    43,
-    193,
-    242,
-    120,
-    108,
+    90,
+    187,
+    49,
+    40,
+    77,
+    8,
+    58,
+    129,
+    51,
+    76,
+    13,
+    206,
+    126,
+    157,
+    189,
+    188,
+    53,
+    174,
+    42,
+    80,
     4,
-    163,
-    191,
-    6,
+    4,
+    212,
+    55,
+    67,
+    171,
+    34,
+    224,
+    81,
+    68,
+    230,
+    120,
+    117,
+    204,
+    241,
+    167,
+    152,
+    74,
+    141,
+    132,
+    73,
+    166,
+    217,
+    173,
+    27,
+    75,
+    62,
+    171,
+    160,
+    100,
+    159,
+    116,
+    164,
+    45,
+    185,
+    64,
+    0,
+    72,
+    4,
     1,
+    0,
     2,
+    3,
     19,
     152,
     246,
@@ -223,6 +225,38 @@ test('parse wire format and serialize', () => {
     74,
     243,
     252,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
     196,
     154,
     231,
@@ -256,40 +290,7 @@ test('parse wire format and serialize', () => {
     82,
     235,
     1,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
+    2,
     2,
     0,
     1,

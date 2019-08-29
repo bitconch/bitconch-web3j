@@ -2,35 +2,35 @@
 
 import * as BufferLayout from 'buffer-layout';
 
-import {Transaction} from './transaction';
-import {PublicKey} from './publickey';
-import * as Layout from './layout';
+import {Transaction} from './transaction-controller';
+import {PubKey} from './pubkey';
+import {SystemController} from './system-controller';
 
 /**
- * Represents a condition that is met by executing a `applySignature()`
+ * Represents a condition that is met by executing a `sealWithSignature()`
  * transaction
  *
- * @typedef {Object} SignatureCondition
+ * @typedef {Object} SignatureCond
  * @property {string} type Must equal the string 'timestamp'
- * @property {PublicKey} from Public key from which `applySignature()` will be accepted from
+ * @property {PubKey} from Public key from which `sealWithSignature()` will be accepted from
  */
-export type SignatureCondition = {
+export type SignatureCond = {
   type: 'signature',
-  from: PublicKey,
+  from: PubKey,
 };
 
 /**
- * Represents a condition that is met by executing a `applyTimestamp()`
+ * Represents a condition that is met by executing a `sealWithDatetime()`
  * transaction
  *
- * @typedef {Object} TimestampCondition
+ * @typedef {Object} TimestampCond
  * @property {string} type Must equal the string 'timestamp'
- * @property {PublicKey} from Public key from which `applyTimestamp()` will be accepted from
+ * @property {PubKey} from Public key from which `sealWithDatetime()` will be accepted from
  * @property {Date} when The timestamp that was observed
  */
-export type TimestampCondition = {
+export type TimestampCond = {
   type: 'timestamp',
-  from: PublicKey,
+  from: PubKey,
   when: Date,
 };
 
@@ -38,20 +38,20 @@ export type TimestampCondition = {
  * Represents a payment to a given public key
  *
  * @typedef {Object} Payment
- * @property {number} amount Number of lamports
- * @property {PublicKey} to Public key of the recipient
+ * @property {number} amount Number of difs
+ * @property {PubKey} to Public key of the recipient
  */
 export type Payment = {
   amount: number,
-  to: PublicKey,
+  to: PubKey,
 };
 
 /**
  * A condition that can unlock a payment
  *
- * @typedef {SignatureCondition|TimestampCondition} BudgetCondition
+ * @typedef {SignatureCond|TimestampCond} BudgetCond
  */
-export type BudgetCondition = SignatureCondition | TimestampCondition;
+export type BudgetCond = SignatureCond | TimestampCond;
 
 /**
  * @private
@@ -67,7 +67,7 @@ function serializePayment(payment: Payment): Buffer {
 /**
  * @private
  */
-function serializeDate(when: Date): Buffer {
+function serializeTime(when: Date): Buffer {
   const data = Buffer.alloc(8 + 20);
   data.writeUInt32LE(20, 0); // size of timestamp as u64
 
@@ -101,10 +101,10 @@ function serializeDate(when: Date): Buffer {
 /**
  * @private
  */
-function serializeCondition(condition: BudgetCondition) {
+function serializeCond(condition: BudgetCond) {
   switch (condition.type) {
     case 'timestamp': {
-      const date = serializeDate(condition.when);
+      const date = serializeTime(condition.when);
       const from = condition.from.toBuffer();
 
       const data = Buffer.alloc(4 + date.length + from.length);
@@ -114,20 +114,10 @@ function serializeCondition(condition: BudgetCondition) {
       return data;
     }
     case 'signature': {
-      const dataLayout = BufferLayout.struct([
-        BufferLayout.u32('condition'),
-        Layout.publicKey('from'),
-      ]);
-
       const from = condition.from.toBuffer();
       const data = Buffer.alloc(4 + from.length);
-      dataLayout.encode(
-        {
-          instruction: 1, // Signature
-          from,
-        },
-        data,
-      );
+      data.writeUInt32LE(1, 0); // Condition enum = Signature
+      from.copy(data, 4);
       return data;
     }
     default:
@@ -138,25 +128,25 @@ function serializeCondition(condition: BudgetCondition) {
 /**
  * Factory class for transactions to interact with the Budget program
  */
-export class BudgetProgram {
+export class BudgetController {
   /**
    * Public key that identifies the Budget program
    */
-  static get programId(): PublicKey {
-    return new PublicKey('Budget1111111111111111111111111111111111111');
+  static get controllerId(): PubKey {
+    return new PubKey('Budget1111111111111111111111111111111111111');
   }
 
   /**
    * The amount of space this program requires
    */
-  static get space(): number {
+  static get size(): number {
     return 128;
   }
 
   /**
    * Creates a timestamp condition
    */
-  static timestampCondition(from: PublicKey, when: Date): TimestampCondition {
+  static datetimeCond(from: PubKey, when: Date): TimestampCond {
     return {
       type: 'timestamp',
       from,
@@ -167,7 +157,7 @@ export class BudgetProgram {
   /**
    * Creates a signature condition
    */
-  static signatureCondition(from: PublicKey): SignatureCondition {
+  static signatureCond(from: PubKey): SignatureCond {
     return {
       type: 'signature',
       from,
@@ -175,14 +165,14 @@ export class BudgetProgram {
   }
 
   /**
-   * Generates a transaction that transfers lamports once any of the conditions are met
+   * Generates a transaction that transfers difs once any of the conditions are met
    */
   static pay(
-    from: PublicKey,
-    program: PublicKey,
-    to: PublicKey,
+    from: PubKey,
+    program: PubKey,
+    to: PubKey,
     amount: number,
-    ...conditions: Array<BudgetCondition>
+    ...conditions: Array<BudgetCond>
   ): Transaction {
     const data = Buffer.alloc(1024);
     let pos = 0;
@@ -190,8 +180,8 @@ export class BudgetProgram {
     pos += 4;
 
     switch (conditions.length) {
-      case 0:
-        data.writeUInt32LE(0, pos); // Budget enum = Pay
+      case 0: {
+        data.writeUInt32LE(0, pos); // BudgetExpr enum = Pay
         pos += 4;
 
         {
@@ -199,60 +189,91 @@ export class BudgetProgram {
           payment.copy(data, pos);
           pos += payment.length;
         }
+        const trimmedData = data.slice(0, pos);
 
-        return new Transaction().add({
-          keys: [{pubkey: from, isSigner: true}, {pubkey: to, isSigner: false}],
-          programId: this.programId,
-          data: data.slice(0, pos),
+        const transaction = SystemController.createNewAccount(
+          from,
+          program,
+          amount,
+          trimmedData.length,
+          this.controllerId,
+        );
+
+        return transaction.add({
+          keys: [
+            {pubkey: to, isSigner: false, isDebitable: false},
+            {pubkey: program, isSigner: false, isDebitable: true},
+          ],
+          controllerId: this.controllerId,
+          data: trimmedData,
         });
-      case 1:
-        data.writeUInt32LE(1, pos); // Budget enum = After
+      }
+      case 1: {
+        data.writeUInt32LE(1, pos); // BudgetExpr enum = After
         pos += 4;
         {
           const condition = conditions[0];
 
-          const conditionData = serializeCondition(condition);
+          const conditionData = serializeCond(condition);
           conditionData.copy(data, pos);
           pos += conditionData.length;
+
+          data.writeUInt32LE(0, pos); // BudgetExpr enum = Pay
+          pos += 4;
 
           const paymentData = serializePayment({amount, to});
           paymentData.copy(data, pos);
           pos += paymentData.length;
         }
+        const trimmedData = data.slice(0, pos);
 
-        return new Transaction().add({
-          keys: [
-            {pubkey: from, isSigner: true},
-            {pubkey: program, isSigner: false},
-            {pubkey: to, isSigner: false},
-          ],
-          programId: this.programId,
-          data: data.slice(0, pos),
+        const transaction = SystemController.createNewAccount(
+          from,
+          program,
+          amount,
+          trimmedData.length,
+          this.controllerId,
+        );
+
+        return transaction.add({
+          keys: [{pubkey: program, isSigner: false, isDebitable: true}],
+          controllerId: this.controllerId,
+          data: trimmedData,
         });
+      }
 
-      case 2:
-        data.writeUInt32LE(2, pos); // Budget enum = Or
+      case 2: {
+        data.writeUInt32LE(2, pos); // BudgetExpr enum = Or
         pos += 4;
 
         for (let condition of conditions) {
-          const conditionData = serializeCondition(condition);
+          const conditionData = serializeCond(condition);
           conditionData.copy(data, pos);
           pos += conditionData.length;
+
+          data.writeUInt32LE(0, pos); // BudgetExpr enum = Pay
+          pos += 4;
 
           const paymentData = serializePayment({amount, to});
           paymentData.copy(data, pos);
           pos += paymentData.length;
         }
+        const trimmedData = data.slice(0, pos);
 
-        return new Transaction().add({
-          keys: [
-            {pubkey: from, isSigner: true},
-            {pubkey: program, isSigner: false},
-            {pubkey: to, isSigner: false},
-          ],
-          programId: this.programId,
-          data: data.slice(0, pos),
+        const transaction = SystemController.createNewAccount(
+          from,
+          program,
+          amount,
+          trimmedData.length,
+          this.controllerId,
+        );
+
+        return transaction.add({
+          keys: [{pubkey: program, isSigner: false, isDebitable: true}],
+          controllerId: this.controllerId,
+          data: trimmedData,
         });
+      }
 
       default:
         throw new Error(
@@ -264,42 +285,51 @@ export class BudgetProgram {
   }
 
   /**
-   * Generates a transaction that transfers lamports once both conditions are met
+   * Generates a transaction that transfers difs once both conditions are met
    */
-  static payOnBoth(
-    from: PublicKey,
-    program: PublicKey,
-    to: PublicKey,
+  static payOnAll(
+    from: PubKey,
+    program: PubKey,
+    to: PubKey,
     amount: number,
-    condition1: BudgetCondition,
-    condition2: BudgetCondition,
+    condition1: BudgetCond,
+    condition2: BudgetCond,
   ): Transaction {
     const data = Buffer.alloc(1024);
     let pos = 0;
     data.writeUInt32LE(0, pos); // NewBudget instruction
     pos += 4;
 
-    data.writeUInt32LE(3, pos); // Budget enum = And
+    data.writeUInt32LE(3, pos); // BudgetExpr enum = And
     pos += 4;
 
     for (let condition of [condition1, condition2]) {
-      const conditionData = serializeCondition(condition);
+      const conditionData = serializeCond(condition);
       conditionData.copy(data, pos);
       pos += conditionData.length;
     }
+
+    data.writeUInt32LE(0, pos); // BudgetExpr enum = Pay
+    pos += 4;
 
     const paymentData = serializePayment({amount, to});
     paymentData.copy(data, pos);
     pos += paymentData.length;
 
-    return new Transaction().add({
-      keys: [
-        {pubkey: from, isSigner: true},
-        {pubkey: program, isSigner: false},
-        {pubkey: to, isSigner: false},
-      ],
-      programId: this.programId,
-      data: data.slice(0, pos),
+    const trimmedData = data.slice(0, pos);
+
+    const transaction = SystemController.createNewAccount(
+      from,
+      program,
+      amount,
+      trimmedData.length,
+      this.controllerId,
+    );
+
+    return transaction.add({
+      keys: [{pubkey: program, isSigner: false, isDebitable: true}],
+      controllerId: this.controllerId,
+      data: trimmedData,
     });
   }
 
@@ -307,13 +337,13 @@ export class BudgetProgram {
    * Generates a transaction that applies a timestamp, which could enable a
    * pending payment to proceed.
    */
-  static applyTimestamp(
-    from: PublicKey,
-    program: PublicKey,
-    to: PublicKey,
+  static sealWithDatetime(
+    from: PubKey,
+    program: PubKey,
+    to: PubKey,
     when: Date,
   ): Transaction {
-    const whenData = serializeDate(when);
+    const whenData = serializeTime(when);
     const data = Buffer.alloc(4 + whenData.length);
 
     data.writeUInt32LE(1, 0); // ApplyTimestamp instruction
@@ -321,11 +351,11 @@ export class BudgetProgram {
 
     return new Transaction().add({
       keys: [
-        {pubkey: from, isSigner: true},
-        {pubkey: program, isSigner: false},
-        {pubkey: to, isSigner: false},
+        {pubkey: from, isSigner: true, isDebitable: true},
+        {pubkey: program, isSigner: false, isDebitable: true},
+        {pubkey: to, isSigner: false, isDebitable: false},
       ],
-      programId: this.programId,
+      controllerId: this.controllerId,
       data,
     });
   }
@@ -334,10 +364,10 @@ export class BudgetProgram {
    * Generates a transaction that applies a signature, which could enable a
    * pending payment to proceed.
    */
-  static applySignature(
-    from: PublicKey,
-    program: PublicKey,
-    to: PublicKey,
+  static sealWithSignature(
+    from: PubKey,
+    program: PubKey,
+    to: PubKey,
   ): Transaction {
     const dataLayout = BufferLayout.struct([BufferLayout.u32('instruction')]);
 
@@ -351,11 +381,11 @@ export class BudgetProgram {
 
     return new Transaction().add({
       keys: [
-        {pubkey: from, isSigner: true},
-        {pubkey: program, isSigner: false},
-        {pubkey: to, isSigner: false},
+        {pubkey: from, isSigner: true, isDebitable: true},
+        {pubkey: program, isSigner: false, isDebitable: true},
+        {pubkey: to, isSigner: false, isDebitable: false},
       ],
-      programId: this.programId,
+      controllerId: this.controllerId,
       data,
     });
   }

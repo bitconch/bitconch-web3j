@@ -14,9 +14,9 @@ pub struct SolKeyedAccount<'a> {
     pub key: &'a SolPubkey,
     /// Public key of the account
     pub is_signer: bool,
-    /// Number of lamports owned by this account
-    // pub lamports: u64,
-    pub dif: u64,
+    /// Number of difs owned by this account
+    // pub difs: u64,
+    pub difs: u64,
     /// On-chain data within this account
     pub data: &'a mut [u8],
     /// Program that owns this account
@@ -80,8 +80,8 @@ pub unsafe fn deserialize<'a>(
         offset += size_of::<SolPubkey>();
 
         #[allow(clippy::cast_ptr_alignment)]
-        // let lamports = *(input.add(offset) as *const u64);
-        let dif = *(input.add(offset) as *const u64);
+        // let difs = *(input.add(offset) as *const u64);
+        let difs = *(input.add(offset) as *const u64);
         offset += size_of::<u64>();
 
         #[allow(clippy::cast_ptr_alignment)]
@@ -97,8 +97,8 @@ pub unsafe fn deserialize<'a>(
         kas.push(SolKeyedAccount {
             key,
             is_signer,
-            // lamports,
-            dif,
+            // difs,
+            difs,
             data,
             owner,
         });
@@ -178,8 +178,8 @@ mod tests {
             ];
             assert_eq!(SIZE_PUBKEY, account0.key.key.len());
             assert_eq!(key, account0.key.key);
-            // assert_eq!(48, account0.lamports);
-            assert_eq!(48, account0.dif);
+            // assert_eq!(48, account0.difs);
+            assert_eq!(48, account0.difs);
             assert_eq!(1, account0.data.len());
             let owner = &[0; SIZE_PUBKEY];
             assert_eq!(SIZE_PUBKEY, account0.owner.key.len());

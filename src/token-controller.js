@@ -6,19 +6,19 @@ import assert from 'assert';
 import BN from 'bn.js';
 import * as BufferLayout from 'buffer-layout';
 
-import * as Layout from './layout';
-import {Account} from './account';
-import {PublicKey} from './publickey';
-import {SystemProgram} from './system-program';
-import {Transaction, TransactionInstruction} from './transaction';
-import type {TransactionSignature} from './transaction';
-import {sendAndConfirmTransaction} from './util/send-and-confirm-transaction';
+import * as Layout from './resize';
+import {BusAccount} from './bus-account';
+import {PubKey} from './pubkey';
+import {SystemController} from './system-controller';
+import {Transaction, TxOperation} from './transaction-controller';
+import type {TxnSignature} from './transaction-controller';
+import {sendAndconfmTx} from './util/send-and-confm-tx';
 import type {Connection} from './connection';
 
 /**
  * Some amount of tokens
  */
-export class TokenAmount extends BN {
+export class TokenCount extends BN {
   /**
    * Convert to Buffer representation
    */
@@ -28,7 +28,7 @@ export class TokenAmount extends BN {
     if (b.length === 8) {
       return b;
     }
-    assert(b.length < 8, 'TokenAmount too large');
+    assert(b.length < 8, 'TokenCount too large');
 
     const zeroPad = Buffer.alloc(8);
     b.copy(zeroPad);
@@ -36,9 +36,9 @@ export class TokenAmount extends BN {
   }
 
   /**
-   * Construct a TokenAmount from Buffer representation
+   * Construct a TokenCount from Buffer representation
    */
-  static fromBuffer(buffer: Buffer): TokenAmount {
+  static fromBuffer(buffer: Buffer): TokenCount {
     assert(buffer.length === 8, `Invalid buffer length: ${buffer.length}`);
     return new BN(
       [...buffer]
@@ -53,11 +53,11 @@ export class TokenAmount extends BN {
 /**
  * Information about a token
  */
-type TokenInfo = {|
+type TokenDetail = {|
   /**
    * Total supply of tokens
    */
-  supply: TokenAmount,
+  supply: TokenCount,
 
   /**
    * Number of base 10 digits to the right of the decimal place
@@ -78,7 +78,7 @@ type TokenInfo = {|
 /**
  * @private
  */
-const TokenInfoLayout = BufferLayout.struct([
+const TokenDetailLayout = BufferLayout.struct([
   Layout.uint64('supply'),
   BufferLayout.u8('decimals'),
   Layout.rustString('name'),
@@ -88,21 +88,21 @@ const TokenInfoLayout = BufferLayout.struct([
 /**
  * Information about a token account
  */
-type TokenAccountInfo = {|
+type TokenAccountDetail = {|
   /**
    * The kind of token this account holds
    */
-  token: PublicKey,
+  token: PubKey,
 
   /**
    * Owner of this account
    */
-  owner: PublicKey,
+  owner: PubKey,
 
   /**
    * Amount of tokens this account holds
    */
-  amount: TokenAmount,
+  amount: TokenCount,
 
   /**
    * The source account for the tokens.
@@ -111,33 +111,33 @@ type TokenAccountInfo = {|
    * If `source` is not null, the `amount` of tokens in this account represent
    * an allowance of tokens that may be transferred from the source account
    */
-  source: null | PublicKey,
+  source: null | PubKey,
 
   /**
-   * Original amount of tokens this delegate account was authorized to spend
+   * New amount of tokens this delegate account was authorized to spend
    * If `source` is null, originalAmount is zero
    */
-  originalAmount: TokenAmount,
+  originalAmount: TokenCount,
 |};
 
 /**
  * @private
  */
-const TokenAccountInfoLayout = BufferLayout.struct([
-  Layout.publicKey('token'),
-  Layout.publicKey('owner'),
+const TokenAccountDetailLayout = BufferLayout.struct([
+  Layout.pubKey('token'),
+  Layout.pubKey('owner'),
   Layout.uint64('amount'),
   BufferLayout.u8('sourceOption'),
-  Layout.publicKey('source'),
+  Layout.pubKey('source'),
   Layout.uint64('originalAmount'),
 ]);
 
-type TokenAndPublicKey = [Token, PublicKey]; // This type exists to workaround an esdoc parse error
+type TokenAndPubKey = [Token, PubKey]; // This type exists to workaround an esdoc parse error
 
 /**
  * The built-in token program
  */
-export const SYSTEM_TOKEN_PROGRAM_ID = new PublicKey(
+export const SYSTEM_TOKEN_CONTROLLER_ID = new PubKey(
   'Token11111111111111111111111111111111111111',
 );
 
@@ -153,52 +153,52 @@ export class Token {
   /**
    * The public key identifying this token
    */
-  token: PublicKey;
+  token: PubKey;
 
   /**
    * Program Identifier for the Token program
    */
-  programId: PublicKey;
+  controllerId: PubKey;
 
   /**
    * Create a Token object attached to the specific token
    *
    * @param connection The connection to use
    * @param token Public key of the token
-   * @param programId Optional token programId, uses the system programId by default
+   * @param controllerId Optional token controllerId, uses the system controllerId by default
    */
   constructor(
     connection: Connection,
-    token: PublicKey,
-    programId: PublicKey = SYSTEM_TOKEN_PROGRAM_ID,
+    token: PubKey,
+    controllerId: PubKey = SYSTEM_TOKEN_CONTROLLER_ID,
   ) {
-    Object.assign(this, {connection, token, programId});
+    Object.assign(this, {connection, token, controllerId});
   }
 
   /**
    * Create a new Token
    *
    * @param connection The connection to use
-   * @param owner User account that will own the returned Token Account
+   * @param owner User account that will own the returned Token BusAccount
    * @param supply Total supply of the new token
    * @param name Descriptive name of this token
    * @param symbol Symbol for this token
    * @param decimals Location of the decimal place
-   * @param programId Optional token programId, uses the system programId by default
-   * @return Token object for the newly minted token, Public key of the Token Account holding the total supply of new tokens
+   * @param controllerId Optional token controllerId, uses the system controllerId by default
+   * @return Token object for the newly minted token, Public key of the Token BusAccount holding the total supply of new tokens
    */
   static async createNewToken(
     connection: Connection,
-    owner: Account,
-    supply: TokenAmount,
+    owner: BusAccount,
+    supply: TokenCount,
     name: string,
     symbol: string,
     decimals: number,
-    programId: PublicKey = SYSTEM_TOKEN_PROGRAM_ID,
-  ): Promise<TokenAndPublicKey> {
-    const tokenAccount = new Account();
-    const token = new Token(connection, tokenAccount.publicKey, programId);
-    const initialAccountPublicKey = await token.newAccount(owner, null);
+    controllerId: PubKey = SYSTEM_TOKEN_CONTROLLER_ID,
+  ): Promise<TokenAndPubKey> {
+    const tokenAccount = new BusAccount();
+    const token = new Token(connection, tokenAccount.pubKey, controllerId);
+    const initialAccountPublicKey = await token.createNewAccount(owner, null);
 
     let transaction;
 
@@ -226,24 +226,24 @@ export class Token {
     }
 
     // Allocate memory for the tokenAccount account
-    transaction = SystemProgram.createAccount(
-      owner.publicKey,
-      tokenAccount.publicKey,
+    transaction = SystemController.createNewAccount(
+      owner.pubKey,
+      tokenAccount.pubKey,
       1,
       1 + data.length,
-      programId,
+      controllerId,
     );
-    await sendAndConfirmTransaction(connection, transaction, owner);
+    await sendAndconfmTx(connection, transaction, owner);
 
     transaction = new Transaction().add({
       keys: [
-        {pubkey: tokenAccount.publicKey, isSigner: true},
-        {pubkey: initialAccountPublicKey, isSigner: false},
+        {pubkey: tokenAccount.pubKey, isSigner: true, isDebitable: false},
+        {pubkey: initialAccountPublicKey, isSigner: false, isDebitable: true},
       ],
-      programId,
+      controllerId,
       data,
     });
-    await sendAndConfirmTransaction(
+    await sendAndconfmTx(
       connection,
       transaction,
       owner,
@@ -263,11 +263,11 @@ export class Token {
    *               may transfer tokens from this `source` account
    * @return Public key of the new empty token account
    */
-  async newAccount(
-    owner: Account,
-    source: null | PublicKey = null,
-  ): Promise<PublicKey> {
-    const tokenAccount = new Account();
+  async createNewAccount(
+    owner: BusAccount,
+    source: null | PubKey = null,
+  ): Promise<PubKey> {
+    const tokenAccount = new BusAccount();
     let transaction;
 
     const dataLayout = BufferLayout.struct([BufferLayout.u32('instruction')]);
@@ -281,58 +281,58 @@ export class Token {
     );
 
     // Allocate memory for the token
-    transaction = SystemProgram.createAccount(
-      owner.publicKey,
-      tokenAccount.publicKey,
+    transaction = SystemController.createNewAccount(
+      owner.pubKey,
+      tokenAccount.pubKey,
       1,
-      1 + TokenAccountInfoLayout.span,
-      this.programId,
+      1 + TokenAccountDetailLayout.span,
+      this.controllerId,
     );
-    await sendAndConfirmTransaction(this.connection, transaction, owner);
+    await sendAndconfmTx(this.connection, transaction, owner);
 
     // Initialize the token account
     const keys = [
-      {pubkey: tokenAccount.publicKey, isSigner: true},
-      {pubkey: owner.publicKey, isSigner: false},
-      {pubkey: this.token, isSigner: false},
+      {pubkey: tokenAccount.pubKey, isSigner: true, isDebitable: true},
+      {pubkey: owner.pubKey, isSigner: false, isDebitable: false},
+      {pubkey: this.token, isSigner: false, isDebitable: false},
     ];
     if (source) {
-      keys.push({pubkey: source, isSigner: false});
+      keys.push({pubkey: source, isSigner: false, isDebitable: false});
     }
     transaction = new Transaction().add({
       keys,
-      programId: this.programId,
+      controllerId: this.controllerId,
       data,
     });
-    await sendAndConfirmTransaction(
+    await sendAndconfmTx(
       this.connection,
       transaction,
       owner,
       tokenAccount,
     );
 
-    return tokenAccount.publicKey;
+    return tokenAccount.pubKey;
   }
 
   /**
    * Retrieve token information
    */
-  async tokenInfo(): Promise<TokenInfo> {
-    const accountInfo = await this.connection.getAccountInfo(this.token);
-    if (!accountInfo.owner.equals(this.programId)) {
+  async fetchTokenDetail(): Promise<TokenDetail> {
+    const fetchAccountDetail = await this.connection.fetchAccountDetail(this.token);
+    if (!fetchAccountDetail.owner.equals(this.controllerId)) {
       throw new Error(
-        `Invalid token owner: ${JSON.stringify(accountInfo.owner)}`,
+        `Invalid token owner: ${JSON.stringify(fetchAccountDetail.owner)}`,
       );
     }
 
-    const data = Buffer.from(accountInfo.data);
+    const data = Buffer.from(fetchAccountDetail.data);
 
     if (data.readUInt8(0) !== 1) {
       throw new Error(`Invalid token data`);
     }
-    const tokenInfo = TokenInfoLayout.decode(data, 1);
-    tokenInfo.supply = TokenAmount.fromBuffer(tokenInfo.supply);
-    return tokenInfo;
+    const fetchTokenDetail = TokenDetailLayout.decode(data, 1);
+    fetchTokenDetail.supply = TokenCount.fromBuffer(fetchTokenDetail.supply);
+    return fetchTokenDetail;
   }
 
   /**
@@ -340,27 +340,27 @@ export class Token {
    *
    * @param account Public key of the token account
    */
-  async accountInfo(account: PublicKey): Promise<TokenAccountInfo> {
-    const accountInfo = await this.connection.getAccountInfo(account);
-    if (!accountInfo.owner.equals(this.programId)) {
+  async fetchAccountDetail(account: PubKey): Promise<TokenAccountDetail> {
+    const fetchAccountDetail = await this.connection.fetchAccountDetail(account);
+    if (!fetchAccountDetail.owner.equals(this.controllerId)) {
       throw new Error(`Invalid token account owner`);
     }
 
-    const data = Buffer.from(accountInfo.data);
+    const data = Buffer.from(fetchAccountDetail.data);
     if (data.readUInt8(0) !== 2) {
       throw new Error(`Invalid token account data`);
     }
-    const tokenAccountInfo = TokenAccountInfoLayout.decode(data, 1);
+    const tokenAccountInfo = TokenAccountDetailLayout.decode(data, 1);
 
-    tokenAccountInfo.token = new PublicKey(tokenAccountInfo.token);
-    tokenAccountInfo.owner = new PublicKey(tokenAccountInfo.owner);
-    tokenAccountInfo.amount = TokenAmount.fromBuffer(tokenAccountInfo.amount);
+    tokenAccountInfo.token = new PubKey(tokenAccountInfo.token);
+    tokenAccountInfo.owner = new PubKey(tokenAccountInfo.owner);
+    tokenAccountInfo.amount = TokenCount.fromBuffer(tokenAccountInfo.amount);
     if (tokenAccountInfo.sourceOption === 0) {
       tokenAccountInfo.source = null;
-      tokenAccountInfo.originalAmount = new TokenAmount();
+      tokenAccountInfo.originalAmount = new TokenCount();
     } else {
-      tokenAccountInfo.source = new PublicKey(tokenAccountInfo.source);
-      tokenAccountInfo.originalAmount = TokenAmount.fromBuffer(
+      tokenAccountInfo.source = new PubKey(tokenAccountInfo.source);
+      tokenAccountInfo.originalAmount = TokenCount.fromBuffer(
         tokenAccountInfo.originalAmount,
       );
     }
@@ -384,16 +384,16 @@ export class Token {
    * @param amount Number of tokens to transfer
    */
   async transfer(
-    owner: Account,
-    source: PublicKey,
-    destination: PublicKey,
-    amount: number | TokenAmount,
-  ): Promise<?TransactionSignature> {
-    return await sendAndConfirmTransaction(
+    owner: BusAccount,
+    source: PubKey,
+    destination: PubKey,
+    amount: number | TokenCount,
+  ): Promise<?TxnSignature> {
+    return await sendAndconfmTx(
       this.connection,
       new Transaction().add(
-        await this.transferInstruction(
-          owner.publicKey,
+        await this.transferOperation(
+          owner.pubKey,
           source,
           destination,
           amount,
@@ -412,15 +412,15 @@ export class Token {
    * @param amount Maximum number of tokens the delegate may transfer
    */
   async approve(
-    owner: Account,
-    account: PublicKey,
-    delegate: PublicKey,
-    amount: number | TokenAmount,
+    owner: BusAccount,
+    account: PubKey,
+    delegate: PubKey,
+    amount: number | TokenCount,
   ): Promise<void> {
-    await sendAndConfirmTransaction(
+    await sendAndconfmTx(
       this.connection,
       new Transaction().add(
-        this.approveInstruction(owner.publicKey, account, delegate, amount),
+        this.approveOperation(owner.pubKey, account, delegate, amount),
       ),
       owner,
     );
@@ -434,9 +434,9 @@ export class Token {
    * @param delegate Token account to revoke authorization from
    */
   revoke(
-    owner: Account,
-    account: PublicKey,
-    delegate: PublicKey,
+    owner: BusAccount,
+    account: PubKey,
+    delegate: PubKey,
   ): Promise<void> {
     return this.approve(owner, account, delegate, 0);
   }
@@ -449,14 +449,14 @@ export class Token {
    * @param newOwner New owner of the token account
    */
   async setOwner(
-    owner: Account,
-    account: PublicKey,
-    newOwner: PublicKey,
+    owner: BusAccount,
+    account: PubKey,
+    newOwner: PubKey,
   ): Promise<void> {
-    await sendAndConfirmTransaction(
+    await sendAndconfmTx(
       this.connection,
       new Transaction().add(
-        this.setOwnerInstruction(owner.publicKey, account, newOwner),
+        this.setOwnerOperation(owner.pubKey, account, newOwner),
       ),
       owner,
     );
@@ -470,15 +470,15 @@ export class Token {
    * @param destination Destination token account
    * @param amount Number of tokens to transfer
    */
-  async transferInstruction(
-    owner: PublicKey,
-    source: PublicKey,
-    destination: PublicKey,
-    amount: number | TokenAmount,
-  ): Promise<TransactionInstruction> {
-    const accountInfo = await this.accountInfo(source);
-    if (!owner.equals(accountInfo.owner)) {
-      throw new Error('Account owner mismatch');
+  async transferOperation(
+    owner: PubKey,
+    source: PubKey,
+    destination: PubKey,
+    amount: number | TokenCount,
+  ): Promise<TxOperation> {
+    const fetchAccountDetail = await this.fetchAccountDetail(source);
+    if (!owner.equals(fetchAccountDetail.owner)) {
+      throw new Error('BusAccount owner mismatch');
     }
 
     const dataLayout = BufferLayout.struct([
@@ -490,22 +490,26 @@ export class Token {
     dataLayout.encode(
       {
         instruction: 2, // Transfer instruction
-        amount: new TokenAmount(amount).toBuffer(),
+        amount: new TokenCount(amount).toBuffer(),
       },
       data,
     );
 
     const keys = [
-      {pubkey: owner, isSigner: true},
-      {pubkey: source, isSigner: false},
-      {pubkey: destination, isSigner: false},
+      {pubkey: owner, isSigner: true, isDebitable: false},
+      {pubkey: source, isSigner: false, isDebitable: true},
+      {pubkey: destination, isSigner: false, isDebitable: true},
     ];
-    if (accountInfo.source) {
-      keys.push({pubkey: accountInfo.source, isSigner: false});
+    if (fetchAccountDetail.source) {
+      keys.push({
+        pubkey: fetchAccountDetail.source,
+        isSigner: false,
+        isDebitable: true,
+      });
     }
-    return new TransactionInstruction({
+    return new TxOperation({
       keys,
-      programId: this.programId,
+      controllerId: this.controllerId,
       data,
     });
   }
@@ -518,12 +522,12 @@ export class Token {
    * @param delegate Token account authorized to perform a transfer tokens from the source account
    * @param amount Maximum number of tokens the delegate may transfer
    */
-  approveInstruction(
-    owner: PublicKey,
-    account: PublicKey,
-    delegate: PublicKey,
-    amount: number | TokenAmount,
-  ): TransactionInstruction {
+  approveOperation(
+    owner: PubKey,
+    account: PubKey,
+    delegate: PubKey,
+    amount: number | TokenCount,
+  ): TxOperation {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u32('instruction'),
       Layout.uint64('amount'),
@@ -533,18 +537,18 @@ export class Token {
     dataLayout.encode(
       {
         instruction: 3, // Approve instruction
-        amount: new TokenAmount(amount).toBuffer(),
+        amount: new TokenCount(amount).toBuffer(),
       },
       data,
     );
 
-    return new TransactionInstruction({
+    return new TxOperation({
       keys: [
-        {pubkey: owner, isSigner: true},
-        {pubkey: account, isSigner: false},
-        {pubkey: delegate, isSigner: false},
+        {pubkey: owner, isSigner: true, isDebitable: false},
+        {pubkey: account, isSigner: false, isDebitable: true},
+        {pubkey: delegate, isSigner: false, isDebitable: true},
       ],
-      programId: this.programId,
+      controllerId: this.controllerId,
       data,
     });
   }
@@ -556,12 +560,12 @@ export class Token {
    * @param account Public key of the token account
    * @param delegate Token account authorized to perform a transfer tokens from the source account
    */
-  revokeInstruction(
-    owner: PublicKey,
-    account: PublicKey,
-    delegate: PublicKey,
-  ): TransactionInstruction {
-    return this.approveInstruction(owner, account, delegate, 0);
+  revokeOperation(
+    owner: PubKey,
+    account: PubKey,
+    delegate: PubKey,
+  ): TxOperation {
+    return this.approveOperation(owner, account, delegate, 0);
   }
 
   /**
@@ -571,11 +575,11 @@ export class Token {
    * @param account Public key of the token account
    * @param newOwner New owner of the token account
    */
-  setOwnerInstruction(
-    owner: PublicKey,
-    account: PublicKey,
-    newOwner: PublicKey,
-  ): TransactionInstruction {
+  setOwnerOperation(
+    owner: PubKey,
+    account: PubKey,
+    newOwner: PubKey,
+  ): TxOperation {
     const dataLayout = BufferLayout.struct([BufferLayout.u32('instruction')]);
 
     const data = Buffer.alloc(dataLayout.span);
@@ -586,13 +590,13 @@ export class Token {
       data,
     );
 
-    return new TransactionInstruction({
+    return new TxOperation({
       keys: [
-        {pubkey: owner, isSigner: true},
-        {pubkey: account, isSigner: false},
-        {pubkey: newOwner, isSigner: false},
+        {pubkey: owner, isSigner: true, isDebitable: false},
+        {pubkey: account, isSigner: false, isDebitable: true},
+        {pubkey: newOwner, isSigner: false, isDebitable: true},
       ],
-      programId: this.programId,
+      controllerId: this.controllerId,
       data,
     });
   }
