@@ -94,19 +94,19 @@ Development tools
 
 Requirements:
 
-1. Ubuntu (either a physical machine or an GCE or Alibaba CES).
+1. Ubuntu (either a physical machine or an GCE or Alibaba ECS).
 
 2. NodeJs (stable: 11.11) & npm (6.7.0)
 
 3. Redis (stable: 5.0.3)
 
-Apply GCE/AWS/Alibaba CES
+Apply GCE/AWS/Alibaba ECS
 
-You can refer to this article on how to apply a CES https://help.aliyun.com/document_detail/25422.html?spm=a2c4g.11186623.3.2.56a2164bEhcDi8
+You can refer to this article on how to apply a ECS https://help.aliyun.com/document_detail/25422.html?spm=a2c4g.11186623.3.2.56a2164bEhcDi8
 
 Configure the SSH, you can refer to this article https://help.aliyun.com/knowledge_detail/41489.html
 
-After apply the CES instance, you need to configure the port for public access
+After apply the ECS instance, you need to configure the port for public acECSs
 Configure the SSH to stop from disconnecting
 
 vim /etc/ssh/sshd_config
@@ -135,7 +135,7 @@ Set and confirm the new user's password at the prompt. A strong password is high
 Set password prompts:
 Enter new UNIX password:
 Retype new UNIX password:
-passwd: password updated successfully
+passwd: password updated sucECSsfully
 
 Follow the prompts to set the new user's information. It is fine to accept the defaults to leave all of this information blank.
 
@@ -155,7 +155,7 @@ usermod -aG sudo adam
 
 Install Redis
 
-Redis is an in-memory database that persists on disk. Redis is written in C++ and Tcl. Tcl/Tk is a high level programming language, which you can learn more about it from their offical website. https://www.tcl.tk/. After succesful installation, Redis will run port 6379.
+Redis is an in-memory database that persists on disk. Redis is written in C++ and Tcl. Tcl/Tk is a high level programming language, which you can learn more about it from their offical website. https://www.tcl.tk/. After sucECSful installation, Redis will run port 6379.
 
 wget http://download.redis.io/redis-stable.tar.gz
 tar xvzf redis-stable.tar.gz
@@ -189,7 +189,7 @@ and check the versions
 
 nodejs -v
 
-Since the apt on GCE/Alibaba CES is sometimes out of date, this method only not so well, if we want to specify the version.
+Since the apt on GCE/Alibaba ECS is sometimes out of date, this method only not so well, if we want to specify the version.
 
 Uninstall NodeJs using apt
 
