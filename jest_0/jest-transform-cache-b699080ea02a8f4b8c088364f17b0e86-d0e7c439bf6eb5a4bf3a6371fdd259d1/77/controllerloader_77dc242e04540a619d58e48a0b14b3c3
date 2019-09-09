@@ -1,0 +1,188 @@
+880cfbed4477b2ae0c5bd8a34b12a179
+"use strict";
+
+var _interopRequireWildcard = require("@babel/runtime/helpers/interopRequireWildcard");
+
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.ControllerLoader = void 0;
+
+var _regenerator = _interopRequireDefault(require("@babel/runtime/regenerator"));
+
+var _asyncToGenerator2 = _interopRequireDefault(require("@babel/runtime/helpers/asyncToGenerator"));
+
+var _classCallCheck2 = _interopRequireDefault(require("@babel/runtime/helpers/classCallCheck"));
+
+var _createClass2 = _interopRequireDefault(require("@babel/runtime/helpers/createClass"));
+
+var BufferLayout = _interopRequireWildcard(require("buffer-layout"));
+
+var _busAccount = require("./bus-account");
+
+var _pubkey = require("./pubkey");
+
+var _timing = require("./timing");
+
+var _transactionController = require("./transaction-controller");
+
+var _sendAndConfmTx = require("./util/send-and-confm-tx");
+
+var _sleep = require("./util/sleep");
+
+var _systemController = require("./system-controller");
+
+/**
+ * Program loader interface
+ */
+var ControllerLoader =
+/*#__PURE__*/
+function () {
+  function ControllerLoader() {
+    (0, _classCallCheck2["default"])(this, ControllerLoader);
+  }
+
+  (0, _createClass2["default"])(ControllerLoader, null, [{
+    key: "load",
+
+    /**
+     * Loads a generic program
+     *
+     * @param connection The connection to use
+     * @param payer System account that pays to load the program
+     * @param program BusAccount to load the program into
+     * @param controllerId Public key that identifies the loader
+     * @param data Program octets
+     */
+    value: function () {
+      var _load = (0, _asyncToGenerator2["default"])(
+      /*#__PURE__*/
+      _regenerator["default"].mark(function _callee(connection, payer, program, controllerId, data) {
+        var transaction, dataLayout, chunkSize, offset, array, transactions, bytes, _data, _transaction, _dataLayout, _data2, _transaction2;
+
+        return _regenerator["default"].wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                transaction = _systemController.SystemController.createNewAccount(payer.pubKey, program.pubKey, 1, data.length, controllerId);
+                _context.next = 3;
+                return (0, _sendAndConfmTx.sendAndconfmTx)(connection, transaction, payer);
+
+              case 3:
+                dataLayout = BufferLayout.struct([BufferLayout.u32('instruction'), BufferLayout.u32('offset'), BufferLayout.u32('bytesLength'), BufferLayout.u32('bytesLengthPadding'), BufferLayout.seq(BufferLayout.u8('byte'), BufferLayout.offset(BufferLayout.u32(), -8), 'bytes')]);
+                chunkSize = ControllerLoader.chunkSize;
+                offset = 0;
+                array = data;
+                transactions = [];
+
+              case 8:
+                if (!(array.length > 0)) {
+                  _context.next = 24;
+                  break;
+                }
+
+                bytes = array.slice(0, chunkSize);
+                _data = Buffer.alloc(chunkSize + 16);
+                dataLayout.encode({
+                  instruction: 0,
+                  // Load instruction
+                  offset: offset,
+                  bytes: bytes
+                }, _data);
+                _transaction = new _transactionController.Transaction().add({
+                  keys: [{
+                    pubkey: program.pubKey,
+                    isSigner: true,
+                    isDebitable: true
+                  }],
+                  controllerId: controllerId,
+                  data: _data
+                });
+                transactions.push((0, _sendAndConfmTx.sendAndconfmTx)(connection, _transaction, payer, program)); // Delay ~1 tick between write transactions in an attempt to reduce AccountInUse errors
+                // since all the write transactions modify the same program account
+
+                _context.next = 16;
+                return (0, _sleep.sleep)(1000 / _timing.NUM_TICKS_PER_SEC);
+
+              case 16:
+                if (!(transactions.length === 8)) {
+                  _context.next = 20;
+                  break;
+                }
+
+                _context.next = 19;
+                return Promise.all(transactions);
+
+              case 19:
+                transactions = [];
+
+              case 20:
+                offset += chunkSize;
+                array = array.slice(chunkSize);
+                _context.next = 8;
+                break;
+
+              case 24:
+                _context.next = 26;
+                return Promise.all(transactions);
+
+              case 26:
+                _dataLayout = BufferLayout.struct([BufferLayout.u32('instruction')]);
+                _data2 = Buffer.alloc(_dataLayout.span);
+
+                _dataLayout.encode({
+                  instruction: 1 // Finalize instruction
+
+                }, _data2);
+
+                _transaction2 = new _transactionController.Transaction().add({
+                  keys: [{
+                    pubkey: program.pubKey,
+                    isSigner: true,
+                    isDebitable: true
+                  }],
+                  controllerId: controllerId,
+                  data: _data2
+                });
+                _context.next = 32;
+                return (0, _sendAndConfmTx.sendAndconfmTx)(connection, _transaction2, payer, program);
+
+              case 32:
+                return _context.abrupt("return", program.pubKey);
+
+              case 33:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee);
+      }));
+
+      function load(_x, _x2, _x3, _x4, _x5) {
+        return _load.apply(this, arguments);
+      }
+
+      return load;
+    }()
+  }, {
+    key: "chunkSize",
+
+    /**
+     * Amount of program data placed in each load Transaction
+     */
+    get: function get() {
+      // Keep program chunks under PACKET_DATA_SIZE, leaving enough room for the
+      // rest of the Transaction fields
+      //
+      // TODO: replace 300 with a proper constant for the size of the other
+      // Transaction fields
+      return _transactionController.PACKET_DATA_SIZE - 300;
+    }
+  }]);
+  return ControllerLoader;
+}();
+
+exports.ControllerLoader = ControllerLoader;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImNvbnRyb2xsZXItbG9hZGVyLmpzIl0sIm5hbWVzIjpbIkNvbnRyb2xsZXJMb2FkZXIiLCJjb25uZWN0aW9uIiwicGF5ZXIiLCJwcm9ncmFtIiwiY29udHJvbGxlcklkIiwiZGF0YSIsInRyYW5zYWN0aW9uIiwiU3lzdGVtQ29udHJvbGxlciIsImNyZWF0ZU5ld0FjY291bnQiLCJwdWJLZXkiLCJsZW5ndGgiLCJkYXRhTGF5b3V0IiwiQnVmZmVyTGF5b3V0Iiwic3RydWN0IiwidTMyIiwic2VxIiwidTgiLCJvZmZzZXQiLCJjaHVua1NpemUiLCJhcnJheSIsInRyYW5zYWN0aW9ucyIsImJ5dGVzIiwic2xpY2UiLCJCdWZmZXIiLCJhbGxvYyIsImVuY29kZSIsImluc3RydWN0aW9uIiwiVHJhbnNhY3Rpb24iLCJhZGQiLCJrZXlzIiwicHVia2V5IiwiaXNTaWduZXIiLCJpc0RlYml0YWJsZSIsInB1c2giLCJOVU1fVElDS1NfUEVSX1NFQyIsIlByb21pc2UiLCJhbGwiLCJzcGFuIiwiUEFDS0VUX0RBVEFfU0laRSJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQUVBOztBQUVBOztBQUNBOztBQUNBOztBQUNBOztBQUNBOztBQUNBOztBQUVBOztBQUVBOzs7SUFHYUEsZ0I7Ozs7Ozs7Ozs7QUFhWDs7Ozs7Ozs7Ozs7O29EQVVFQyxVLEVBQ0FDLEssRUFDQUMsTyxFQUNBQyxZLEVBQ0FDLEk7Ozs7Ozs7QUFHUUMsZ0JBQUFBLFcsR0FBY0MsbUNBQWlCQyxnQkFBakIsQ0FDbEJOLEtBQUssQ0FBQ08sTUFEWSxFQUVsQk4sT0FBTyxDQUFDTSxNQUZVLEVBR2xCLENBSGtCLEVBSWxCSixJQUFJLENBQUNLLE1BSmEsRUFLbEJOLFlBTGtCLEM7O3VCQU9kLG9DQUFlSCxVQUFmLEVBQTJCSyxXQUEzQixFQUF3Q0osS0FBeEMsQzs7O0FBR0ZTLGdCQUFBQSxVLEdBQWFDLFlBQVksQ0FBQ0MsTUFBYixDQUFvQixDQUNyQ0QsWUFBWSxDQUFDRSxHQUFiLENB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QixrQkFBQUEsWUFBWSxFQUFaQSxZQUZ3QztBQUd4Q0Msa0JBQUFBLElBQUksRUFBSkE7QUFId0MsaUJBQXRCLEM7O3VCQUtkLG9DQUFlSixVQUFmLEVBQTJCSyxhQUEzQixFQUF3Q0osS0FBeEMsRUFBK0NDLE9BQS9DLEM7OztpREFFREEsT0FBTyxDQUFDTSxNOzs7Ozs7Ozs7Ozs7Ozs7Ozs7O0FBakhqQjs7O3dCQUcrQjtBQUM3QjtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0EsYUFBTzZCLDBDQUFtQixHQUExQjtBQUNEIiwic291cmNlc0NvbnRlbnQiOlsiLy8gQGZsb3dcblxuaW1wb3J0ICogYXMgQnVmZmVyTGF5b3V0IGZyb20gJ2J1ZmZlci1sYXlvdXQnO1xuXG5pbXBvcnQge0J1c0FjY291bnR9IGZyb20gJy4vYnVzLWFjY291bnQnO1xuaW1wb3J0IHtQdWJLZXl9IGZyb20gJy4vcHVia2V5JztcbmltcG9ydCB7TlVNX1RJQ0tTX1BFUl9TRUN9IGZyb20gJy4vdGltaW5nJztcbmltcG9ydCB7VHJhbnNhY3Rpb24sIFBBQ0tFVF9EQVRBX1NJWkV9IGZyb20gJy4vdHJhbnNhY3Rpb24tY29udHJvbGxlcic7XG5pbXBvcnQge3NlbmRBbmRjb25mbVR4fSBmcm9tICcuL3V0aWwvc2VuZC1hbmQtY29uZm0tdHgnO1xuaW1wb3J0IHtzbGVlcH0gZnJvbSAnLi91dGlsL3NsZWVwJztcbmltcG9ydCB0eXBlIHtDb25uZWN0aW9ufSBmcm9tICcuL2Nvbm5lY3Rpb24nO1xuaW1wb3J0IHtTeXN0ZW1Db250cm9sbGVyfSBmcm9tICcuL3N5c3RlbS1jb250cm9sbGVyJztcblxuLyoqXG4gKiBQcm9ncmFtIGxvYWRlciBpbnRlcmZhY2VcbiAqL1xuZXhwb3J0IGNsYXNzIENvbnRyb2xsZXJMb2FkZXIge1xuICAvKipcbiAgICogQW1vdW50IG9mIHByb2dyYW0gZGF0YSBwbGFjZWQgaW4gZWFjaCBsb2FkIFRyYW5zYWN0aW9uXG4gICAqL1xuICBzdGF0aWMgZ2V0IGNodW5rU2l6ZSgpOiBudW1iZXIge1xuICAgIC8vIEtlZXAgcHJvZ3JhbSBjaHVua3MgdW5kZXIgUEFDS0VUX0RBVEFfU0laRSwgbGVhdmluZyBlbm91Z2ggcm9vbSBmb3IgdGhlXG4gICAgLy8gcmVzdCBvZiB0aGUgVHJhbnNhY3Rpb24gZmllbGRzXG4gICAgLy9cbiAgICAvLyBUT0RPOiByZXBsYWNlIDMwMCB3aXRoIGEgcHJvcGVyIGNvbnN0YW50IGZvciB0aGUgc2l6ZSBvZiB0aGUgb3RoZXJcbiAgICAvLyBUcmFuc2FjdGlvbiBmaWVsZHNcbiAgICByZXR1cm4gUEFDS0VUX0RBVEFfU0laRSAtIDMwMDtcbiAgfVxuXG4gIC8qKlxuICAgKiBMb2FkcyBhIGdlbmVyaWMgcHJvZ3JhbVxuICAgKlxuICAgKiBAcGFyYW0gY29ubmVjdGlvbiBUaGUgY29ubmVjdGlvbiB0byB1c2VcbiAgICogQHBhcmFtIHBheWVyIFN5c3RlbSBhY2NvdW50IHRoYXQgcGF5cyB0byBsb2FkIHRoZSBwcm9ncmFtXG4gICAqIEBwYXJhbSBwcm9ncmFtIEJ1c0FjY291bnQgdG8gbG9hZCB0aGUgcHJvZ3JhbSBpbnRvXG4gICAqIEBwYXJhbSBjb250cm9sbGVySWQgUHVibGljIGtleSB0aGF0IGlkZW50aWZpZXMgdGhlIGxvYWRlclxuICAgKiBAcGFyYW0gZGF0YSBQcm9ncmFtIG9jdGV0c1xuICAgKi9cbiAgc3RhdGljIGFzeW5jIGxvYWQoXG4gICAgY29ubmVjdGlvbjogQ29ubmVjdGlvbixcbiAgICBwYXllcjogQnVzQWNjb3VudCxcbiAgICBwcm9ncmFtOiBCdXNBY2NvdW50LFxuICAgIGNvbnRyb2xsZXJJZDogUHViS2V5LFxuICAgIGRhdGE6IEFycmF5PG51bWJlcj4sXG4gICk6IFByb21pc2U8UHViS2V5PiB7XG4gICAge1xuICAgICAgY29uc3QgdHJhbnNhY3Rpb24gPSBTeXN0ZW1Db250cm9sbGVyLmNyZWF0ZU5ld0FjY291bnQoXG4gICAgICAgIHBheWVyLnB1YktleSxcbiAgICAgICAgcHJvZ3JhbS5wdWJLZXksXG4gICAgICAgIDEsXG4gICAgICAgIGRhdGEubGVuZ3RoLFxuICAgICAgICBjb250cm9sbGVySWQsXG4gICAgICApO1xuICAgICAgYXdhaXQgc2VuZEFuZGNvbmZtVHgoY29ubmVjdGlvbiwgdHJhbnNhY3Rpb24sIHBheWVyKTtcbiAgICB9XG5cbiAgICBjb25zdCBkYXRhTGF5b3V0ID0gQnVmZmVyTGF5b3V0LnN0cnVjdChbXG4gICAgICBCdWZmZXJMYXlvdXQudTMyKCdpbnN0cnVjdGlvbicpLFxuICAgICAgQnVmZmVyTGF5b3V0LnUzMignb2Zmc2V0JyksXG4gICAgICBCdWZmZXJMYXlvdXQudTMyKCdieXRlc0xlbmd0aCcpLFxuICAgICAgQnVmZmVyTGF5b3V0LnUzMignYnl0ZXNMZW5ndGhQYWRkaW5nJyksXG4gICAgICBCdWZmZXJMYXlvdXQuc2VxKFxuICAgICAgICBCdWZmZXJMYXlvdXQudTgoJ2J5dGUnKSxcbiAgICAgICAgQnVmZmVyTGF5b3V0Lm9mZnNldChCdWZmZXJMYXlvdXQudTMyKCksIC04KSxcbiAgICAgICAgJ2J5dGVzJyxcbiAgICAgICksXG4gICAgXSk7XG5cbiAgICBjb25zdCBjaHVua1NpemUgPSBDb250cm9sbGVyTG9hZGVyLmNodW5rU2l6ZTtcbiAgICBsZXQgb2Zmc2V0ID0gMDtcbiAgICBsZXQgYXJyYXkgPSBkYXRhO1xuICAgIGxldCB0cmFuc2FjdGlvbnMgPSBbXTtcbiAgICB3aGlsZSAoYXJyYXkubGVuZ3RoID4gMCkge1xuICAgICAgY29uc3QgYnl0ZXMgPSBhcnJheS5zbGljZSgwLCBjaHVua1NpemUpO1xuICAgICAgY29uc3QgZGF0YSA9IEJ1ZmZlci5hbGxvYyhjaHVua1NpemUgKyAxNik7XG4gICAgICBkYXRhTGF5b3V0LmVuY29kZShcbiAgICAgICAge1xuICAgICAgICAgIGluc3RydWN0aW9uOiAwLCAvLyBMb2FkIGluc3RydWN0aW9uXG4gICAgICAgICAgb2Zmc2V0LFxuICAgICAgICAgIGJ5dGVzLFxuICAgICAgICB9LFxuICAgICAgICBkYXRhLFxuICAgICAgKTtcblxuICAgICAgY29uc3QgdHJhbnNhY3Rpb24gPSBuZXcgVHJhbnNhY3Rpb24oKS5hZGQoe1xuICAgICAgICBrZXlzOiBbe3B1YmtleTogcHJvZ3JhbS5wdWJLZXksIGlzU2lnbmVyOiB0cnVlLCBpc0RlYml0YWJsZTogdHJ1ZX1dLFxuICAgICAgICBjb250cm9sbGVySWQsXG4gICAgICAgIGRhdGEsXG4gICAgICB9KTtcbiAgICAgIHRyYW5zYWN0aW9ucy5wdXNoKFxuICAgICAgICBzZW5kQW5kY29uZm1UeChjb25uZWN0aW9uLCB0cmFuc2FjdGlvbiwgcGF5ZXIsIHByb2dyYW0pLFxuICAgICAgKTtcblxuICAgICAgLy8gRGVsYXkgfjEgdGljayBiZXR3ZWVuIHdyaXRlIHRyYW5zYWN0aW9ucyBpbiBhbiBhdHRlbXB0IHRvIHJlZHVjZSBBY2NvdW50SW5Vc2UgZXJyb3JzXG4gICAgICAvLyBzaW5jZSBhbGwgdGhlIHdyaXRlIHRyYW5zYWN0aW9ucyBtb2RpZnkgdGhlIHNhbWUgcHJvZ3JhbSBhY2NvdW50XG4gICAgICBhd2FpdCBzbGVlcCgxMDAwIC8gTlVNX1RJQ0tTX1BFUl9TRUMpO1xuXG4gICAgICAvLyBSdW4gdXAgdG8gOCBMb2FkcyBpbiBwYXJhbGxlbCB0byBwcmV2ZW50IHRvbyBtYW55IHBhcmFsbGVsIHRyYW5zYWN0aW9ucyBmcm9tXG4gICAgICAvLyBnZXR0aW5nIHJlamVjdGVkIHdpdGggQWNjb3VudEluVXNlLlxuICAgICAgLy9cbiAgICAgIC8vIFRPRE86IDggd2FzIHNlbGVjdGVkIGVtcGlyaWNhbGx5IGFuZCBzaG91bGQgcHJvYmFibHkgYmUgcmV2aXNpdGVkXG4gICAgICBpZiAodHJhbnNhY3Rpb25zLmxlbmd0aCA9PT0gOCkge1xuICAgICAgICBhd2FpdCBQcm9taXNlLmFsbCh0cmFuc2FjdGlvbnMpO1xuICAgICAgICB0cmFuc2FjdGlvbnMgPSBbXTtcbiAgICAgIH1cblxuICAgICAgb2Zmc2V0ICs9IGNodW5rU2l6ZTtcbiAgICAgIGFycmF5ID0gYXJyYXkuc2xpY2UoY2h1bmtTaXplKTtcbiAgICB9XG4gICAgYXdhaXQgUHJvbWlzZS5hbGwodHJhbnNhY3Rpb25zKTtcblxuICAgIC8vIEZpbmFsaXplIHRoZSBhY2NvdW50IGxvYWRlZCB3aXRoIHByb2dyYW0gZGF0YSBmb3IgZXhlY3V0aW9uXG4gICAge1xuICAgICAgY29uc3QgZGF0YUxheW91dCA9IEJ1ZmZlckxheW91dC5zdHJ1Y3QoW0J1ZmZlckxheW91dC51MzIoJ2luc3RydWN0aW9uJyldKTtcblxuICAgICAgY29uc3QgZGF0YSA9IEJ1ZmZlci5hbGxvYyhkYXRhTGF5b3V0LnNwYW4pO1xuICAgICAgZGF0YUxheW91dC5lbmNvZGUoXG4gICAgICAgIHtcbiAgICAgICAgICBpbnN0cnVjdGlvbjogMSwgLy8gRmluYWxpemUgaW5zdHJ1Y3Rpb25cbiAgICAgICAgfSxcbiAgICAgICAgZGF0YSxcbiAgICAgICk7XG5cbiAgICAgIGNvbnN0IHRyYW5zYWN0aW9uID0gbmV3IFRyYW5zYWN0aW9uKCkuYWRkKHtcbiAgICAgICAga2V5czogW3twdWJrZXk6IHByb2dyYW0ucHViS2V5LCBpc1NpZ25lcjogdHJ1ZSwgaXNEZWJpdGFibGU6IHRydWV9XSxcbiAgICAgICAgY29udHJvbGxlcklkLFxuICAgICAgICBkYXRhLFxuICAgICAgfSk7XG4gICAgICBhd2FpdCBzZW5kQW5kY29uZm1UeChjb25uZWN0aW9uLCB0cmFuc2FjdGlvbiwgcGF5ZXIsIHByb2dyYW0pO1xuICAgIH1cbiAgICByZXR1cm4gcHJvZ3JhbS5wdWJLZXk7XG4gIH1cbn1cbiJdfQ==

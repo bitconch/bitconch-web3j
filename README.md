@@ -1,55 +1,26 @@
-[![Build status][travis-image]][travis-url]
-[![codecov][codecov-image]][codecov-url]
-[![esdoc][esdoc-image]][esdoc-url]
-<br>
-[![npm][npm-image]][npm-url]
-[![npm-downloads][npm-downloads-image]][npm-url]
-[![david][david-deps-image]][david-deps-url]
-[![david][david-dev-deps-image]][david-dev-deps-url]
-<br>
-[![semantic-release][semantic-release-image]][semantic-release-url]
-[![code-style-prettier][code-style-prettier-image]][code-style-prettier-url]
 
-[travis-image]: https://api.travis-ci.org/solana-labs/solana-web3.js.svg?branch=master
-[travis-url]: https://travis-ci.org/solana-labs/solana-web3.js
-[codecov-image]: https://codecov.io/gh/solana-labs/solana-web3.js/branch/master/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/solana-labs/solana-web3.js
-[esdoc-image]: https://solana-labs.github.io/solana-web3.js/badge.svg
-[npm-image]: https://img.shields.io/npm/v/@solana/web3.js.svg?style=flat
-[npm-downloads-image]: https://img.shields.io/npm/dm/@solana/web3.js.svg?style=flat
-[esdoc-url]: https://solana-labs.github.io/solana-web3.js/
-[npm-url]: https://www.npmjs.com/package/@solana/web3.js
-[david-deps-image]: https://david-dm.org/solana-labs/solana-web3.js.svg
-[david-deps-url]: https://david-dm.org/solana-labs/solana-web3.js
-[david-dev-deps-image]: https://david-dm.org/solana-labs/solana-web3.js/dev-status.svg
-[david-dev-deps-url]: https://david-dm.org/solana-labs/solana-web3.js?type=dev
-[semantic-release-image]: https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg
-[semantic-release-url]: https://github.com/semantic-release/semantic-release
-[code-style-prettier-image]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square
-[code-style-prettier-url]: https://github.com/prettier/prettier
+# Bitconch JavaScript API
 
-# Solana JavaScript API
+This is the Bitconch Javascript API built on the Bitconch [JSON RPC API](https://bitconch.io/bitconch/jsonrpc-api.html)
 
-This is the Solana Javascript API built on the Solana [JSON RPC API](https://solana-labs.github.io/solana/jsonrpc-api.html)
-
-[Latest API Documentation](https://solana-labs.github.io/solana-web3.js/)
+[Latest API Documentation](https://bitconch.io/bitconch-web3j/)
 
 
 ## Installation
 
 ### Yarn
 ```
-$ yarn add @solana/web3.js
+$ yarn add @bitconch/bitconch-web3j
 ```
 
 ### npm
 ```
-$ npm install --save @solana/web3.js
+$ npm install --save @bitconch/bitconch-web3j
 ```
 
 ### Browser bundle
 ```html
-<script src="https://github.com/solana-labs/solana-web3.js/releases/download/v0.0.6/solanaWeb3.min.js"></script>
+<script src="https://github.com/bitconch/bitconch-web3j/releases/download/v0.0.6/bitconchweb3j.min.js"></script>
 ```
 
 ### BPF program development
@@ -63,68 +34,68 @@ Rust must be installed to build Rust BPF programs, see: https://www.rust-lang.or
 
 ### Javascript
 ```js
-const solanaWeb3 = require('@solana/web3.js');
-console.log(solanaWeb3);
+const bitconchWeb3j = require('@bitconch/bitconch-web3j');
+console.log(bitconchWeb3j);
 ```
 
 ### ES6
 ```js
-import solanaWeb3 from '@solana/web3.js';
-console.log(solanaWeb3);
+import bitconchWeb3j from '@bitconch/bitconch-web3j';
+console.log(bitconchWeb3j);
 ```
 
 ### Browser bundle
 ```js
-// `solanaWeb3` is provided in the global namespace by the `solanaWeb3.min.js` script bundle.
-console.log(solanaWeb3);
+// `bitconchWeb3j` is provided in the global namespace by the `bitconch-web3j.min.js` script bundle.
+console.log(bitconchWeb3j);
 ```
 
 ## Local Network
-The `solana-localnet` program is provided to easily start a test Solana cluster
+The `bitconch-localnet` program is provided to easily start a test Bitconch cluster
 locally on your machine.  Docker must be installed.  The JSON RPC endpoint of
 the local cluster is `http://localhost:8899`.
 
 To start, first fetch the latest Docker image by running:
 ```bash
-$ npx solana-localnet update
+$ npx bitconch-localnet update
 ```
 
 Then run the following command to start the cluster
 ```bash
-$ npx solana-localnet up
+$ npx bitconch-localnet up
 ```
 
 While the cluster is running logs are available with:
 ```bash
-$ npx solana-localnet logs -f
+$ npx bitconch-localnet logs -f
 ```
 
 Stop the cluster with:
 ```bash
-$ npx solana-localnet down
+$ npx bitconch-localnet down
 ```
 
 ## Flow
 
 A [Flow library definition](https://flow.org/en/docs/libdefs/) is provided at
-[module.flow.js](https://github.com/solana-labs/solana-web3.js/tree/master/module.flow.js).
+[module.flow.js](https://github.com/bitconch/bitconch-web3j/tree/master/module.flow.js).
 Add the following line under the [libs] section of your project's .flowconfig to
 activate it:
 ```ini
 [libs]
-node_modules/@solana/web3.js/module.flow.js
+node_modules/@bitconch/bitconch-web3j/module.flow.js
 ```
 
 ## Examples
-See the [examples/](https://github.com/solana-labs/solana-web3.js/tree/master/examples) directory for small snippets.
+See the [examples/](https://github.com/bitconch/bitconch-web3j/tree/master/examples) directory for small snippets.
 
 Standalone examples:
-* Web wallet: https://github.com/solana-labs/example-webwallet
-* Tic-tac-toe: https://github.com/solana-labs/example-tictactoe
+* Web wallet: https://github.com/bitconch/faucet
+* Tic-tac-toe: https://github.com/bitconch/bus-explorer
 
 ## Releases
-Releases are available on [Github](https://github.com/solana-labs/solana-web3.js/releases)
-and [npmjs.com](https://www.npmjs.com/package/@solana/web3.js)
+Releases are available on [Github](https://github.com/bitconch/bitconch-web3j/releases)
+and [npmjs.com](https://www.npmjs.com/package/@bitconch/bitconch-web3j)
 
 Each Github release features a tarball containing API documentation and a
 minified version of the module suitable for direct use in a browser environment

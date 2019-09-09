@@ -3,8 +3,8 @@
 */
 
 //eslint-disable-next-line import/no-commonjs
-const solanaWeb3 = require('..');
-//const solanaWeb3 = require('@solana/web3.js');
+const bitconchWeb3 = require('..');
+//const bitconchWeb3 = require('@bitconch/bitconch-web3j');
 
-const account = new solanaWeb3.Account();
+const account = new bitconchWeb3.Account();
 console.log(account.publicKey.toString());

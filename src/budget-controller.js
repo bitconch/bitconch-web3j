@@ -126,18 +126,18 @@ function serializeCond(condition: BudgetCond) {
 }
 
 /**
- * Factory class for transactions to interact with the Budget program
+ * Factory class for transactions to interact with the Budget controller
  */
 export class BudgetController {
   /**
-   * Public key that identifies the Budget program
+   * Public key that identifies the Budget controller
    */
   static get controllerId(): PubKey {
     return new PubKey('Budget1111111111111111111111111111111111111');
   }
 
   /**
-   * The amount of space this program requires
+   * The amount of space this controller requires
    */
   static get size(): number {
     return 128;
@@ -169,7 +169,7 @@ export class BudgetController {
    */
   static pay(
     from: PubKey,
-    program: PubKey,
+    controller: PubKey,
     to: PubKey,
     amount: number,
     ...conditions: Array<BudgetCond>
@@ -193,7 +193,8 @@ export class BudgetController {
 
         const transaction = SystemController.createNewAccount(
           from,
-          program,
+          controller,
+          amount,
           amount,
           trimmedData.length,
           this.controllerId,
@@ -202,7 +203,7 @@ export class BudgetController {
         return transaction.add({
           keys: [
             {pubkey: to, isSigner: false, isDebitable: false},
-            {pubkey: program, isSigner: false, isDebitable: true},
+            {pubkey: controller, isSigner: false, isDebitable: true},
           ],
           controllerId: this.controllerId,
           data: trimmedData,
@@ -229,14 +230,15 @@ export class BudgetController {
 
         const transaction = SystemController.createNewAccount(
           from,
-          program,
+          controller,
+          amount,
           amount,
           trimmedData.length,
           this.controllerId,
         );
 
         return transaction.add({
-          keys: [{pubkey: program, isSigner: false, isDebitable: true}],
+          keys: [{pubkey: controller, isSigner: false, isDebitable: true}],
           controllerId: this.controllerId,
           data: trimmedData,
         });
@@ -262,14 +264,15 @@ export class BudgetController {
 
         const transaction = SystemController.createNewAccount(
           from,
-          program,
+          controller,
+          amount,
           amount,
           trimmedData.length,
           this.controllerId,
         );
 
         return transaction.add({
-          keys: [{pubkey: program, isSigner: false, isDebitable: true}],
+          keys: [{pubkey: controller, isSigner: false, isDebitable: true}],
           controllerId: this.controllerId,
           data: trimmedData,
         });
@@ -289,7 +292,7 @@ export class BudgetController {
    */
   static payOnAll(
     from: PubKey,
-    program: PubKey,
+    controller: PubKey,
     to: PubKey,
     amount: number,
     condition1: BudgetCond,
@@ -320,14 +323,15 @@ export class BudgetController {
 
     const transaction = SystemController.createNewAccount(
       from,
-      program,
+      controller,
+      amount,
       amount,
       trimmedData.length,
       this.controllerId,
     );
 
     return transaction.add({
-      keys: [{pubkey: program, isSigner: false, isDebitable: true}],
+      keys: [{pubkey: controller, isSigner: false, isDebitable: true}],
       controllerId: this.controllerId,
       data: trimmedData,
     });
@@ -339,7 +343,7 @@ export class BudgetController {
    */
   static sealWithDatetime(
     from: PubKey,
-    program: PubKey,
+    controller: PubKey,
     to: PubKey,
     when: Date,
   ): Transaction {
@@ -352,7 +356,7 @@ export class BudgetController {
     return new Transaction().add({
       keys: [
         {pubkey: from, isSigner: true, isDebitable: true},
-        {pubkey: program, isSigner: false, isDebitable: true},
+        {pubkey: controller, isSigner: false, isDebitable: true},
         {pubkey: to, isSigner: false, isDebitable: false},
       ],
       controllerId: this.controllerId,
@@ -366,7 +370,7 @@ export class BudgetController {
    */
   static sealWithSignature(
     from: PubKey,
-    program: PubKey,
+    controller: PubKey,
     to: PubKey,
   ): Transaction {
     const dataLayout = BufferLayout.struct([BufferLayout.u32('instruction')]);
@@ -382,7 +386,7 @@ export class BudgetController {
     return new Transaction().add({
       keys: [
         {pubkey: from, isSigner: true, isDebitable: true},
-        {pubkey: program, isSigner: false, isDebitable: true},
+        {pubkey: controller, isSigner: false, isDebitable: true},
         {pubkey: to, isSigner: false, isDebitable: false},
       ],
       controllerId: this.controllerId,

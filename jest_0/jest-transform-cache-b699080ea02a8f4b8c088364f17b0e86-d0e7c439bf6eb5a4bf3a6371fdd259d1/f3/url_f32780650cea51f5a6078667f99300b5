@@ -1,0 +1,14 @@
+0db6af08f6a0f6c1169756d91f591ee9
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.url = void 0;
+
+/**
+ * The connection url to use when running unit tests against a live cluster
+ */
+var url = 'http://localhost:8899/';
+exports.url = url;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInVybC5qcyJdLCJuYW1lcyI6WyJ1cmwiXSwibWFwcGluZ3MiOiI7Ozs7Ozs7QUFFQTs7O0FBSU8sSUFBTUEsR0FBRyxHQUFHLHdCQUFaIiwic291cmNlc0NvbnRlbnQiOlsiLy8gQGZsb3dcblxuLyoqXG4gKiBUaGUgY29ubmVjdGlvbiB1cmwgdG8gdXNlIHdoZW4gcnVubmluZyB1bml0IHRlc3RzIGFnYWluc3QgYSBsaXZlIGNsdXN0ZXJcbiAqL1xuXG5leHBvcnQgY29uc3QgdXJsID0gJ2h0dHA6Ly9sb2NhbGhvc3Q6ODg5OS8nO1xuXG4iXX0=

@@ -10,11 +10,11 @@ channel=$(
   cd "$(dirname "$0")";
   node -p '
     let p = [
-      "../lib/node_modules/@solana/web3.js/package.json",
-      "../@solana/web3.js/package.json",
+      "../lib/node_modules/@bitconch/bitconch-web3j/package.json",
+      "../@bitconch/bitconch-web3j/package.json",
       "../package.json"
     ].find(require("fs").existsSync);
-    if (!p) throw new Error("Unable to locate solana-web3.js directory");
+    if (!p) throw new Error("Unable to locate bitconch-web3j directory");
     require(p)["testnetDefaultChannel"]
   '
 )
@@ -32,7 +32,7 @@ echo "Installing $channel BPF SDK into $installDir"
 set -x
 cd "$installDir/"
 curl -L  --retry 5 --retry-delay 2 -o bpf-sdk.tar.bz2 \
-  http://solana-sdk.s3.amazonaws.com/"$channel"/bpf-sdk.tar.bz2
+  http://bitconch-sdk.s3.amazonaws.com/"$channel"/bpf-sdk.tar.bz2
 rm -rf bpf-sdk
 mkdir -p bpf-sdk
 tar jxf bpf-sdk.tar.bz2

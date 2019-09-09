@@ -1,0 +1,144 @@
+1e5aa7123873ed4dafa1532baca70aca
+"use strict";
+
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.sendAndconfmTx = sendAndconfmTx;
+
+var _regenerator = _interopRequireDefault(require("@babel/runtime/regenerator"));
+
+var _asyncToGenerator2 = _interopRequireDefault(require("@babel/runtime/helpers/asyncToGenerator"));
+
+var _assert = _interopRequireDefault(require("assert"));
+
+var _connection = require("../connection");
+
+var _transactionController = require("../transaction-controller");
+
+var _sleep = require("./sleep");
+
+var _timing = require("../timing");
+
+/**
+ * Sign, send and confirm a transaction
+ */
+function sendAndconfmTx(_x, _x2) {
+  return _sendAndconfmTx.apply(this, arguments);
+}
+
+function _sendAndconfmTx() {
+  _sendAndconfmTx = (0, _asyncToGenerator2["default"])(
+  /*#__PURE__*/
+  _regenerator["default"].mark(function _callee(connection, transaction) {
+    var sendRetries,
+        signature,
+        _len,
+        signers,
+        _key,
+        start,
+        status,
+        statusRetries,
+        duration,
+        _args = arguments;
+
+    return _regenerator["default"].wrap(function _callee$(_context) {
+      while (1) {
+        switch (_context.prev = _context.next) {
+          case 0:
+            sendRetries = 10;
+
+            for (_len = _args.length, signers = new Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+              signers[_key - 2] = _args[_key];
+            }
+
+          case 2:
+            start = Date.now();
+            _context.next = 5;
+            return connection.sendTxn.apply(connection, [transaction].concat(signers));
+
+          case 5:
+            signature = _context.sent;
+            // Wait up to a couple slots for a confirmation
+            status = null;
+            statusRetries = 6;
+
+          case 8:
+            _context.next = 10;
+            return connection.fetchSignatureState(signature);
+
+          case 10:
+            status = _context.sent;
+
+            if (!status) {
+              _context.next = 13;
+              break;
+            }
+
+            return _context.abrupt("break", 19);
+
+          case 13:
+            if (!(--statusRetries <= 0)) {
+              _context.next = 15;
+              break;
+            }
+
+            return _context.abrupt("break", 19);
+
+          case 15:
+            _context.next = 17;
+            return (0, _sleep.sleep)(500 * _timing.DEFAULT_TICKS_PER_SLOT / _timing.NUM_TICKS_PER_SEC);
+
+          case 17:
+            _context.next = 8;
+            break;
+
+          case 19:
+            if (!(status && 'Ok' in status)) {
+              _context.next = 21;
+              break;
+            }
+
+            return _context.abrupt("break", 30);
+
+          case 21:
+            if (!(--sendRetries <= 0)) {
+              _context.next = 24;
+              break;
+            }
+
+            duration = (Date.now() - start) / 1000;
+            throw new Error("Transaction '".concat(signature, "' was not confirmed in ").concat(duration.toFixed(2), " seconds (").concat(JSON.stringify(status), ")"));
+
+          case 24:
+            if (!(status && status.Err && !('AccountInUse' in status.Err))) {
+              _context.next = 26;
+              break;
+            }
+
+            throw new Error("Transaction ".concat(signature, " failed (").concat(JSON.stringify(status), ")"));
+
+          case 26:
+            _context.next = 28;
+            return (0, _sleep.sleep)(Math.random() * 100);
+
+          case 28:
+            _context.next = 2;
+            break;
+
+          case 30:
+            (0, _assert["default"])(signature !== undefined);
+            return _context.abrupt("return", signature);
+
+          case 32:
+          case "end":
+            return _context.stop();
+        }
+      }
+    }, _callee);
+  }));
+  return _sendAndconfmTx.apply(this, arguments);
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNlbmQtYW5kLWNvbmZtLXR4LmpzIl0sIm5hbWVzIjpbInNlbmRBbmRjb25mbVR4IiwiY29ubmVjdGlvbiIsInRyYW5zYWN0aW9uIiwic2VuZFJldHJpZXMiLCJzaWduZXJzIiwic3RhcnQiLCJEYXRlIiwibm93Iiwic2VuZFR4biIsInNpZ25hdHVyZSIsInN0YXR1cyIsInN0YXR1c1JldHJpZXMiLCJmZXRjaFNpZ25hdHVyZVN0YXRlIiwiREVGQVVMVF9USUNLU19QRVJfU0xPVCIsIk5VTV9USUNLU19QRVJfU0VDIiwiZHVyYXRpb24iLCJFcnJvciIsInRvRml4ZWQiLCJKU09OIiwic3RyaW5naWZ5IiwiRXJyIiwiTWF0aCIsInJhbmRvbSIsInVuZGVmaW5lZCJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7OztBQUVBOztBQUVBOztBQUNBOztBQUNBOztBQUdBOztBQUVBOzs7U0FHc0JBLGM7Ozs7Ozs7K0JBQWYsaUJBQ0xDLFVBREssRUFFTEMsV0FGSztBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBOztBQUFBO0FBQUE7QUFBQTtBQUFBO0FBS0RDLFlBQUFBLFdBTEMsR0FLYSxFQUxiOztBQUFBLHNDQUdGQyxPQUhFO0FBR0ZBLGNBQUFBLE9BSEU7QUFBQTs7QUFBQTtBQVFHQyxZQUFBQSxLQVJILEdBUVdDLElBQUksQ0FBQ0MsR0FBTCxFQVJYO0FBQUE7QUFBQSxtQkFTZU4sVUFBVSxDQUFDTyxPQUFYLE9BQUFQLFVBQVUsR0FBU0MsV0FBVCxTQUF5QkUsT0FBekIsRUFUekI7O0FBQUE7QUFTSEssWUFBQUEsU0FURztBQVdIO0FBQ0lDLFlBQUFBLE1BWkQsR0FZVSxJQVpWO0FBYUNDLFlBQUFBLGFBYkQsR0FhaUIsQ0FiakI7O0FBQUE7QUFBQTtBQUFBLG1CQWVjVixVQUFVLENBQUNXLG1CQUFYLENBQStCSCxTQUEvQixDQWZkOztBQUFBO0FBZURDLFlBQUFBLE1BZkM7O0FBQUEsaUJBZ0JHQSxNQWhCSDtBQUFBO0FBQUE7QUFBQTs7QUFBQTs7QUFBQTtBQUFBLGtCQW9CRyxFQUFFQyxhQUFGLElBQW1CLENBcEJ0QjtBQUFBO0FBQUE7QUFBQTs7QUFBQTs7QUFBQTtBQUFBO0FBQUEsbUJBd0JLLGtCQUFPLE1BQU1FLDhCQUFQLEdBQWlDQyx5QkFBdkMsQ0F4Qkw7O0FBQUE7QUFBQTtBQUFBOztBQUFBO0FBQUEsa0JBMkJDSixNQUFNLElBQUksUUFBUUEsTUEzQm5CO0FBQUE7QUFBQTtBQUFBOztBQUFBOztBQUFBO0FBQUEsa0JBOEJDLEVBQUVQLFdBQUYsSUFBaUIsQ0E5QmxCO0FBQUE7QUFBQTtBQUFBOztBQStCS1ksWUFBQUEsUUEvQkwsR0ErQmdCLENBQUNULElBQUksQ0FBQ0MsR0FBTCxLQUFhRixLQUFkLElBQXVCLElBL0J2QztBQUFBLGtCQWdDSyxJQUFJVyxLQUFKLHdCQUNZUCxTQURaLG9DQUMrQ00sUUFBUSxDQUFDRSxPQUFULENBQ2pELENBRGlELENBRC9DLHVCQUdVQyxJQUFJLENBQUNDLFNBQUwsQ0FBZVQsTUFBZixDQUhWLE9BaENMOztBQUFBO0FBQUEsa0JBdUNDQSxNQUFNLElBQUlBLE1BQU0sQ0FBQ1UsR0FBakIsSUFBd0IsRUFBRSxrQkFBa0JWLE1BQU0sQ0FBQ1UsR0FBM0IsQ0F2Q3pCO0FBQUE7QUFBQTtBQUFBOztBQUFBLGtCQXdDSyxJQUFJSixLQUFKLHVCQUNXUCxTQURYLHNCQUNnQ1MsSUFBSSxDQUFDQyxTQUFMLENBQWVULE1BQWYsQ0FEaEMsT0F4Q0w7O0FBQUE7QUFBQTtBQUFBLG1CQThDRyxrQkFBTVcsSUFBSSxDQUFDQyxNQUFMLEtBQWdCLEdBQXRCLENBOUNIOztBQUFBO0FBQUE7QUFBQTs7QUFBQTtBQWlETCxvQ0FBVWIsU0FBUyxLQUFLYyxTQUF4QjtBQWpESyw2Q0FrREVkLFNBbERGOztBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLEciLCJzb3VyY2VzQ29udGVudCI6WyIvLyBAZmxvd1xuXG5pbXBvcnQgaW52YXJpYW50IGZyb20gJ2Fzc2VydCc7XG5cbmltcG9ydCB7Q29ubmVjdGlvbn0gZnJvbSAnLi4vY29ubmVjdGlvbic7XG5pbXBvcnQge1RyYW5zYWN0aW9ufSBmcm9tICcuLi90cmFuc2FjdGlvbi1jb250cm9sbGVyJztcbmltcG9ydCB7c2xlZXB9IGZyb20gJy4vc2xlZXAnO1xuaW1wb3J0IHR5cGUge0J1c0FjY291bnR9IGZyb20gJy4uL2J1cy1hY2NvdW50JztcbmltcG9ydCB0eXBlIHtUeG5TaWduYXR1cmV9IGZyb20gJy4uL3RyYW5zYWN0aW9uLWNvbnRyb2xsZXInO1xuaW1wb3J0IHtERUZBVUxUX1RJQ0tTX1BFUl9TTE9ULCBOVU1fVElDS1NfUEVSX1NFQ30gZnJvbSAnLi4vdGltaW5nJztcblxuLyoqXG4gKiBTaWduLCBzZW5kIGFuZCBjb25maXJtIGEgdHJhbnNhY3Rpb25cbiAqL1xuZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIHNlbmRBbmRjb25mbVR4KFxuICBjb25uZWN0aW9uOiBDb25uZWN0aW9uLFxuICB0cmFuc2FjdGlvbjogVHJhbnNhY3Rpb24sXG4gIC4uLnNpZ25lcnM6IEFycmF5PEJ1c0FjY291bnQ+XG4pOiBQcm9taXNlPFR4blNpZ25hdHVyZT4ge1xuICBsZXQgc2VuZFJldHJpZXMgPSAxMDtcbiAgbGV0IHNpZ25hdHVyZTtcbiAgZm9yICg7Oykge1xuICAgIGNvbnN0IHN0YXJ0ID0gRGF0ZS5ub3coKTtcbiAgICBzaWduYXR1cmUgPSBhd2FpdCBjb25uZWN0aW9uLnNlbmRUeG4odHJhbnNhY3Rpb24sIC4uLnNpZ25lcnMpO1xuXG4gICAgLy8gV2FpdCB1cCB0byBhIGNvdXBsZSBzbG90cyBmb3IgYSBjb25maXJtYXRpb25cbiAgICBsZXQgc3RhdHVzID0gbnVsbDtcbiAgICBsZXQgc3RhdHVzUmV0cmllcyA9IDY7XG4gICAgZm9yICg7Oykge1xuICAgICAgc3RhdHVzID0gYXdhaXQgY29ubmVjdGlvbi5mZXRjaFNpZ25hdHVyZVN0YXRlKHNpZ25hdHVyZSk7XG4gICAgICBpZiAoc3RhdHVzKSB7XG4gICAgICAgIGJyZWFrO1xuICAgICAgfVxuXG4gICAgICBpZiAoLS1zdGF0dXNSZXRyaWVzIDw9IDApIHtcbiAgICAgICAgYnJlYWs7XG4gICAgICB9XG4gICAgICAvLyBTbGVlcCBmb3IgYXBwcm94aW1hdGVseSBoYWxmIGEgc2xvdFxuICAgICAgYXdhaXQgc2xlZXAoKDUwMCAqIERFRkFVTFRfVElDS1NfUEVSX1NMT1QpIC8gTlVNX1RJQ0tTX1BFUl9TRUMpO1xuICAgIH1cblxuICAgIGlmIChzdGF0dXMgJiYgJ09rJyBpbiBzdGF0dXMpIHtcbiAgICAgIGJyZWFrO1xuICAgIH1cbiAgICBpZiAoLS1zZW5kUmV0cmllcyA8PSAwKSB7XG4gICAgICBjb25zdCBkdXJhdGlvbiA9IChEYXRlLm5vdygpIC0gc3RhcnQpIC8gMTAwMDtcbiAgICAgIHRocm93IG5ldyBFcnJvcihcbiAgICAgICAgYFRyYW5zYWN0aW9uICcke3NpZ25hdHVyZX0nIHdhcyBub3QgY29uZmlybWVkIGluICR7ZHVyYXRpb24udG9GaXhlZChcbiAgICAgICAgICAyLFxuICAgICAgICApfSBzZWNvbmRzICgke0pTT04uc3RyaW5naWZ5KHN0YXR1cyl9KWAsXG4gICAgICApO1xuICAgIH1cblxuICAgIGlmIChzdGF0dXMgJiYgc3RhdHVzLkVyciAmJiAhKCdBY2NvdW50SW5Vc2UnIGluIHN0YXR1cy5FcnIpKSB7XG4gICAgICB0aHJvdyBuZXcgRXJyb3IoXG4gICAgICAgIGBUcmFuc2FjdGlvbiAke3NpZ25hdHVyZX0gZmFpbGVkICgke0pTT04uc3RyaW5naWZ5KHN0YXR1cyl9KWAsXG4gICAgICApO1xuICAgIH1cblxuICAgIC8vIFJldHJ5IGluIDAuLjEwMG1zIHRvIHRyeSB0byBhdm9pZCBhbm90aGVyIEFjY291bnRJblVzZSBjb2xsaXNpb25cbiAgICBhd2FpdCBzbGVlcChNYXRoLnJhbmRvbSgpICogMTAwKTtcbiAgfVxuXG4gIGludmFyaWFudChzaWduYXR1cmUgIT09IHVuZGVmaW5lZCk7XG4gIHJldHVybiBzaWduYXR1cmU7XG59XG4iXX0=

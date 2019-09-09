@@ -8,25 +8,25 @@ import {
 } from '../src';
 import {mockRpcEnabled} from './__mocks__/node-fetch';
 import {url} from './url';
-import {newAccountWithDifs} from './new-account-with-difs';
+import {newAccountWithDif} from './new-account-with-dif';
 
 if (!mockRpcEnabled) {
   // The default of 5 seconds is too slow for live testing sometimes
   jest.setTimeout(15000);
 }
 
-test('load native program', async () => {
+test('load native controller', async () => {
   if (mockRpcEnabled) {
     console.log('non-live test skipped');
     return;
   }
 
   const connection = new Connection(url);
-  const from = await newAccountWithDifs(connection, 1024);
+  const from = await newAccountWithDif(connection, 1024);
   const controllerId = await NativeControllerLoader.load(
     connection,
     from,
-    'solana_noop_program',
+    'bitconch_noop_program',
   );
   const transaction = new Transaction().add({
     keys: [{pubkey: from.pubKey, isSigner: true, isDebitable: true}],

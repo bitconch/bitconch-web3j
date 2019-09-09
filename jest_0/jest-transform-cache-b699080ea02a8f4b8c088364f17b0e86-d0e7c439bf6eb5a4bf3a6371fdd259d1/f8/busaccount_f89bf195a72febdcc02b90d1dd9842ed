@@ -1,0 +1,70 @@
+cede6535286464305efcabd251f067aa
+"use strict";
+
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.BusAccount = void 0;
+
+var _classCallCheck2 = _interopRequireDefault(require("@babel/runtime/helpers/classCallCheck"));
+
+var _createClass2 = _interopRequireDefault(require("@babel/runtime/helpers/createClass"));
+
+var _defineProperty2 = _interopRequireDefault(require("@babel/runtime/helpers/defineProperty"));
+
+var _tweetnacl = _interopRequireDefault(require("tweetnacl"));
+
+var _pubkey = require("./pubkey");
+
+/**
+ * An account key pair (public and secret keys).
+ */
+var BusAccount =
+/*#__PURE__*/
+function () {
+  /**
+   * Create a new BusAccount object
+   *
+   * If the privateKey parameter is not provided a new key pair is randomly
+   * created for the account
+   *
+   * @param privateKey Secret key for the account
+   */
+  function BusAccount() {
+    var privateKey = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+    (0, _classCallCheck2["default"])(this, BusAccount);
+    (0, _defineProperty2["default"])(this, "_keypair", void 0);
+
+    if (privateKey) {
+      this._keypair = _tweetnacl["default"].sign.keyPair.fromSecretKey(privateKey);
+    } else {
+      this._keypair = _tweetnacl["default"].sign.keyPair();
+    }
+  }
+  /**
+   * The public key for this account
+   */
+
+
+  (0, _createClass2["default"])(BusAccount, [{
+    key: "pubKey",
+    get: function get() {
+      return new _pubkey.PubKey(this._keypair.publicKey);
+    }
+    /**
+     * The **unencrypted** secret key for this account
+     */
+
+  }, {
+    key: "privateKey",
+    get: function get() {
+      return this._keypair.secretKey;
+    }
+  }]);
+  return BusAccount;
+}();
+
+exports.BusAccount = BusAccount;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImJ1cy1hY2NvdW50LmpzIl0sIm5hbWVzIjpbIkJ1c0FjY291bnQiLCJwcml2YXRlS2V5IiwiX2tleXBhaXIiLCJuYWNsIiwic2lnbiIsImtleVBhaXIiLCJmcm9tU2VjcmV0S2V5IiwiUHViS2V5IiwicHVibGljS2V5Iiwic2VjcmV0S2V5Il0sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7QUFDQTs7QUFHQTs7QUFFQTs7O0lBR2FBLFU7OztBQUdYOzs7Ozs7OztBQVFBLHdCQUF3QztBQUFBLFFBQTVCQyxVQUE0Qix1RUFBTixJQUFNO0FBQUE7QUFBQTs7QUFDdEMsUUFBSUEsVUFBSixFQUFnQjtBQUNkLFdBQUtDLFFBQUwsR0FBZ0JDLHNCQUFLQyxJQUFMLENBQVVDLE9BQVYsQ0FBa0JDLGFBQWxCLENBQWdDTCxVQUFoQyxDQUFoQjtBQUNELEtBRkQsTUFFTztBQUNMLFdBQUtDLFFBQUwsR0FBZ0JDLHNCQUFLQyxJQUFMLENBQVVDLE9BQVYsRUFBaEI7QUFDRDtBQUNGO0FBRUQ7Ozs7Ozs7d0JBR3FCO0FBQ25CLGFBQU8sSUFBSUUsY0FBSixDQUFXLEtBQUtMLFFBQUwsQ0FBY00sU0FBekIsQ0FBUDtBQUNEO0FBRUQ7Ozs7Ozt3QkFHeUI7QUFDdkIsYUFBTyxLQUFLTixRQUFMLENBQWNPLFNBQXJCO0FBQ0QiLCJzb3VyY2VzQ29udGVudCI6WyIvLyBAZmxvd1xuaW1wb3J0IG5hY2wgZnJvbSAndHdlZXRuYWNsJztcbmltcG9ydCB0eXBlIHtLZXlQYWlyfSBmcm9tICd0d2VldG5hY2wnO1xuXG5pbXBvcnQge1B1YktleX0gZnJvbSAnLi9wdWJrZXknO1xuXG4vKipcbiAqIEFuIGFjY291bnQga2V5IHBhaXIgKHB1YmxpYyBhbmQgc2VjcmV0IGtleXMpLlxuICovXG5leHBvcnQgY2xhc3MgQnVzQWNjb3VudCB7XG4gIF9rZXlwYWlyOiBLZXlQYWlyO1xuXG4gIC8qKlxuICAgKiBDcmVhdGUgYSBuZXcgQnVzQWNjb3VudCBvYmplY3RcbiAgICpcbiAgICogSWYgdGhlIHByaXZhdGVLZXkgcGFyYW1ldGVyIGlzIG5vdCBwcm92aWRlZCBhIG5ldyBrZXkgcGFpciBpcyByYW5kb21seVxuICAgKiBjcmVhdGVkIGZvciB0aGUgYWNjb3VudFxuICAgKlxuICAgKiBAcGFyYW0gcHJpdmF0ZUtleSBTZWNyZXQga2V5IGZvciB0aGUgYWNjb3VudFxuICAgKi9cbiAgY29uc3RydWN0b3IocHJpdmF0ZUtleTogP0J1ZmZlciA9IG51bGwpIHtcbiAgICBpZiAocHJpdmF0ZUtleSkge1xuICAgICAgdGhpcy5fa2V5cGFpciA9IG5hY2wuc2lnbi5rZXlQYWlyLmZyb21TZWNyZXRLZXkocHJpdmF0ZUtleSk7XG4gICAgfSBlbHNlIHtcbiAgICAgIHRoaXMuX2tleXBhaXIgPSBuYWNsLnNpZ24ua2V5UGFpcigpO1xuICAgIH1cbiAgfVxuXG4gIC8qKlxuICAgKiBUaGUgcHVibGljIGtleSBmb3IgdGhpcyBhY2NvdW50XG4gICAqL1xuICBnZXQgcHViS2V5KCk6IFB1YktleSB7XG4gICAgcmV0dXJuIG5ldyBQdWJLZXkodGhpcy5fa2V5cGFpci5wdWJsaWNLZXkpO1xuICB9XG5cbiAgLyoqXG4gICAqIFRoZSAqKnVuZW5jcnlwdGVkKiogc2VjcmV0IGtleSBmb3IgdGhpcyBhY2NvdW50XG4gICAqL1xuICBnZXQgcHJpdmF0ZUtleSgpOiBCdWZmZXIge1xuICAgIHJldHVybiB0aGlzLl9rZXlwYWlyLnNlY3JldEtleTtcbiAgfVxufVxuIl19

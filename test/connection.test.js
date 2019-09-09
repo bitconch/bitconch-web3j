@@ -79,6 +79,26 @@ test('get balance', async () => {
   expect(balance).toBeGreaterThanOrEqual(0);
 });
 
+test('get reputation', async () => {
+  const account = new BusAccount();
+  const connection = new Connection(url);
+
+  mockRpc.push([
+    url,
+    {
+      method: 'getReputation',
+      params: [account.pubKey.toBase58()],
+    },
+    {
+      error: null,
+      result: 0,
+    },
+  ]);
+
+  const balance = await connection.fetchAccountReputation(account.pubKey);
+  expect(balance).toBeGreaterThanOrEqual(0);
+});
+
 test('get slot leader', async () => {
   const connection = new Connection(url);
 
@@ -321,6 +341,7 @@ test('request airdrop', async () => {
           0,
         ],
         difs: 42,
+        reputations: 0,
         data: [],
         executable: false,
       },
@@ -329,6 +350,111 @@ test('request airdrop', async () => {
 
   const fetchAccountDetail = await connection.fetchAccountDetail(account.pubKey);
   expect(fetchAccountDetail.difs).toBe(42);
+  expect(fetchAccountDetail.reputations).toBe(0);
+  expect(fetchAccountDetail.data).toHaveLength(0);
+  expect(fetchAccountDetail.owner).toEqual(SystemController.controllerId);
+});
+
+test('request Reputation', async () => {
+  const account = new BusAccount();
+  const connection = new Connection(url);
+
+  mockRpc.push([
+    url,
+    {
+      method: 'requestReputation',
+      params: [account.pubKey.toBase58(), 40],
+    },
+    {
+      error: null,
+      result:
+        '1WE5w4B7v59x6qjyC4FbG2FEKYKQfvsJwqSxNVmtMjT8TQ31hsZieDHcSgqzxiAoTL56n2w5TncjqEKjLhtF4Vk',
+    },
+  ]);
+  mockRpc.push([
+    url,
+    {
+      method: 'requestReputation',
+      params: [account.pubKey.toBase58(), 2],
+    },
+    {
+      error: null,
+      result:
+        '2WE5w4B7v59x6qjyC4FbG2FEKYKQfvsJwqSxNVmtMjT8TQ31hsZieDHcSgqzxiAoTL56n2w5TncjqEKjLhtF4Vk',
+    },
+  ]);
+  mockRpc.push([
+    url,
+    {
+      method: 'getReputation',
+      params: [account.pubKey.toBase58()],
+    },
+    {
+      error: null,
+      result: 42,
+    },
+  ]);
+
+  await connection.reqReputation(account.pubKey, 40);
+  await connection.reqReputation(account.pubKey, 2);
+
+  const reputations = await connection.fetchAccountReputation(account.pubKey);
+  expect(reputations).toBe(42);
+
+  mockRpc.push([
+    url,
+    {
+      method: 'getAccountInfo',
+      params: [account.pubKey.toBase58()],
+    },
+    {
+      error: null,
+      result: {
+        owner: [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+        ],
+        difs: 0,
+        reputations: 42,
+        data: [],
+        executable: false,
+      },
+    },
+  ]);
+
+  const fetchAccountDetail = await connection.fetchAccountDetail(account.pubKey);
+  expect(fetchAccountDetail.difs).toBe(0);
+  expect(fetchAccountDetail.reputations).toBe(42);
   expect(fetchAccountDetail.data).toHaveLength(0);
   expect(fetchAccountDetail.owner).toEqual(SystemController.controllerId);
 });
@@ -544,17 +670,17 @@ test('account change notification', async () => {
 
   const connection = new Connection(url);
   const owner = new BusAccount();
-  const programAccount = new BusAccount();
+  const controllerAccount = new BusAccount();
 
   const mockCallback = jest.fn();
 
   const subscriptionId = connection.onAccountChange(
-    programAccount.pubKey,
+    controllerAccount.pubKey,
     mockCallback,
   );
 
   await connection.reqDrone(owner.pubKey, 100000);
-  await ControllerLoader.load(connection, owner, programAccount, BpfControllerLoader.controllerId, [
+  await ControllerLoader.load(connection, owner, controllerAccount, BpfControllerLoader.controllerId, [
     1,
     2,
     3,
@@ -570,7 +696,7 @@ test('account change notification', async () => {
     if (++i === 30) {
       throw new Error('BusAccount change notification not observed');
     }
-    // Sleep for a 1/4 of a slot, notifications only occur after a block is
+    // Sleep for a 1/4 of a round, notifications only occur after a block is
     // processed
     await sleep((250 * DEFAULT_TICKS_PER_SLOT) / NUM_TICKS_PER_SEC);
   }
@@ -578,10 +704,11 @@ test('account change notification', async () => {
   await connection.removeListenerOfAccountChange(subscriptionId);
 
   expect(mockCallback.mock.calls[0][0].difs).toBe(1);
+  expect(mockCallback.mock.calls[0][0].reputations).toBe(1);
   expect(mockCallback.mock.calls[0][0].owner).toEqual(BpfControllerLoader.controllerId);
 });
 
-test('program account change notification', async () => {
+test('controller account change notification', async () => {
   if (mockRpcEnabled) {
     console.log('non-live test skipped');
     return;
@@ -589,7 +716,7 @@ test('program account change notification', async () => {
 
   const connection = new Connection(url);
   const owner = new BusAccount();
-  const programAccount = new BusAccount();
+  const controllerAccount = new BusAccount();
 
   // const mockCallback = jest.fn();
 
@@ -597,18 +724,19 @@ test('program account change notification', async () => {
   const subscriptionId = connection.onControllerAccountChange(
     BpfControllerLoader.controllerId,
     keyedAccountInfo => {
-      if (keyedAccountInfo.accountId !== programAccount.pubKey.toString()) {
+      if (keyedAccountInfo.accountId !== controllerAccount.pubKey.toString()) {
         //console.log('Ignoring another account', keyedAccountInfo);
         return;
       }
       expect(keyedAccountInfo.fetchAccountDetail.difs).toBe(1);
+      expect(keyedAccountInfo.fetchAccountDetail.reputations).toBe(1);
       expect(keyedAccountInfo.fetchAccountDetail.owner).toEqual(BpfControllerLoader.controllerId);
       notified = true;
     },
   );
 
   await connection.reqDrone(owner.pubKey, 100000);
-  await ControllerLoader.load(connection, owner, programAccount, BpfControllerLoader.controllerId, [
+  await ControllerLoader.load(connection, owner, controllerAccount, BpfControllerLoader.controllerId, [
     1,
     2,
     3,
@@ -619,7 +747,7 @@ test('program account change notification', async () => {
   while (!notified) {
     //for (;;) {
     if (++i === 30) {
-      throw new Error('Program change notification not observed');
+      throw new Error('Controller change notification not observed');
     }
     // Sleep for a 1/4 of a slot, notifications only occur after a block is
     // processed

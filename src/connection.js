@@ -92,6 +92,14 @@ const FetchBalanceRpcResult = struct({
   result: 'number?',
 });
 
+const FetchReputationRpcResult = struct({
+  jsonrpc: struct.literal('2.0'),
+  id: 'string',
+  error: 'any?',
+  result: 'number?',
+});
+
+
 /**
  * @private
  */
@@ -119,6 +127,7 @@ const AccountDetailResult = struct({
   executable: 'boolean',
   owner: 'array',
   difs: 'number',
+  reputations: 'number',
   data: 'array',
 });
 
@@ -141,7 +150,7 @@ const AccountNoticeResult = struct({
 const ControllerAccountDetailResult = struct(['string', AccountDetailResult]);
 
 /***
- * Expected JSON RPC response for the "programNotification" message
+ * Expected JSON RPC response for the "controllerNotification" message
  */
 const ControllerAccountNoticeResult = struct({
   subscription: 'number',
@@ -248,6 +257,11 @@ const GetRecentBlockhash_015 = jsonRpcResult([
 const ReqDroneRpcResult = jsonRpcResult('string');
 
 /**
+ * Expected JSON RPC response for the "reqReputation" message
+ */
+const ReqReputationRpcResult = jsonRpcResult('string');
+
+/**
  * Expected JSON RPC response for the "sendTxn" message
  */
 const SendTxnRpcResult = jsonRpcResult('string');
@@ -257,14 +271,15 @@ const SendTxnRpcResult = jsonRpcResult('string');
  *
  * @typedef {Object} AccountDetail
  * @property {number} difs Number of difs assigned to the account
- * @property {PubKey} owner Identifier of the program that owns the account
+ * @property {PubKey} owner Identifier of the controller that owns the account
  * @property {?Buffer} data Optional data assigned to the account
- * @property {boolean} executable `true` if this account's data contains a loaded program
+ * @property {boolean} executable `true` if this account's data contains a loaded controller
  */
 type AccountDetail = {
   executable: boolean,
   owner: PubKey,
   difs: number,
+  reputations: number,
   data: Buffer,
 };
 
@@ -295,7 +310,7 @@ type AccountSubscriptionDetail = {
 };
 
 /**
- * Callback function for program account change notifications
+ * Callback function for controller account change notifications
  */
 export type ControllerAccountChangeCallback = (
   keyedAccountInfo: KeyedAccountDetail,
@@ -305,7 +320,7 @@ export type ControllerAccountChangeCallback = (
  * @private
  */
 type ControllerAccountSubscriptionDetail = {
-  controllerId: string, // PubKey of the program as a base 58 string
+  controllerId: string, // PubKey of the controller as a base 58 string
   callback: ControllerAccountChangeCallback,
   subscriptionId: null | number, // null when there's no current server subscription id
 };
@@ -387,7 +402,7 @@ export class Connection {
       this._wsOnAccountNotice.bind(this),
     );
     this._rpcWebSock.on(
-      'programNotification',
+      'controllerNotification',
       this._wsOnProgramAccountNotification.bind(this),
     );
   }
@@ -400,6 +415,18 @@ export class Connection {
       pubKey.toBase58(),
     ]);
     const res = FetchBalanceRpcResult(unsafeRes);
+    if (res.error) {
+      throw new Error(res.error.message);
+    }
+    assert(typeof res.result !== 'undefined');
+    return res.result;
+  }
+
+  async fetchAccountReputation(pubKey: PubKey): Promise<number> {
+    const unsafeRes = await this._rpcReq('getReputation', [
+      pubKey.toBase58(),
+    ]);
+    const res = FetchReputationRpcResult(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -426,6 +453,7 @@ export class Connection {
       executable: result.executable,
       owner: new PubKey(result.owner),
       difs: result.difs,
+      reputations: result.reputations,
       data: Buffer.from(result.data),
     };
   }
@@ -585,6 +613,25 @@ export class Connection {
       amount,
     ]);
     const res = ReqDroneRpcResult(unsafeRes);
+    if (res.error) {
+      throw new Error(res.error.message);
+    }
+    assert(typeof res.result !== 'undefined');
+    return res.result;
+  }
+
+    /**
+   * Request an allocation of reputations to the specified account
+   */
+  async reqReputation(
+    to: PubKey,
+    amount: number,
+  ): Promise<TxnSignature> {
+    const unsafeRes = await this._rpcReq('requestReputation', [
+      to.toBase58(),
+      amount,
+    ]);
+    const res = ReqReputationRpcResult(unsafeRes);
     if (res.error) {
       throw new Error(res.error.message);
     }
@@ -800,6 +847,7 @@ export class Connection {
           executable: result.executable,
           owner: new PubKey(result.owner),
           difs: result.difs,
+          reputations: result.reputations,
           data: Buffer.from(result.data),
         });
         return true;
@@ -874,6 +922,7 @@ export class Connection {
             executable: result[1].executable,
             owner: new PubKey(result[1].owner),
             difs: result[1].difs,
+            reputations: result[1].reputations,
             data: Buffer.from(result[1].data),
           },
         });
@@ -884,9 +933,9 @@ export class Connection {
 
   /**
    * Register a callback to be invoked whenever accounts owned by the
-   * specified program change
+   * specified controller change
    *
-   * @param controllerId Public key of the program to monitor
+   * @param controllerId Public key of the controller to monitor
    * @param callback Function to invoke whenever the account is changed
    * @return subscription id
    */

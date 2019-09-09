@@ -1,0 +1,22 @@
+1a2b13506842b018fa9496c9bc49ac47
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.DEFAULT_TICKS_PER_SLOT = exports.NUM_TICKS_PER_SEC = void 0;
+// TODO: These constants should be removed in favor of reading them out of a
+// Syscall account
+
+/**
+ * @ignore
+ */
+var NUM_TICKS_PER_SEC = 10;
+/**
+ * @ignore
+ */
+
+exports.NUM_TICKS_PER_SEC = NUM_TICKS_PER_SEC;
+var DEFAULT_TICKS_PER_SLOT = 8;
+exports.DEFAULT_TICKS_PER_SLOT = DEFAULT_TICKS_PER_SLOT;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInRpbWluZy5qcyJdLCJuYW1lcyI6WyJOVU1fVElDS1NfUEVSX1NFQyIsIkRFRkFVTFRfVElDS1NfUEVSX1NMT1QiXSwibWFwcGluZ3MiOiI7Ozs7OztBQUVBO0FBQ0E7O0FBRUE7OztBQUdPLElBQU1BLGlCQUFpQixHQUFHLEVBQTFCO0FBRVA7Ozs7O0FBR08sSUFBTUMsc0JBQXNCLEdBQUcsQ0FBL0IiLCJzb3VyY2VzQ29udGVudCI6WyIvLyBAZmxvd1xuXG4vLyBUT0RPOiBUaGVzZSBjb25zdGFudHMgc2hvdWxkIGJlIHJlbW92ZWQgaW4gZmF2b3Igb2YgcmVhZGluZyB0aGVtIG91dCBvZiBhXG4vLyBTeXNjYWxsIGFjY291bnRcblxuLyoqXG4gKiBAaWdub3JlXG4gKi9cbmV4cG9ydCBjb25zdCBOVU1fVElDS1NfUEVSX1NFQyA9IDEwO1xuXG4vKipcbiAqIEBpZ25vcmVcbiAqL1xuZXhwb3J0IGNvbnN0IERFRkFVTFRfVElDS1NfUEVSX1NMT1QgPSA4O1xuIl19

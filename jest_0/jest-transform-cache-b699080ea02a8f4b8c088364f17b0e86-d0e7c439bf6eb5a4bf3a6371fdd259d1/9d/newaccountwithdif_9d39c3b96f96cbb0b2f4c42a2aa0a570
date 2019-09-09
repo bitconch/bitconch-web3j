@@ -1,0 +1,62 @@
+f3c45d00de9578438a78bf35bd8a63e7
+"use strict";
+
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.newAccountWithDif = newAccountWithDif;
+
+var _regenerator = _interopRequireDefault(require("@babel/runtime/regenerator"));
+
+var _asyncToGenerator2 = _interopRequireDefault(require("@babel/runtime/helpers/asyncToGenerator"));
+
+var _src = require("../src");
+
+var _nodeFetch = require("./__mocks__/node-fetch");
+
+var _url = require("./url");
+
+function newAccountWithDif(_x) {
+  return _newAccountWithDif.apply(this, arguments);
+}
+
+function _newAccountWithDif() {
+  _newAccountWithDif = (0, _asyncToGenerator2["default"])(
+  /*#__PURE__*/
+  _regenerator["default"].mark(function _callee(connection) {
+    var difs,
+        account,
+        _args = arguments;
+    return _regenerator["default"].wrap(function _callee$(_context) {
+      while (1) {
+        switch (_context.prev = _context.next) {
+          case 0:
+            difs = _args.length > 1 && _args[1] !== undefined ? _args[1] : 1000000;
+            account = new _src.BusAccount();
+
+            _nodeFetch.mockRpc.push([_url.url, {
+              method: 'requestDif',
+              params: [account.pubKey.toBase58(), difs]
+            }, {
+              error: null,
+              result: '3WE5w4B7v59x6qjyC4FbG2FEKYKQfvsJwqSxNVmtMjT8TQ31hsZieDHcSgqzxiAoTL56n2w5TncjqEKjLhtF4Vk'
+            }]);
+
+            _context.next = 5;
+            return connection.reqDrone(account.pubKey, difs);
+
+          case 5:
+            return _context.abrupt("return", account);
+
+          case 6:
+          case "end":
+            return _context.stop();
+        }
+      }
+    }, _callee);
+  }));
+  return _newAccountWithDif.apply(this, arguments);
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm5ldy1hY2NvdW50LXdpdGgtZGlmLmpzIl0sIm5hbWVzIjpbIm5ld0FjY291bnRXaXRoRGlmIiwiY29ubmVjdGlvbiIsImRpZnMiLCJhY2NvdW50IiwiQnVzQWNjb3VudCIsIm1vY2tScGMiLCJwdXNoIiwidXJsIiwibWV0aG9kIiwicGFyYW1zIiwicHViS2V5IiwidG9CYXNlNTgiLCJlcnJvciIsInJlc3VsdCIsInJlcURyb25lIl0sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7O0FBRUE7O0FBQ0E7O0FBQ0E7O1NBRXNCQSxpQjs7Ozs7OzsrQkFBZixpQkFDTEMsVUFESztBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBRUxDLFlBQUFBLElBRkssMkRBRVUsT0FGVjtBQUlDQyxZQUFBQSxPQUpELEdBSVcsSUFBSUMsZUFBSixFQUpYOztBQU9IQywrQkFBUUMsSUFBUixDQUFhLENBQ1hDLFFBRFcsRUFFWDtBQUNFQyxjQUFBQSxNQUFNLEVBQUUsWUFEVjtBQUVFQyxjQUFBQSxNQUFNLEVBQUUsQ0FBQ04sT0FBTyxDQUFDTyxNQUFSLENBQWVDLFFBQWYsRUFBRCxFQUE0QlQsSUFBNUI7QUFGVixhQUZXLEVBTVg7QUFDRVUsY0FBQUEsS0FBSyxFQUFFLElBRFQ7QUFFRUMsY0FBQUEsTUFBTSxFQUNKO0FBSEosYUFOVyxDQUFiOztBQVBHO0FBQUEsbUJBcUJDWixVQUFVLENBQUNhLFFBQVgsQ0FBb0JYLE9BQU8sQ0FBQ08sTUFBNUIsRUFBb0NSLElBQXBDLENBckJEOztBQUFBO0FBQUEsNkNBc0JFQyxPQXRCRjs7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxHIiwic291cmNlc0NvbnRlbnQiOlsiLy8gQGZsb3dcblxuaW1wb3J0IHtCdXNBY2NvdW50LCBDb25uZWN0aW9ufSBmcm9tICcuLi9zcmMnO1xuaW1wb3J0IHttb2NrUnBjfSBmcm9tICcuL19fbW9ja3NfXy9ub2RlLWZldGNoJztcbmltcG9ydCB7dXJsfSBmcm9tICcuL3VybCc7XG5cbmV4cG9ydCBhc3luYyBmdW5jdGlvbiBuZXdBY2NvdW50V2l0aERpZihcbiAgY29ubmVjdGlvbjogQ29ubmVjdGlvbixcbiAgZGlmczogbnVtYmVyID0gMTAwMDAwMCxcbik6IFByb21pc2U8QnVzQWNjb3VudD4ge1xuICBjb25zdCBhY2NvdW50ID0gbmV3IEJ1c0FjY291bnQoKTtcblxuICB7XG4gICAgbW9ja1JwYy5wdXNoKFtcbiAgICAgIHVybCxcbiAgICAgIHtcbiAgICAgICAgbWV0aG9kOiAncmVxdWVzdERpZicsXG4gICAgICAgIHBhcmFtczogW2FjY291bnQucHViS2V5LnRvQmFzZTU4KCksIGRpZnNdLFxuICAgICAgfSxcbiAgICAgIHtcbiAgICAgICAgZXJyb3I6IG51bGwsXG4gICAgICAgIHJlc3VsdDpcbiAgICAgICAgICAnM1dFNXc0Qjd2NTl4NnFqeUM0RmJHMkZFS1lLUWZ2c0p3cVN4TlZtdE1qVDhUUTMxaHNaaWVESGNTZ3F6eGlBb1RMNTZuMnc1VG5janFFS2pMaHRGNFZrJyxcbiAgICAgIH0sXG4gICAgXSk7XG4gIH1cblxuICBhd2FpdCBjb25uZWN0aW9uLnJlcURyb25lKGFjY291bnQucHViS2V5LCBkaWZzKTtcbiAgcmV0dXJuIGFjY291bnQ7XG59XG4iXX0=

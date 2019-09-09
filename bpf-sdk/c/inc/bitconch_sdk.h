@@ -114,6 +114,7 @@ typedef struct {
   bool is_signer;        /** Transaction was signed by this account's key */
   // uint64_t *difs;      /** Number of difs owned by this account */
   uint64_t *difs;
+  uint64_t *reputations;
   uint64_t userdata_len; /** Length of data in bytes */
   uint8_t *userdata;     /** On-chain data within this account */
   SolPubkey *owner;      /** Program that owns this account */
@@ -235,8 +236,8 @@ SOL_FN_PREFIX bool sol_deserialize(
     input += sizeof(SolPubkey);
 
     // difs
-    // params->ka[i].difs = (uint64_t *) input;
     params->ka[i].difs = (uint64_t *) input;
+    params->ka[i].reputations = (uint64_t *) input;
     input += sizeof(uint64_t);
 
     // account userdata
@@ -305,8 +306,8 @@ SOL_FN_PREFIX void sol_log_params(const SolParameters *params) {
     sol_log("  - Key");
     sol_log_key(params->ka[i].key);
     sol_log("  - Dif");
-    // sol_log_64(0, 0, 0, 0, *params->ka[i].difs);
     sol_log_64(0, 0, 0, 0, *params->ka[i].difs);
+    sol_log_64(0, 0, 0, 0, *params->ka[i].reputations);
     sol_log("  - Userdata");
     sol_log_array(params->ka[i].userdata, params->ka[i].userdata_len);
     sol_log("  - Owner");

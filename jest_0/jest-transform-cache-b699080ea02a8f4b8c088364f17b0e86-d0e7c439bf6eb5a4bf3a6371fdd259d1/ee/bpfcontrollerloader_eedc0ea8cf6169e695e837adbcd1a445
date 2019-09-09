@@ -1,0 +1,59 @@
+55b81ee1c2b68ffa6c5fa2b9f83202d6
+"use strict";
+
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.BpfControllerLoader = void 0;
+
+var _classCallCheck2 = _interopRequireDefault(require("@babel/runtime/helpers/classCallCheck"));
+
+var _createClass2 = _interopRequireDefault(require("@babel/runtime/helpers/createClass"));
+
+var _busAccount = require("./bus-account");
+
+var _pubkey = require("./pubkey");
+
+var _controllerLoader = require("./controller-loader");
+
+/**
+ * Factory class for transactions to interact with a controller loader
+ */
+var BpfControllerLoader =
+/*#__PURE__*/
+function () {
+  function BpfControllerLoader() {
+    (0, _classCallCheck2["default"])(this, BpfControllerLoader);
+  }
+
+  (0, _createClass2["default"])(BpfControllerLoader, null, [{
+    key: "load",
+
+    /**
+     * Load a BPF controller
+     *
+     * @param connection The connection to use
+     * @param owner User account to load the controller into
+     * @param elfBytes The entire ELF containing the BPF controller
+     */
+    value: function load(connection, payer, elf) {
+      var controller = new _busAccount.BusAccount();
+      return _controllerLoader.ControllerLoader.load(connection, payer, controller, BpfControllerLoader.controllerId, elf);
+    }
+  }, {
+    key: "controllerId",
+
+    /**
+     * Public key that identifies the BpfControllerLoader
+     */
+    get: function get() {
+      return new _pubkey.PubKey('BPFLoader1111111111111111111111111111111111');
+    }
+  }]);
+  return BpfControllerLoader;
+}();
+
+exports.BpfControllerLoader = BpfControllerLoader;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImJwZmNvbnRyb2xsZXItbG9hZGVyLmpzIl0sIm5hbWVzIjpbIkJwZkNvbnRyb2xsZXJMb2FkZXIiLCJjb25uZWN0aW9uIiwicGF5ZXIiLCJlbGYiLCJjb250cm9sbGVyIiwiQnVzQWNjb3VudCIsIkNvbnRyb2xsZXJMb2FkZXIiLCJsb2FkIiwiY29udHJvbGxlcklkIiwiUHViS2V5Il0sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7O0FBRUE7O0FBQ0E7O0FBQ0E7O0FBR0E7OztJQUdhQSxtQjs7Ozs7Ozs7OztBQVFYOzs7Ozs7O3lCQVFFQyxVLEVBQ0FDLEssRUFDQUMsRyxFQUNpQjtBQUNqQixVQUFNQyxVQUFVLEdBQUcsSUFBSUMsc0JBQUosRUFBbkI7QUFDQSxhQUFPQyxtQ0FBaUJDLElBQWpCLENBQXNCTixVQUF0QixFQUFrQ0MsS0FBbEMsRUFBeUNFLFVBQXpDLEVBQXFESixtQkFBbUIsQ0FBQ1EsWUFBekUsRUFBdUZMLEdBQXZGLENBQVA7QUFDRDs7OztBQXJCRDs7O3dCQUdrQztBQUNoQyxhQUFPLElBQUlNLGNBQUosQ0FBVyw2Q0FBWCxDQUFQO0FBQ0QiLCJzb3VyY2VzQ29udGVudCI6WyIvLyBAZmxvd1xuXG5pbXBvcnQge0J1c0FjY291bnR9IGZyb20gJy4vYnVzLWFjY291bnQnO1xuaW1wb3J0IHtQdWJLZXl9IGZyb20gJy4vcHVia2V5JztcbmltcG9ydCB7Q29udHJvbGxlckxvYWRlcn0gZnJvbSAnLi9jb250cm9sbGVyLWxvYWRlcic7XG5pbXBvcnQgdHlwZSB7Q29ubmVjdGlvbn0gZnJvbSAnLi9jb25uZWN0aW9uJztcblxuLyoqXG4gKiBGYWN0b3J5IGNsYXNzIGZvciB0cmFuc2FjdGlvbnMgdG8gaW50ZXJhY3Qgd2l0aCBhIGNvbnRyb2xsZXIgbG9hZGVyXG4gKi9cbmV4cG9ydCBjbGFzcyBCcGZDb250cm9sbGVyTG9hZGVyIHtcbiAgLyoqXG4gICAqIFB1YmxpYyBrZXkgdGhhdCBpZGVudGlmaWVzIHRoZSBCcGZDb250cm9sbGVyTG9hZGVyXG4gICAqL1xuICBzdGF0aWMgZ2V0IGNvbnRyb2xsZXJJZCgpOiBQdWJLZXkge1xuICAgIHJldHVybiBuZXcgUHViS2V5KCdCUEZMb2FkZXIxMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExJyk7XG4gIH1cblxuICAvKipcbiAgICogTG9hZCBhIEJQRiBjb250cm9sbGVyXG4gICAqXG4gICAqIEBwYXJhbSBjb25uZWN0aW9uIFRoZSBjb25uZWN0aW9uIHRvIHVzZVxuICAgKiBAcGFyYW0gb3duZXIgVXNlciBhY2NvdW50IHRvIGxvYWQgdGhlIGNvbnRyb2xsZXIgaW50b1xuICAgKiBAcGFyYW0gZWxmQnl0ZXMgVGhlIGVudGlyZSBFTEYgY29udGFpbmluZyB0aGUgQlBGIGNvbnRyb2xsZXJcbiAgICovXG4gIHN0YXRpYyBsb2FkKFxuICAgIGNvbm5lY3Rpb246IENvbm5lY3Rpb24sXG4gICAgcGF5ZXI6IEJ1c0FjY291bnQsXG4gICAgZWxmOiBBcnJheTxudW1iZXI+LFxuICApOiBQcm9taXNlPFB1YktleT4ge1xuICAgIGNvbnN0IGNvbnRyb2xsZXIgPSBuZXcgQnVzQWNjb3VudCgpO1xuICAgIHJldHVybiBDb250cm9sbGVyTG9hZGVyLmxvYWQoY29ubmVjdGlvbiwgcGF5ZXIsIGNvbnRyb2xsZXIsIEJwZkNvbnRyb2xsZXJMb2FkZXIuY29udHJvbGxlcklkLCBlbGYpO1xuICB9XG59XG4iXX0=

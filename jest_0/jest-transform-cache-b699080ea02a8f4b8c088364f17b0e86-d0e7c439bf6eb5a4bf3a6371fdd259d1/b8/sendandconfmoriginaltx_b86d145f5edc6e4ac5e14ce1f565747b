@@ -1,0 +1,98 @@
+7685a0a587f3945b133d855ecab53c39
+"use strict";
+
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.sendAndConfmNativeTxn = sendAndConfmNativeTxn;
+
+var _regenerator = _interopRequireDefault(require("@babel/runtime/regenerator"));
+
+var _asyncToGenerator2 = _interopRequireDefault(require("@babel/runtime/helpers/asyncToGenerator"));
+
+var _connection = require("../connection");
+
+var _sleep = require("./sleep");
+
+var _timing = require("../timing");
+
+/**
+ * Sign, send and confirm a raw transaction
+ */
+function sendAndConfmNativeTxn(_x, _x2) {
+  return _sendAndConfmNativeTxn.apply(this, arguments);
+}
+
+function _sendAndConfmNativeTxn() {
+  _sendAndConfmNativeTxn = (0, _asyncToGenerator2["default"])(
+  /*#__PURE__*/
+  _regenerator["default"].mark(function _callee(connection, rawTransaction) {
+    var start, signature, status, statusRetries, duration;
+    return _regenerator["default"].wrap(function _callee$(_context) {
+      while (1) {
+        switch (_context.prev = _context.next) {
+          case 0:
+            start = Date.now();
+            _context.next = 3;
+            return connection.sendNativeTxn(rawTransaction);
+
+          case 3:
+            signature = _context.sent;
+            // Wait up to a couple slots for a confirmation
+            status = null;
+            statusRetries = 6;
+
+          case 6:
+            _context.next = 8;
+            return connection.fetchSignatureState(signature);
+
+          case 8:
+            status = _context.sent;
+
+            if (!status) {
+              _context.next = 11;
+              break;
+            }
+
+            return _context.abrupt("break", 18);
+
+          case 11:
+            _context.next = 13;
+            return (0, _sleep.sleep)(500 * _timing.DEFAULT_TICKS_PER_SLOT / _timing.NUM_TICKS_PER_SEC);
+
+          case 13:
+            if (!(--statusRetries <= 0)) {
+              _context.next = 16;
+              break;
+            }
+
+            duration = (Date.now() - start) / 1000;
+            throw new Error("Raw Transaction '".concat(signature, "' was not confirmed in ").concat(duration.toFixed(2), " seconds (").concat(JSON.stringify(status), ")"));
+
+          case 16:
+            _context.next = 6;
+            break;
+
+          case 18:
+            if (!(status && 'Ok' in status)) {
+              _context.next = 20;
+              break;
+            }
+
+            return _context.abrupt("return", signature);
+
+          case 20:
+            throw new Error("Raw transaction ".concat(signature, " failed (").concat(JSON.stringify(status), ")"));
+
+          case 21:
+          case "end":
+            return _context.stop();
+        }
+      }
+    }, _callee);
+  }));
+  return _sendAndConfmNativeTxn.apply(this, arguments);
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInNlbmQtYW5kLWNvbmZtLW9yaWdpbmFsLXR4LmpzIl0sIm5hbWVzIjpbInNlbmRBbmRDb25mbU5hdGl2ZVR4biIsImNvbm5lY3Rpb24iLCJyYXdUcmFuc2FjdGlvbiIsInN0YXJ0IiwiRGF0ZSIsIm5vdyIsInNlbmROYXRpdmVUeG4iLCJzaWduYXR1cmUiLCJzdGF0dXMiLCJzdGF0dXNSZXRyaWVzIiwiZmV0Y2hTaWduYXR1cmVTdGF0ZSIsIkRFRkFVTFRfVElDS1NfUEVSX1NMT1QiLCJOVU1fVElDS1NfUEVSX1NFQyIsImR1cmF0aW9uIiwiRXJyb3IiLCJ0b0ZpeGVkIiwiSlNPTiIsInN0cmluZ2lmeSJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7OztBQUVBOztBQUNBOztBQUVBOztBQUVBOzs7U0FHc0JBLHFCOzs7Ozs7OytCQUFmLGlCQUNMQyxVQURLLEVBRUxDLGNBRks7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBSUNDLFlBQUFBLEtBSkQsR0FJU0MsSUFBSSxDQUFDQyxHQUFMLEVBSlQ7QUFBQTtBQUFBLG1CQUtpQkosVUFBVSxDQUFDSyxhQUFYLENBQXlCSixjQUF6QixDQUxqQjs7QUFBQTtBQUtESyxZQUFBQSxTQUxDO0FBT0w7QUFDSUMsWUFBQUEsTUFSQyxHQVFRLElBUlI7QUFTREMsWUFBQUEsYUFUQyxHQVNlLENBVGY7O0FBQUE7QUFBQTtBQUFBLG1CQVdZUixVQUFVLENBQUNTLG1CQUFYLENBQStCSCxTQUEvQixDQVhaOztBQUFBO0FBV0hDLFlBQUFBLE1BWEc7O0FBQUEsaUJBWUNBLE1BWkQ7QUFBQTtBQUFBO0FBQUE7O0FBQUE7O0FBQUE7QUFBQTtBQUFBLG1CQWlCRyxrQkFBTyxNQUFNRyw4QkFBUCxHQUFpQ0MseUJBQXZDLENBakJIOztBQUFBO0FBQUEsa0JBbUJDLEVBQUVILGFBQUYsSUFBbUIsQ0FuQnBCO0FBQUE7QUFBQTtBQUFBOztBQW9CS0ksWUFBQUEsUUFwQkwsR0FvQmdCLENBQUNULElBQUksQ0FBQ0MsR0FBTCxLQUFhRixLQUFkLElBQXVCLElBcEJ2QztBQUFBLGtCQXFCSyxJQUFJVyxLQUFKLDRCQUNnQlAsU0FEaEIsb0NBQ21ETSxRQUFRLENBQUNFLE9BQVQsQ0FDckQsQ0FEcUQsQ0FEbkQsdUJBR1VDLElBQUksQ0FBQ0MsU0FBTCxDQUFlVCxNQUFmLENBSFYsT0FyQkw7O0FBQUE7QUFBQTtBQUFBOztBQUFBO0FBQUEsa0JBNkJEQSxNQUFNLElBQUksUUFBUUEsTUE3QmpCO0FBQUE7QUFBQTtBQUFBOztBQUFBLDZDQThCSUQsU0E5Qko7O0FBQUE7QUFBQSxrQkFpQ0MsSUFBSU8sS0FBSiwyQkFDZVAsU0FEZixzQkFDb0NTLElBQUksQ0FBQ0MsU0FBTCxDQUFlVCxNQUFmLENBRHBDLE9BakNEOztBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLEciLCJzb3VyY2VzQ29udGVudCI6WyIvLyBAZmxvd1xuXG5pbXBvcnQge0Nvbm5lY3Rpb259IGZyb20gJy4uL2Nvbm5lY3Rpb24nO1xuaW1wb3J0IHtzbGVlcH0gZnJvbSAnLi9zbGVlcCc7XG5pbXBvcnQgdHlwZSB7VHhuU2lnbmF0dXJlfSBmcm9tICcuLi90cmFuc2FjdGlvbi1jb250cm9sbGVyJztcbmltcG9ydCB7REVGQVVMVF9USUNLU19QRVJfU0xPVCwgTlVNX1RJQ0tTX1BFUl9TRUN9IGZyb20gJy4uL3RpbWluZyc7XG5cbi8qKlxuICogU2lnbiwgc2VuZCBhbmQgY29uZmlybSBhIHJhdyB0cmFuc2FjdGlvblxuICovXG5leHBvcnQgYXN5bmMgZnVuY3Rpb24gc2VuZEFuZENvbmZtTmF0aXZlVHhuKFxuICBjb25uZWN0aW9uOiBDb25uZWN0aW9uLFxuICByYXdUcmFuc2FjdGlvbjogQnVmZmVyLFxuKTogUHJvbWlzZTxUeG5TaWduYXR1cmU+IHtcbiAgY29uc3Qgc3RhcnQgPSBEYXRlLm5vdygpO1xuICBsZXQgc2lnbmF0dXJlID0gYXdhaXQgY29ubmVjdGlvbi5zZW5kTmF0aXZlVHhuKHJhd1RyYW5zYWN0aW9uKTtcblxuICAvLyBXYWl0IHVwIHRvIGEgY291cGxlIHNsb3RzIGZvciBhIGNvbmZpcm1hdGlvblxuICBsZXQgc3RhdHVzID0gbnVsbDtcbiAgbGV0IHN0YXR1c1JldHJpZXMgPSA2O1xuICBmb3IgKDs7KSB7XG4gICAgc3RhdHVzID0gYXdhaXQgY29ubmVjdGlvbi5mZXRjaFNpZ25hdHVyZVN0YXRlKHNpZ25hdHVyZSk7XG4gICAgaWYgKHN0YXR1cykge1xuICAgICAgYnJlYWs7XG4gICAgfVxuXG4gICAgLy8gU2xlZXAgZm9yIGFwcHJveGltYXRlbHkgaGFsZiBhIHNsb3RcbiAgICBhd2FpdCBzbGVlcCgoNTAwICogREVGQVVMVF9USUNLU19QRVJfU0xPVCkgLyBOVU1fVElDS1NfUEVSX1NFQyk7XG5cbiAgICBpZiAoLS1zdGF0dXNSZXRyaWVzIDw9IDApIHtcbiAgICAgIGNvbnN0IGR1cmF0aW9uID0gKERhdGUubm93KCkgLSBzdGFydCkgLyAxMDAwO1xuICAgICAgdGhyb3cgbmV3IEVycm9yKFxuICAgICAgICBgUmF3IFRyYW5zYWN0aW9uICcke3NpZ25hdHVyZX0nIHdhcyBub3QgY29uZmlybWVkIGluICR7ZHVyYXRpb24udG9GaXhlZChcbiAgICAgICAgICAyLFxuICAgICAgICApfSBzZWNvbmRzICgke0pTT04uc3RyaW5naWZ5KHN0YXR1cyl9KWAsXG4gICAgICApO1xuICAgIH1cbiAgfVxuXG4gIGlmIChzdGF0dXMgJiYgJ09rJyBpbiBzdGF0dXMpIHtcbiAgICByZXR1cm4gc2lnbmF0dXJlO1xuICB9XG5cbiAgdGhyb3cgbmV3IEVycm9yKFxuICAgIGBSYXcgdHJhbnNhY3Rpb24gJHtzaWduYXR1cmV9IGZhaWxlZCAoJHtKU09OLnN0cmluZ2lmeShzdGF0dXMpfSlgLFxuICApO1xufVxuIl19

@@ -12,14 +12,14 @@ import type {Connection} from './connection';
 import {SystemController} from './system-controller';
 
 /**
- * Program loader interface
+ * Controller loader interface
  */
 export class ControllerLoader {
   /**
-   * Amount of program data placed in each load Transaction
+   * Amount of controller data placed in each load Transaction
    */
   static get chunkSize(): number {
-    // Keep program chunks under PACKET_DATA_SIZE, leaving enough room for the
+    // Keep controller chunks under PACKET_DATA_SIZE, leaving enough room for the
     // rest of the Transaction fields
     //
     // TODO: replace 300 with a proper constant for the size of the other
@@ -28,26 +28,27 @@ export class ControllerLoader {
   }
 
   /**
-   * Loads a generic program
+   * Loads a generic controller
    *
    * @param connection The connection to use
-   * @param payer System account that pays to load the program
-   * @param program BusAccount to load the program into
+   * @param payer System account that pays to load the controller
+   * @param controller BusAccount to load the controller into
    * @param controllerId Public key that identifies the loader
-   * @param data Program octets
+   * @param data controller octets
    */
   static async load(
     connection: Connection,
     payer: BusAccount,
-    program: BusAccount,
+    controller: BusAccount,
     controllerId: PubKey,
     data: Array<number>,
   ): Promise<PubKey> {
     {
       const transaction = SystemController.createNewAccount(
         payer.pubKey,
-        program.pubKey,
+        controller.pubKey,
         1,
+        0,
         data.length,
         controllerId,
       );
@@ -83,16 +84,16 @@ export class ControllerLoader {
       );
 
       const transaction = new Transaction().add({
-        keys: [{pubkey: program.pubKey, isSigner: true, isDebitable: true}],
+        keys: [{pubkey: controller.pubKey, isSigner: true, isDebitable: true}],
         controllerId,
         data,
       });
       transactions.push(
-        sendAndconfmTx(connection, transaction, payer, program),
+        sendAndconfmTx(connection, transaction, payer, controller),
       );
 
       // Delay ~1 tick between write transactions in an attempt to reduce AccountInUse errors
-      // since all the write transactions modify the same program account
+      // since all the write transactions modify the same controller account
       await sleep(1000 / NUM_TICKS_PER_SEC);
 
       // Run up to 8 Loads in parallel to prevent too many parallel transactions from
@@ -109,7 +110,7 @@ export class ControllerLoader {
     }
     await Promise.all(transactions);
 
-    // Finalize the account loaded with program data for execution
+    // Finalize the account loaded with controller data for execution
     {
       const dataLayout = BufferLayout.struct([BufferLayout.u32('instruction')]);
 
@@ -122,12 +123,12 @@ export class ControllerLoader {
       );
 
       const transaction = new Transaction().add({
-        keys: [{pubkey: program.pubKey, isSigner: true, isDebitable: true}],
+        keys: [{pubkey: controller.pubKey, isSigner: true, isDebitable: true}],
         controllerId,
         data,
       });
-      await sendAndconfmTx(connection, transaction, payer, program);
+      await sendAndconfmTx(connection, transaction, payer, controller);
     }
-    return program.pubKey;
+    return controller.pubKey;
   }
 }

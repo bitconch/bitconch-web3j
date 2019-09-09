@@ -1,0 +1,1 @@
+{"version":3,"sources":["url.js"],"names":["url"],"mappings":";;;;;;;AAEA;;;AAIO,IAAMA,GAAG,GAAG,wBAAZ","sourcesContent":["// @flow\n\n/**\n * The connection url to use when running unit tests against a live cluster\n */\n\nexport const url = 'http://localhost:8899/';\n\n"]}

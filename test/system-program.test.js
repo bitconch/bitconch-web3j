@@ -11,6 +11,7 @@ test('createNewAccount', () => {
     from.pubKey,
     createNewAccount.pubKey,
     123,
+    0,
     BudgetController.space,
     BudgetController.controllerId,
   );
@@ -26,6 +27,18 @@ test('transfer', () => {
   let transaction;
 
   transaction = SystemController.transfer(from.pubKey, to.pubKey, 123);
+
+  expect(transaction.keys).toHaveLength(2);
+  expect(transaction.controllerId).toEqual(SystemController.controllerId);
+  // TODO: Validate transaction contents more
+});
+
+test('transferReputation', () => {
+  const from = new BusAccount();
+  const to = new BusAccount();
+  let transaction;
+
+  transaction = SystemController.transferReputation(from.pubKey, to.pubKey, 123);
 
   expect(transaction.keys).toHaveLength(2);
   expect(transaction.controllerId).toEqual(SystemController.controllerId);
