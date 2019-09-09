@@ -5,13 +5,13 @@ import {BudgetController} from '../src/budget-controller';
 
 test('pay', () => {
   const from = new BusAccount();
-  const program = new BusAccount();
+  const controller = new BusAccount();
   const to = new BusAccount();
   let transaction;
 
   transaction = BudgetController.pay(
     from.pubKey,
-    program.pubKey,
+    controller.pubKey,
     to.pubKey,
     123,
   );
@@ -21,7 +21,7 @@ test('pay', () => {
 
   transaction = BudgetController.pay(
     from.pubKey,
-    program.pubKey,
+    controller.pubKey,
     to.pubKey,
     123,
     BudgetController.signatureCond(from.pubKey),
@@ -32,7 +32,7 @@ test('pay', () => {
 
   transaction = BudgetController.pay(
     from.pubKey,
-    program.pubKey,
+    controller.pubKey,
     to.pubKey,
     123,
     BudgetController.signatureCond(from.pubKey),
@@ -44,7 +44,7 @@ test('pay', () => {
 
   transaction = BudgetController.payOnAll(
     from.pubKey,
-    program.pubKey,
+    controller.pubKey,
     to.pubKey,
     123,
     BudgetController.signatureCond(from.pubKey),
@@ -57,13 +57,13 @@ test('pay', () => {
 
 test('apply', () => {
   const from = new BusAccount();
-  const program = new BusAccount();
+  const controller = new BusAccount();
   const to = new BusAccount();
   let transaction;
 
   transaction = BudgetController.sealWithDatetime(
     from.pubKey,
-    program.pubKey,
+    controller.pubKey,
     to.pubKey,
     new Date(),
   );
@@ -72,7 +72,7 @@ test('apply', () => {
 
   transaction = BudgetController.sealWithSignature(
     from.pubKey,
-    program.pubKey,
+    controller.pubKey,
     to.pubKey,
   );
   expect(transaction.keys).toHaveLength(3);

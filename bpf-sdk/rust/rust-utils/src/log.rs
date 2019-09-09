@@ -83,6 +83,8 @@ pub fn sol_log_params(ka: &[SolKeyedAccount], data: &[u8]) {
         sol_log_key(&k.key);
         sol_log("- Difs");
         sol_log_64(0, 0, 0, 0, k.difs);
+        sol_log("- reputations");
+        sol_log_64(0, 0, 0, 0, k.reputations);
         sol_log("- AccountData");
         sol_log_slice(k.data);
         sol_log("- Owner");

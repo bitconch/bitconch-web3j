@@ -4,18 +4,18 @@
 */
 
 //eslint-disable-next-line import/no-commonjs
-const solanaWeb3 = require('..');
-//const solanaWeb3 = require('@solana/web3.js');
+const bitconchWeb3 = require('..');
+//const bitconchWeb3 = require('@bitconch/bitconch-web3j');
 
-const account1 = new solanaWeb3.Account();
-const account2 = new solanaWeb3.Account();
-const contractState = new solanaWeb3.Account();
+const account1 = new bitconchWeb3.Account();
+const account2 = new bitconchWeb3.Account();
+const contractState = new bitconchWeb3.Account();
 
 let url;
 url = 'http://localhost:8899';
-//url = 'https://api.testnet.solana.com/master';
-//url = 'https://api.testnet.solana.com';
-const connection = new solanaWeb3.Connection(url);
+//url = 'https://api.testnet.bitconch.com/master';
+//url = 'https://api.testnet.bitconch.com';
+const connection = new bitconchWeb3.Connection(url);
 
 function showBalance() {
   console.log(`\n== Account State`);
@@ -65,17 +65,17 @@ showBalance()
   .then(showBalance)
   .then(() => {
     console.log(`\n== Initializing contract`);
-    const transaction = solanaWeb3.BudgetProgram.pay(
+    const transaction = bitconchWeb3.BudgetProgram.pay(
       account1.publicKey,
       contractState.publicKey,
       account2.publicKey,
       50,
-      solanaWeb3.BudgetProgram.timestampCondition(
+      bitconchWeb3.BudgetProgram.timestampCondition(
         account1.publicKey,
         new Date('2050'),
       ),
     );
-    return solanaWeb3.sendAndConfirmTransaction(
+    return bitconchWeb3.sendAndConfirmTransaction(
       connection,
       transaction,
       account1,
@@ -85,13 +85,13 @@ showBalance()
   .then(showBalance)
   .then(() => {
     console.log(`\n== Witness contract`);
-    const transaction = solanaWeb3.BudgetProgram.applyTimestamp(
+    const transaction = bitconchWeb3.BudgetProgram.applyTimestamp(
       account1.publicKey,
       contractState.publicKey,
       account2.publicKey,
       new Date('2050'),
     );
-    return solanaWeb3.sendAndConfirmTransaction(
+    return bitconchWeb3.sendAndConfirmTransaction(
       connection,
       transaction,
       account1,

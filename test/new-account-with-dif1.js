@@ -4,9 +4,9 @@ import {BusAccount, Connection} from '../src';
 import {mockRpc} from './__mocks__/node-fetch';
 import {url} from './url';
 
-export async function newAccountWithDifs(
+export async function newAccountWithreputations(
   connection: Connection,
-  difs: number = 1000000,
+  reputations: number = 1000000,
 ): Promise<BusAccount> {
   const account = new BusAccount();
 
@@ -14,7 +14,7 @@ export async function newAccountWithDifs(
     mockRpc.push([
       url,
       {
-        method: 'requestDif',
+        method: 'requestReputation',
         params: [account.pubKey.toBase58(), difs],
       },
       {

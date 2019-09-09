@@ -5,11 +5,11 @@ channel=$(
   cd "$(dirname "$0")";
   node -p '
     let p = [
-      "../lib/node_modules/@solana/web3.js/package.json",
-      "../@solana/web3.js/package.json",
+      "../lib/node_modules/@bitconch/bitconch-web3j/package.json",
+      "../@bitconch/bitconch-web3j/package.json",
       "../package.json"
     ].find(require("fs").existsSync);
-    if (!p) throw new Error("Unable to locate solana-web3.js directory");
+    if (!p) throw new Error("Unable to locate bitconch-web3j directory");
     require(p)["testnetDefaultChannel"]
   '
 )
@@ -72,7 +72,7 @@ update)
 
   (
     set -x
-    docker pull solanalabs/solana:"$channel"
+    docker pull bitconchlabs/bitconch:"$channel"
   )
   ;;
 up)
@@ -94,10 +94,10 @@ up)
 
   (
     set -x
-    RUST_LOG=${RUST_LOG:-solana=info}
+    RUST_LOG=${RUST_LOG:-bitconch=info}
     ARGS=(
       --detach
-      --name solana-localnet
+      --name bitconch-localnet
       --network "$network"
       --rm
       --publish 8899:8899
@@ -107,7 +107,7 @@ up)
       --env "RUST_LOG=$RUST_LOG"
     )
 
-    docker run "${ARGS[@]}" solanalabs/solana:"$channel"
+    docker run "${ARGS[@]}" bitconchlabs/bitconch:"$channel"
 
     for _ in 1 2 3 4 5; do
       if curl \
@@ -124,8 +124,8 @@ up)
 down)
   (
     set -x
-    if [[ -n "$(docker ps --filter "name=^solana-localnet$" -q)" ]]; then
-      docker stop --time 0 solana-localnet
+    if [[ -n "$(docker ps --filter "name=^bitconch-localnet$" -q)" ]]; then
+      docker stop --time 0 bitconch-localnet
     fi
   )
   ;;
@@ -140,10 +140,10 @@ logs)
   fi
 
   while $follow; do
-    if [[ -n $(docker ps -q -f name=solana-localnet) ]]; then
+    if [[ -n $(docker ps -q -f name=bitconch-localnet) ]]; then
       (
         set -x
-        docker logs solana-localnet -f
+        docker logs bitconch-localnet -f
       ) || true
     fi
     sleep 1
@@ -151,7 +151,7 @@ logs)
 
   (
     set -x
-    docker logs solana-localnet
+    docker logs bitconch-localnet
   )
   ;;
 deploy)
@@ -160,16 +160,16 @@ deploy)
   [[ -f $program ]] || usage "file does not exist: $program"
 
   basename=$(basename "$program")
-  if docker exec solana-localnet test -f /usr/bin/"$basename"; then
+  if docker exec bitconch-localnet test -f /usr/bin/"$basename"; then
     echo "Error: $basename has already been deployed"
     exit 1
   fi
 
   (
     set -x
-    docker cp "$program" solana-localnet:/usr/bin/
+    docker cp "$program" bitconch-localnet:/usr/bin/
   )
-  docker exec solana-localnet ls -l /usr/bin/"$basename"
+  docker exec bitconch-localnet ls -l /usr/bin/"$basename"
   echo "$basename deployed successfully"
   ;;
 *)

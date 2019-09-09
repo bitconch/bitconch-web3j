@@ -3,20 +3,20 @@
 */
 
 //eslint-disable-next-line import/no-commonjs
-const solanaWeb3 = require('..');
-//const solanaWeb3 = require('@solana/web3.js');
+const bitconchWeb3 = require('..');
+//const bitconchWeb3 = require('@bitconch/bitconch-web3j');
 
-const account1 = new solanaWeb3.Account();
-const account2 = new solanaWeb3.Account();
-const contractState = new solanaWeb3.Account();
+const account1 = new bitconchWeb3.Account();
+const account2 = new bitconchWeb3.Account();
+const contractState = new bitconchWeb3.Account();
 
-const approver1 = new solanaWeb3.Account();
-const approver2 = new solanaWeb3.Account();
+const approver1 = new bitconchWeb3.Account();
+const approver2 = new bitconchWeb3.Account();
 
 let url;
 url = 'http://localhost:8899';
-//url = 'http://testnet.solana.com:8899';
-const connection = new solanaWeb3.Connection(url);
+//url = 'http://testnet.bitconch.com:8899';
+const connection = new bitconchWeb3.Connection(url);
 
 function showBalance() {
   console.log(`\n== Account State`);
@@ -65,7 +65,7 @@ showBalance()
   .then(airDrop)
   .then(() => {
     console.log(`\n== Move 1 dif to approver1`);
-    const transaction = solanaWeb3.SystemProgram.transfer(
+    const transaction = bitconchWeb3.SystemProgram.transfer(
       account1.publicKey,
       approver1.publicKey,
       1,
@@ -75,7 +75,7 @@ showBalance()
   .then(confirmTransaction)
   .then(() => {
     console.log(`\n== Move 1 dif to approver2`);
-    const transaction = solanaWeb3.SystemProgram.transfer(
+    const transaction = bitconchWeb3.SystemProgram.transfer(
       account1.publicKey,
       approver2.publicKey,
       1,
@@ -86,15 +86,15 @@ showBalance()
   .then(showBalance)
   .then(() => {
     console.log(`\n== Initializing contract`);
-    const transaction = solanaWeb3.BudgetProgram.payOnBoth(
+    const transaction = bitconchWeb3.BudgetProgram.payOnBoth(
       account1.publicKey,
       contractState.publicKey,
       account2.publicKey,
       50,
-      solanaWeb3.BudgetProgram.signatureCondition(approver1.publicKey),
-      solanaWeb3.BudgetProgram.signatureCondition(approver2.publicKey),
+      bitconchWeb3.BudgetProgram.signatureCondition(approver1.publicKey),
+      bitconchWeb3.BudgetProgram.signatureCondition(approver2.publicKey),
     );
-    return solanaWeb3.sendAndConfirmTransaction(
+    return bitconchWeb3.sendAndConfirmTransaction(
       connection,
       transaction,
       account1,
@@ -104,12 +104,12 @@ showBalance()
   .then(showBalance)
   .then(() => {
     console.log(`\n== Apply approver 1`);
-    const transaction = solanaWeb3.BudgetProgram.applySignature(
+    const transaction = bitconchWeb3.BudgetProgram.applySignature(
       approver1.publicKey,
       contractState.publicKey,
       account2.publicKey,
     );
-    return solanaWeb3.sendAndConfirmTransaction(
+    return bitconchWeb3.sendAndConfirmTransaction(
       connection,
       transaction,
       approver1,
@@ -119,12 +119,12 @@ showBalance()
   .then(showBalance)
   .then(() => {
     console.log(`\n== Apply approver 2`);
-    const transaction = solanaWeb3.BudgetProgram.applySignature(
+    const transaction = bitconchWeb3.BudgetProgram.applySignature(
       approver2.publicKey,
       contractState.publicKey,
       account2.publicKey,
     );
-    return solanaWeb3.sendAndConfirmTransaction(
+    return bitconchWeb3.sendAndConfirmTransaction(
       connection,
       transaction,
       approver2,

@@ -6,7 +6,7 @@ import {ControllerLoader} from './controller-loader';
 import type {Connection} from './connection';
 
 /**
- * Factory class for transactions to interact with a program loader
+ * Factory class for transactions to interact with a controller loader
  */
 export class NativeControllerLoader {
   /**
@@ -17,23 +17,23 @@ export class NativeControllerLoader {
   }
 
   /**
-   * Loads a native program
+   * Loads a native controller
    *
    * @param connection The connection to use
-   * @param payer System account that pays to load the program
-   * @param programName Name of the native program
+   * @param payer System account that pays to load the controller
+   * @param controllerName Name of the native controller
    */
   static load(
     connection: Connection,
     payer: BusAccount,
-    programName: string,
+    controllerName: string,
   ): Promise<PubKey> {
-    const bytes = [...Buffer.from(programName)];
-    const program = new BusAccount();
+    const bytes = [...Buffer.from(controllerName)];
+    const controller = new BusAccount();
     return ControllerLoader.load(
       connection,
       payer,
-      program,
+      controller,
       NativeControllerLoader.controllerId,
       bytes,
     );

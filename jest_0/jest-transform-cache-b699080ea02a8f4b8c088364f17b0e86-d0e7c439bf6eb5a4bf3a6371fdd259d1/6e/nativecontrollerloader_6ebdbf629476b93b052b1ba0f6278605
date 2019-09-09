@@ -1,0 +1,62 @@
+f3fcc592f61e8bd9f87729d8cdbcf162
+"use strict";
+
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.NativeControllerLoader = void 0;
+
+var _toConsumableArray2 = _interopRequireDefault(require("@babel/runtime/helpers/toConsumableArray"));
+
+var _classCallCheck2 = _interopRequireDefault(require("@babel/runtime/helpers/classCallCheck"));
+
+var _createClass2 = _interopRequireDefault(require("@babel/runtime/helpers/createClass"));
+
+var _busAccount = require("./bus-account");
+
+var _pubkey = require("./pubkey");
+
+var _controllerLoader = require("./controller-loader");
+
+/**
+ * Factory class for transactions to interact with a controller loader
+ */
+var NativeControllerLoader =
+/*#__PURE__*/
+function () {
+  function NativeControllerLoader() {
+    (0, _classCallCheck2["default"])(this, NativeControllerLoader);
+  }
+
+  (0, _createClass2["default"])(NativeControllerLoader, null, [{
+    key: "load",
+
+    /**
+     * Loads a native controller
+     *
+     * @param connection The connection to use
+     * @param payer System account that pays to load the controller
+     * @param controllerName Name of the native controller
+     */
+    value: function load(connection, payer, controllerName) {
+      var bytes = (0, _toConsumableArray2["default"])(Buffer.from(controllerName));
+      var controller = new _busAccount.BusAccount();
+      return _controllerLoader.ControllerLoader.load(connection, payer, controller, NativeControllerLoader.controllerId, bytes);
+    }
+  }, {
+    key: "controllerId",
+
+    /**
+     * Public key that identifies the NativeControllerLoader
+     */
+    get: function get() {
+      return new _pubkey.PubKey('NativeLoader1111111111111111111111111111111');
+    }
+  }]);
+  return NativeControllerLoader;
+}();
+
+exports.NativeControllerLoader = NativeControllerLoader;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm5hdGl2ZWNvbnRyb2xsZXItbG9hZGVyLmpzIl0sIm5hbWVzIjpbIk5hdGl2ZUNvbnRyb2xsZXJMb2FkZXIiLCJjb25uZWN0aW9uIiwicGF5ZXIiLCJjb250cm9sbGVyTmFtZSIsImJ5dGVzIiwiQnVmZmVyIiwiZnJvbSIsImNvbnRyb2xsZXIiLCJCdXNBY2NvdW50IiwiQ29udHJvbGxlckxvYWRlciIsImxvYWQiLCJjb250cm9sbGVySWQiLCJQdWJLZXkiXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7OztBQUVBOztBQUNBOztBQUNBOztBQUdBOzs7SUFHYUEsc0I7Ozs7Ozs7Ozs7QUFRWDs7Ozs7Ozt5QkFRRUMsVSxFQUNBQyxLLEVBQ0FDLGMsRUFDaUI7QUFDakIsVUFBTUMsS0FBSyx1Q0FBT0MsTUFBTSxDQUFDQyxJQUFQLENBQVlILGNBQVosQ0FBUCxDQUFYO0FBQ0EsVUFBTUksVUFBVSxHQUFHLElBQUlDLHNCQUFKLEVBQW5CO0FBQ0EsYUFBT0MsbUNBQWlCQyxJQUFqQixDQUNMVCxVQURLLEVBRUxDLEtBRkssRUFHTEssVUFISyxFQUlMUCxzQkFBc0IsQ0FBQ1csWUFKbEIsRUFLTFAsS0FMSyxDQUFQO0FBT0Q7Ozs7QUE1QkQ7Ozt3QkFHa0M7QUFDaEMsYUFBTyxJQUFJUSxjQUFKLENBQVcsNkNBQVgsQ0FBUDtBQUNEIiwic291cmNlc0NvbnRlbnQiOlsiLy8gQGZsb3dcblxuaW1wb3J0IHtCdXNBY2NvdW50fSBmcm9tICcuL2J1cy1hY2NvdW50JztcbmltcG9ydCB7UHViS2V5fSBmcm9tICcuL3B1YmtleSc7XG5pbXBvcnQge0NvbnRyb2xsZXJMb2FkZXJ9IGZyb20gJy4vY29udHJvbGxlci1sb2FkZXInO1xuaW1wb3J0IHR5cGUge0Nvbm5lY3Rpb259IGZyb20gJy4vY29ubmVjdGlvbic7XG5cbi8qKlxuICogRmFjdG9yeSBjbGFzcyBmb3IgdHJhbnNhY3Rpb25zIHRvIGludGVyYWN0IHdpdGggYSBjb250cm9sbGVyIGxvYWRlclxuICovXG5leHBvcnQgY2xhc3MgTmF0aXZlQ29udHJvbGxlckxvYWRlciB7XG4gIC8qKlxuICAgKiBQdWJsaWMga2V5IHRoYXQgaWRlbnRpZmllcyB0aGUgTmF0aXZlQ29udHJvbGxlckxvYWRlclxuICAgKi9cbiAgc3RhdGljIGdldCBjb250cm9sbGVySWQoKTogUHViS2V5IHtcbiAgICByZXR1cm4gbmV3IFB1YktleSgnTmF0aXZlTG9hZGVyMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMScpO1xuICB9XG5cbiAgLyoqXG4gICAqIExvYWRzIGEgbmF0aXZlIGNvbnRyb2xsZXJcbiAgICpcbiAgICogQHBhcmFtIGNvbm5lY3Rpb24gVGhlIGNvbm5lY3Rpb24gdG8gdXNlXG4gICAqIEBwYXJhbSBwYXllciBTeXN0ZW0gYWNjb3VudCB0aGF0IHBheXMgdG8gbG9hZCB0aGUgY29udHJvbGxlclxuICAgKiBAcGFyYW0gY29udHJvbGxlck5hbWUgTmFtZSBvZiB0aGUgbmF0aXZlIGNvbnRyb2xsZXJcbiAgICovXG4gIHN0YXRpYyBsb2FkKFxuICAgIGNvbm5lY3Rpb246IENvbm5lY3Rpb24sXG4gICAgcGF5ZXI6IEJ1c0FjY291bnQsXG4gICAgY29udHJvbGxlck5hbWU6IHN0cmluZyxcbiAgKTogUHJvbWlzZTxQdWJLZXk+IHtcbiAgICBjb25zdCBieXRlcyA9IFsuLi5CdWZmZXIuZnJvbShjb250cm9sbGVyTmFtZSldO1xuICAgIGNvbnN0IGNvbnRyb2xsZXIgPSBuZXcgQnVzQWNjb3VudCgpO1xuICAgIHJldHVybiBDb250cm9sbGVyTG9hZGVyLmxvYWQoXG4gICAgICBjb25uZWN0aW9uLFxuICAgICAgcGF5ZXIsXG4gICAgICBjb250cm9sbGVyLFxuICAgICAgTmF0aXZlQ29udHJvbGxlckxvYWRlci5jb250cm9sbGVySWQsXG4gICAgICBieXRlcyxcbiAgICApO1xuICB9XG59XG4iXX0=

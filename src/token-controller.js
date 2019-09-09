@@ -135,7 +135,7 @@ const TokenAccountDetailLayout = BufferLayout.struct([
 type TokenAndPubKey = [Token, PubKey]; // This type exists to workaround an esdoc parse error
 
 /**
- * The built-in token program
+ * The built-in token controller
  */
 export const SYSTEM_TOKEN_CONTROLLER_ID = new PubKey(
   'Token11111111111111111111111111111111111111',
@@ -156,7 +156,7 @@ export class Token {
   token: PubKey;
 
   /**
-   * Program Identifier for the Token program
+   * Controller Identifier for the Token controller
    */
   controllerId: PubKey;
 
@@ -230,6 +230,7 @@ export class Token {
       owner.pubKey,
       tokenAccount.pubKey,
       1,
+      0,
       1 + data.length,
       controllerId,
     );
@@ -285,6 +286,7 @@ export class Token {
       owner.pubKey,
       tokenAccount.pubKey,
       1,
+      0,
       1 + TokenAccountDetailLayout.span,
       this.controllerId,
     );

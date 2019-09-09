@@ -1,18 +1,18 @@
 /**
- * Flow Library definition for @solana/web3.js
+ * Flow Library definition for @bitconch/web3j
  *
  * This file is manually generated from the contents of src/
  *
  * Usage: add the following line under the [libs] section of your project's
  * .flowconfig:
  * [libs]
- * node_modules/@solana/web3.js/module.flow.js
+ * node_modules/@bitconch/bitconch-web3j/module.flow.js
  *
  */
 
 import BN from 'bn.js';
 
-declare module '@solana/web3.js' {
+declare module '@bitconch/bitconch-web3j' {
   // === src/publickey.js ===
   declare export class PublicKey {
     constructor(number: string | Buffer | Array<number>): PublicKey;
@@ -47,6 +47,7 @@ declare module '@solana/web3.js' {
     executable: boolean,
     owner: PublicKey,
     difs: number,
+    reputations: number,
     data: Buffer,
   };
 
@@ -125,6 +126,7 @@ declare module '@solana/web3.js' {
       from: PublicKey,
       newAccount: PublicKey,
       difs: number,
+      reputations: number,
       space: number,
       programId: PublicKey,
     ): Transaction;

@@ -1,0 +1,17 @@
+06e78438ffd2d3f3a14deb3afc129a42
+"use strict";
+
+var _testnet = require("../src/util/testnet");
+
+test('invalid', function () {
+  expect(function () {
+    (0, _testnet.testnetChannelEndpoint)('abc123');
+  }).toThrow();
+});
+test('edge', function () {
+  expect((0, _testnet.testnetChannelEndpoint)('edge')).toEqual('https://api.edge.testnet.solana.com');
+});
+test('default', function () {
+  (0, _testnet.testnetChannelEndpoint)(); // Should not throw
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInRlc3RuZXQudGVzdC5qcyJdLCJuYW1lcyI6WyJ0ZXN0IiwiZXhwZWN0IiwidG9UaHJvdyIsInRvRXF1YWwiXSwibWFwcGluZ3MiOiI7O0FBQ0E7O0FBRUFBLElBQUksQ0FBQyxTQUFELEVBQVksWUFBTTtBQUNwQkMsRUFBQUEsTUFBTSxDQUFDLFlBQU07QUFDWCx5Q0FBdUIsUUFBdkI7QUFDRCxHQUZLLENBQU4sQ0FFR0MsT0FGSDtBQUdELENBSkcsQ0FBSjtBQU1BRixJQUFJLENBQUMsTUFBRCxFQUFTLFlBQU07QUFDakJDLEVBQUFBLE1BQU0sQ0FBQyxxQ0FBdUIsTUFBdkIsQ0FBRCxDQUFOLENBQXVDRSxPQUF2QyxDQUNFLHFDQURGO0FBR0QsQ0FKRyxDQUFKO0FBTUFILElBQUksQ0FBQyxTQUFELEVBQVksWUFBTTtBQUNwQix5Q0FEb0IsQ0FDTTtBQUMzQixDQUZHLENBQUoiLCJzb3VyY2VzQ29udGVudCI6WyIvLyBAZmxvd1xuaW1wb3J0IHt0ZXN0bmV0Q2hhbm5lbEVuZHBvaW50fSBmcm9tICcuLi9zcmMvdXRpbC90ZXN0bmV0JztcblxudGVzdCgnaW52YWxpZCcsICgpID0+IHtcbiAgZXhwZWN0KCgpID0+IHtcbiAgICB0ZXN0bmV0Q2hhbm5lbEVuZHBvaW50KCdhYmMxMjMnKTtcbiAgfSkudG9UaHJvdygpO1xufSk7XG5cbnRlc3QoJ2VkZ2UnLCAoKSA9PiB7XG4gIGV4cGVjdCh0ZXN0bmV0Q2hhbm5lbEVuZHBvaW50KCdlZGdlJykpLnRvRXF1YWwoXG4gICAgJ2h0dHBzOi8vYXBpLmVkZ2UudGVzdG5ldC5zb2xhbmEuY29tJyxcbiAgKTtcbn0pO1xuXG50ZXN0KCdkZWZhdWx0JywgKCkgPT4ge1xuICB0ZXN0bmV0Q2hhbm5lbEVuZHBvaW50KCk7IC8vIFNob3VsZCBub3QgdGhyb3dcbn0pO1xuIl19

@@ -1,0 +1,112 @@
+71ad62823dfa27a0900647234bdb9e06
+"use strict";
+
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.Client = exports.mockRpcEnabled = void 0;
+
+var _regenerator = _interopRequireDefault(require("@babel/runtime/regenerator"));
+
+var _asyncToGenerator2 = _interopRequireDefault(require("@babel/runtime/helpers/asyncToGenerator"));
+
+var _classCallCheck2 = _interopRequireDefault(require("@babel/runtime/helpers/classCallCheck"));
+
+var _createClass2 = _interopRequireDefault(require("@babel/runtime/helpers/createClass"));
+
+var _defineProperty2 = _interopRequireDefault(require("@babel/runtime/helpers/defineProperty"));
+
+var _rpcWebsockets = require("rpc-websockets");
+
+// Define TEST_LIVE in the environment to test against the real full node
+// identified by `url` instead of using the mock
+var mockRpcEnabled = !process.env.TEST_LIVE;
+exports.mockRpcEnabled = mockRpcEnabled;
+var mockNotice = true;
+
+var Client =
+/*#__PURE__*/
+function () {
+  function Client(url, options) {
+    (0, _classCallCheck2["default"])(this, Client);
+    (0, _defineProperty2["default"])(this, "client", void 0);
+
+    //console.log('MockClient', url, options);
+    if (!mockRpcEnabled) {
+      if (mockNotice) {
+        console.log('Note: rpc-websockets mock is disabled, testing live against', url);
+        mockNotice = false;
+      }
+
+      this.client = new _rpcWebsockets.Client(url, options);
+    }
+  }
+
+  (0, _createClass2["default"])(Client, [{
+    key: "connect",
+    value: function connect() {
+      if (!mockRpcEnabled) {
+        return this.client.connect();
+      }
+    }
+  }, {
+    key: "close",
+    value: function close() {
+      if (!mockRpcEnabled) {
+        return this.client.close();
+      }
+    }
+  }, {
+    key: "on",
+    value: function on(event, callback) {
+      if (!mockRpcEnabled) {
+        return this.client.on(event, callback);
+      } //console.log('on', event);
+
+    }
+  }, {
+    key: "call",
+    value: function () {
+      var _call = (0, _asyncToGenerator2["default"])(
+      /*#__PURE__*/
+      _regenerator["default"].mark(function _callee(method, params) {
+        return _regenerator["default"].wrap(function _callee$(_context) {
+          while (1) {
+            switch (_context.prev = _context.next) {
+              case 0:
+                if (mockRpcEnabled) {
+                  _context.next = 4;
+                  break;
+                }
+
+                _context.next = 3;
+                return this.client.call(method, params);
+
+              case 3:
+                return _context.abrupt("return", _context.sent);
+
+              case 4:
+                throw new Error('call unsupported');
+
+              case 5:
+              case "end":
+                return _context.stop();
+            }
+          }
+        }, _callee, this);
+      }));
+
+      function call(_x, _x2) {
+        return _call.apply(this, arguments);
+      }
+
+      return call;
+    }()
+  }]);
+  return Client;
+}();
+
+exports.Client = Client;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInJwYy13ZWJzb2NrZXRzLmpzIl0sIm5hbWVzIjpbIm1vY2tScGNFbmFibGVkIiwicHJvY2VzcyIsImVudiIsIlRFU1RfTElWRSIsIm1vY2tOb3RpY2UiLCJDbGllbnQiLCJ1cmwiLCJvcHRpb25zIiwiY29uc29sZSIsImxvZyIsImNsaWVudCIsIlJwY1dlYlNvY2tldENsaWVudCIsImNvbm5lY3QiLCJjbG9zZSIsImV2ZW50IiwiY2FsbGJhY2siLCJvbiIsIm1ldGhvZCIsInBhcmFtcyIsImNhbGwiLCJFcnJvciJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQUFBOztBQUVBO0FBQ0E7QUFDTyxJQUFNQSxjQUFjLEdBQUcsQ0FBQ0MsT0FBTyxDQUFDQyxHQUFSLENBQVlDLFNBQXBDOztBQUVQLElBQUlDLFVBQVUsR0FBRyxJQUFqQjs7SUFFYUMsTTs7O0FBR1gsa0JBQVlDLEdBQVosRUFBaUJDLE9BQWpCLEVBQTBCO0FBQUE7QUFBQTs7QUFDeEI7QUFDQSxRQUFJLENBQUNQLGNBQUwsRUFBcUI7QUFDbkIsVUFBSUksVUFBSixFQUFnQjtBQUNkSSxRQUFBQSxPQUFPLENBQUNDLEdBQVIsQ0FDRSw2REFERixFQUVFSCxHQUZGO0FBSUFGLFFBQUFBLFVBQVUsR0FBRyxLQUFiO0FBQ0Q7O0FBQ0QsV0FBS00sTUFBTCxHQUFjLElBQUlDLHFCQUFKLENBQXVCTCxHQUF2QixFQUE0QkMsT0FBNUIsQ0FBZDtBQUNEO0FBQ0Y7Ozs7OEJBRVM7QUFDUixVQUFJLENBQUNQLGNBQUwsRUFBcUI7QUFDbkIsZUFBTyxLQUFLVSxNQUFMLENBQVlFLE9BQVosRUFBUDtBQUNEO0FBQ0Y7Ozs0QkFFTztBQUNOLFVBQUksQ0FBQ1osY0FBTCxFQUFxQjtBQUNuQixlQUFPLEtBQUtVLE1BQUwsQ0FBWUcsS0FBWixFQUFQO0FBQ0Q7QUFDRjs7O3VCQUVFQyxLLEVBQWVDLFEsRUFBb0I7QUFDcEMsVUFBSSxDQUFDZixjQUFMLEVBQXFCO0FBQ25CLGVBQU8sS0FBS1UsTUFBTCxDQUFZTSxFQUFaLENBQWVGLEtBQWYsRUFBc0JDLFFBQXRCLENBQVA7QUFDRCxPQUhtQyxDQUlwQzs7QUFDRDs7Ozs7O29EQUVVRSxNLEVBQWdCQyxNOzs7OztvQkFDcEJsQixjOzs7Ozs7dUJBQ1UsS0FBS1UsTUFBTCxDQUFZUyxJQUFaLENBQWlCRixNQUFqQixFQUF5QkMsTUFBekIsQzs7Ozs7O3NCQUVULElBQUlFLEtBQUosQ0FBVSxrQkFBVixDIiwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHtDbGllbnQgYXMgUnBjV2ViU29ja2V0Q2xpZW50fSBmcm9tICdycGMtd2Vic29ja2V0cyc7XG5cbi8vIERlZmluZSBURVNUX0xJVkUgaW4gdGhlIGVudmlyb25tZW50IHRvIHRlc3QgYWdhaW5zdCB0aGUgcmVhbCBmdWxsIG5vZGVcbi8vIGlkZW50aWZpZWQgYnkgYHVybGAgaW5zdGVhZCBvZiB1c2luZyB0aGUgbW9ja1xuZXhwb3J0IGNvbnN0IG1vY2tScGNFbmFibGVkID0gIXByb2Nlc3MuZW52LlRFU1RfTElWRTtcblxubGV0IG1vY2tOb3RpY2UgPSB0cnVlO1xuXG5leHBvcnQgY2xhc3MgQ2xpZW50IHtcbiAgY2xpZW50OiBScGNXZWJTb2NrZXRDbGllbnQ7XG5cbiAgY29uc3RydWN0b3IodXJsLCBvcHRpb25zKSB7XG4gICAgLy9jb25zb2xlLmxvZygnTW9ja0NsaWVudCcsIHVybCwgb3B0aW9ucyk7XG4gICAgaWYgKCFtb2NrUnBjRW5hYmxlZCkge1xuICAgICAgaWYgKG1vY2tOb3RpY2UpIHtcbiAgICAgICAgY29uc29sZS5sb2coXG4gICAgICAgICAgJ05vdGU6IHJwYy13ZWJzb2NrZXRzIG1vY2sgaXMgZGlzYWJsZWQsIHRlc3RpbmcgbGl2ZSBhZ2FpbnN0JyxcbiAgICAgICAgICB1cmwsXG4gICAgICAgICk7XG4gICAgICAgIG1vY2tOb3RpY2UgPSBmYWxzZTtcbiAgICAgIH1cbiAgICAgIHRoaXMuY2xpZW50ID0gbmV3IFJwY1dlYlNvY2tldENsaWVudCh1cmwsIG9wdGlvbnMpO1xuICAgIH1cbiAgfVxuXG4gIGNvbm5lY3QoKSB7XG4gICAgaWYgKCFtb2NrUnBjRW5hYmxlZCkge1xuICAgICAgcmV0dXJuIHRoaXMuY2xpZW50LmNvbm5lY3QoKTtcbiAgICB9XG4gIH1cblxuICBjbG9zZSgpIHtcbiAgICBpZiAoIW1vY2tScGNFbmFibGVkKSB7XG4gICAgICByZXR1cm4gdGhpcy5jbGllbnQuY2xvc2UoKTtcbiAgICB9XG4gIH1cblxuICBvbihldmVudDogc3RyaW5nLCBjYWxsYmFjazogRnVuY3Rpb24pIHtcbiAgICBpZiAoIW1vY2tScGNFbmFibGVkKSB7XG4gICAgICByZXR1cm4gdGhpcy5jbGllbnQub24oZXZlbnQsIGNhbGxiYWNrKTtcbiAgICB9XG4gICAgLy9jb25zb2xlLmxvZygnb24nLCBldmVudCk7XG4gIH1cblxuICBhc3luYyBjYWxsKG1ldGhvZDogc3RyaW5nLCBwYXJhbXM6IE9iamVjdCk6IFByb21pc2U8T2JqZWN0PiB7XG4gICAgaWYgKCFtb2NrUnBjRW5hYmxlZCkge1xuICAgICAgcmV0dXJuIGF3YWl0IHRoaXMuY2xpZW50LmNhbGwobWV0aG9kLCBwYXJhbXMpO1xuICAgIH1cbiAgICB0aHJvdyBuZXcgRXJyb3IoJ2NhbGwgdW5zdXBwb3J0ZWQnKTtcbiAgfVxufVxuIl19

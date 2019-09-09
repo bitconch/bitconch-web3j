@@ -1,0 +1,71 @@
+a27521a5d3af802937c13b4cf87f0a5a
+"use strict";
+
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
+var _regenerator = _interopRequireDefault(require("@babel/runtime/regenerator"));
+
+var _asyncToGenerator2 = _interopRequireDefault(require("@babel/runtime/helpers/asyncToGenerator"));
+
+var _src = require("../src");
+
+var _nodeFetch = require("./__mocks__/node-fetch");
+
+var _url = require("./url");
+
+var _newAccountWithDif = require("./new-account-with-dif");
+
+if (!_nodeFetch.mockRpcEnabled) {
+  // The default of 5 seconds is too slow for live testing sometimes
+  jest.setTimeout(15000);
+}
+
+test('load native controller',
+/*#__PURE__*/
+(0, _asyncToGenerator2["default"])(
+/*#__PURE__*/
+_regenerator["default"].mark(function _callee() {
+  var connection, from, controllerId, transaction;
+  return _regenerator["default"].wrap(function _callee$(_context) {
+    while (1) {
+      switch (_context.prev = _context.next) {
+        case 0:
+          if (!_nodeFetch.mockRpcEnabled) {
+            _context.next = 3;
+            break;
+          }
+
+          console.log('non-live test skipped');
+          return _context.abrupt("return");
+
+        case 3:
+          connection = new _src.Connection(_url.url);
+          _context.next = 6;
+          return (0, _newAccountWithDif.newAccountWithDif)(connection, 1024);
+
+        case 6:
+          from = _context.sent;
+          _context.next = 9;
+          return _src.NativeControllerLoader.load(connection, from, 'bitconch_noop_program');
+
+        case 9:
+          controllerId = _context.sent;
+          transaction = new _src.Transaction().add({
+            keys: [{
+              pubkey: from.pubKey,
+              isSigner: true,
+              isDebitable: true
+            }],
+            controllerId: controllerId
+          });
+          _context.next = 13;
+          return (0, _src.sendAndconfmTx)(connection, transaction, from);
+
+        case 13:
+        case "end":
+          return _context.stop();
+      }
+    }
+  }, _callee);
+})));
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm5hdGl2ZS1sb2FkZXIudGVzdC5qcyJdLCJuYW1lcyI6WyJtb2NrUnBjRW5hYmxlZCIsImplc3QiLCJzZXRUaW1lb3V0IiwidGVzdCIsImNvbnNvbGUiLCJsb2ciLCJjb25uZWN0aW9uIiwiQ29ubmVjdGlvbiIsInVybCIsImZyb20iLCJOYXRpdmVDb250cm9sbGVyTG9hZGVyIiwibG9hZCIsImNvbnRyb2xsZXJJZCIsInRyYW5zYWN0aW9uIiwiVHJhbnNhY3Rpb24iLCJhZGQiLCJrZXlzIiwicHVia2V5IiwicHViS2V5IiwiaXNTaWduZXIiLCJpc0RlYml0YWJsZSJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7QUFFQTs7QUFNQTs7QUFDQTs7QUFDQTs7QUFFQSxJQUFJLENBQUNBLHlCQUFMLEVBQXFCO0FBQ25CO0FBQ0FDLEVBQUFBLElBQUksQ0FBQ0MsVUFBTCxDQUFnQixLQUFoQjtBQUNEOztBQUVEQyxJQUFJLENBQUMsd0JBQUQ7QUFBQTtBQUFBO0FBQUE7QUFBQSw2QkFBMkI7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsZUFDekJILHlCQUR5QjtBQUFBO0FBQUE7QUFBQTs7QUFFM0JJLFVBQUFBLE9BQU8sQ0FBQ0MsR0FBUixDQUFZLHVCQUFaO0FBRjJCOztBQUFBO0FBTXZCQyxVQUFBQSxVQU51QixHQU1WLElBQUlDLGVBQUosQ0FBZUMsUUFBZixDQU5VO0FBQUE7QUFBQSxpQkFPViwwQ0FBa0JGLFVBQWxCLEVBQThCLElBQTlCLENBUFU7O0FBQUE7QUFPdkJHLFVBQUFBLElBUHVCO0FBQUE7QUFBQSxpQkFRRkMsNEJBQXVCQyxJQUF2QixDQUN6QkwsVUFEeUIsRUFFekJHLElBRnlCLEVBR3pCLHVCQUh5QixDQVJFOztBQUFBO0FBUXZCRyxVQUFBQSxZQVJ1QjtBQWF2QkMsVUFBQUEsV0FidUIsR0FhVCxJQUFJQyxnQkFBSixHQUFrQkMsR0FBbEIsQ0FBc0I7QUFDeENDLFlBQUFBLElBQUksRUFBRSxDQUFDO0FBQUNDLGNBQUFBLE1BQU0sRUFBRVIsSUFBSSxDQUFDUyxNQUFkO0FBQXNCQyxjQUFBQSxRQUFRLEVBQUUsSUFBaEM7QUFBc0NDLGNBQUFBLFdBQVcsRUFBRTtBQUFuRCxhQUFELENBRGtDO0FBRXhDUixZQUFBQSxZQUFZLEVBQVpBO0FBRndDLFdBQXRCLENBYlM7QUFBQTtBQUFBLGlCQWtCdkIseUJBQWVOLFVBQWYsRUFBMkJPLFdBQTNCLEVBQXdDSixJQUF4QyxDQWxCdUI7O0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsQ0FBM0IsR0FBSiIsInNvdXJjZXNDb250ZW50IjpbIi8vIEBmbG93XG5cbmltcG9ydCB7XG4gIENvbm5lY3Rpb24sXG4gIE5hdGl2ZUNvbnRyb2xsZXJMb2FkZXIsXG4gIFRyYW5zYWN0aW9uLFxuICBzZW5kQW5kY29uZm1UeCxcbn0gZnJvbSAnLi4vc3JjJztcbmltcG9ydCB7bW9ja1JwY0VuYWJsZWR9IGZyb20gJy4vX19tb2Nrc19fL25vZGUtZmV0Y2gnO1xuaW1wb3J0IHt1cmx9IGZyb20gJy4vdXJsJztcbmltcG9ydCB7bmV3QWNjb3VudFdpdGhEaWZ9IGZyb20gJy4vbmV3LWFjY291bnQtd2l0aC1kaWYnO1xuXG5pZiAoIW1vY2tScGNFbmFibGVkKSB7XG4gIC8vIFRoZSBkZWZhdWx0IG9mIDUgc2Vjb25kcyBpcyB0b28gc2xvdyBmb3IgbGl2ZSB0ZXN0aW5nIHNvbWV0aW1lc1xuICBqZXN0LnNldFRpbWVvdXQoMTUwMDApO1xufVxuXG50ZXN0KCdsb2FkIG5hdGl2ZSBjb250cm9sbGVyJywgYXN5bmMgKCkgPT4ge1xuICBpZiAobW9ja1JwY0VuYWJsZWQpIHtcbiAgICBjb25zb2xlLmxvZygnbm9uLWxpdmUgdGVzdCBza2lwcGVkJyk7XG4gICAgcmV0dXJuO1xuICB9XG5cbiAgY29uc3QgY29ubmVjdGlvbiA9IG5ldyBDb25uZWN0aW9uKHVybCk7XG4gIGNvbnN0IGZyb20gPSBhd2FpdCBuZXdBY2NvdW50V2l0aERpZihjb25uZWN0aW9uLCAxMDI0KTtcbiAgY29uc3QgY29udHJvbGxlcklkID0gYXdhaXQgTmF0aXZlQ29udHJvbGxlckxvYWRlci5sb2FkKFxuICAgIGNvbm5lY3Rpb24sXG4gICAgZnJvbSxcbiAgICAnYml0Y29uY2hfbm9vcF9wcm9ncmFtJyxcbiAgKTtcbiAgY29uc3QgdHJhbnNhY3Rpb24gPSBuZXcgVHJhbnNhY3Rpb24oKS5hZGQoe1xuICAgIGtleXM6IFt7cHVia2V5OiBmcm9tLnB1YktleSwgaXNTaWduZXI6IHRydWUsIGlzRGViaXRhYmxlOiB0cnVlfV0sXG4gICAgY29udHJvbGxlcklkLFxuICB9KTtcblxuICBhd2FpdCBzZW5kQW5kY29uZm1UeChjb25uZWN0aW9uLCB0cmFuc2FjdGlvbiwgZnJvbSk7XG59KTtcbiJdfQ==

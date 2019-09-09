@@ -1,0 +1,131 @@
+a5d2d4c439480f37d23305ef26068b69
+"use strict";
+
+var _interopRequireDefault = require("@babel/runtime/helpers/interopRequireDefault");
+
+var _regenerator = _interopRequireDefault(require("@babel/runtime/regenerator"));
+
+var _asyncToGenerator2 = _interopRequireDefault(require("@babel/runtime/helpers/asyncToGenerator"));
+
+var _fs = _interopRequireDefault(require("mz/fs"));
+
+var _src = require("../src");
+
+var _nodeFetch = require("./__mocks__/node-fetch");
+
+var _url = require("./url");
+
+var _newAccountWithDifs = require("./new-account-with-difs");
+
+if (!_nodeFetch.mockRpcEnabled) {
+  // The default of 5 seconds is too slow for live testing sometimes
+  jest.setTimeout(120000);
+}
+
+test('load BPF C program',
+/*#__PURE__*/
+(0, _asyncToGenerator2["default"])(
+/*#__PURE__*/
+_regenerator["default"].mark(function _callee() {
+  var connection, from, data, controllerId, transaction;
+  return _regenerator["default"].wrap(function _callee$(_context) {
+    while (1) {
+      switch (_context.prev = _context.next) {
+        case 0:
+          if (!_nodeFetch.mockRpcEnabled) {
+            _context.next = 3;
+            break;
+          }
+
+          console.log('non-live test skipped');
+          return _context.abrupt("return");
+
+        case 3:
+          connection = new _src.Connection(_url.url);
+          _context.next = 6;
+          return (0, _newAccountWithDifs.newAccountWithDifs)(connection, 1024);
+
+        case 6:
+          from = _context.sent;
+          _context.next = 9;
+          return _fs["default"].readFile('test/fixtures/noop-c/noop.so');
+
+        case 9:
+          data = _context.sent;
+          _context.next = 12;
+          return _src.BpfControllerLoader.load(connection, from, data);
+
+        case 12:
+          controllerId = _context.sent;
+          transaction = new _src.Transaction().add({
+            keys: [{
+              pubkey: from.pubKey,
+              isSigner: true,
+              isDebitable: true
+            }],
+            controllerId: controllerId
+          });
+          _context.next = 16;
+          return (0, _src.sendAndconfmTx)(connection, transaction, from);
+
+        case 16:
+        case "end":
+          return _context.stop();
+      }
+    }
+  }, _callee);
+})));
+test('load BPF Rust program',
+/*#__PURE__*/
+(0, _asyncToGenerator2["default"])(
+/*#__PURE__*/
+_regenerator["default"].mark(function _callee2() {
+  var connection, from, data, controllerId, transaction;
+  return _regenerator["default"].wrap(function _callee2$(_context2) {
+    while (1) {
+      switch (_context2.prev = _context2.next) {
+        case 0:
+          if (!_nodeFetch.mockRpcEnabled) {
+            _context2.next = 3;
+            break;
+          }
+
+          console.log('non-live test skipped');
+          return _context2.abrupt("return");
+
+        case 3:
+          connection = new _src.Connection(_url.url);
+          _context2.next = 6;
+          return (0, _newAccountWithDifs.newAccountWithDifs)(connection, 100000);
+
+        case 6:
+          from = _context2.sent;
+          _context2.next = 9;
+          return _fs["default"].readFile('test/fixtures/noop-rust/solana_bpf_rust_noop.so');
+
+        case 9:
+          data = _context2.sent;
+          _context2.next = 12;
+          return _src.BpfControllerLoader.load(connection, from, data);
+
+        case 12:
+          controllerId = _context2.sent;
+          transaction = new _src.Transaction().add({
+            keys: [{
+              pubkey: from.pubKey,
+              isSigner: true,
+              isDebitable: true
+            }],
+            controllerId: controllerId
+          });
+          _context2.next = 16;
+          return (0, _src.sendAndconfmTx)(connection, transaction, from);
+
+        case 16:
+        case "end":
+          return _context2.stop();
+      }
+    }
+  }, _callee2);
+})));
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImJwZi1sb2FkZXIudGVzdC5qcyJdLCJuYW1lcyI6WyJtb2NrUnBjRW5hYmxlZCIsImplc3QiLCJzZXRUaW1lb3V0IiwidGVzdCIsImNvbnNvbGUiLCJsb2ciLCJjb25uZWN0aW9uIiwiQ29ubmVjdGlvbiIsInVybCIsImZyb20iLCJmcyIsInJlYWRGaWxlIiwiZGF0YSIsIkJwZkNvbnRyb2xsZXJMb2FkZXIiLCJsb2FkIiwiY29udHJvbGxlcklkIiwidHJhbnNhY3Rpb24iLCJUcmFuc2FjdGlvbiIsImFkZCIsImtleXMiLCJwdWJrZXkiLCJwdWJLZXkiLCJpc1NpZ25lciIsImlzRGViaXRhYmxlIl0sIm1hcHBpbmdzIjoiOzs7Ozs7OztBQUVBOztBQUVBOztBQU1BOztBQUNBOztBQUNBOztBQUVBLElBQUksQ0FBQ0EseUJBQUwsRUFBcUI7QUFDbkI7QUFDQUMsRUFBQUEsSUFBSSxDQUFDQyxVQUFMLENBQWdCLE1BQWhCO0FBQ0Q7O0FBRURDLElBQUksQ0FBQyxvQkFBRDtBQUFBO0FBQUE7QUFBQTtBQUFBLDZCQUF1QjtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQSxlQUNyQkgseUJBRHFCO0FBQUE7QUFBQTtBQUFBOztBQUV2QkksVUFBQUEsT0FBTyxDQUFDQyxHQUFSLENBQVksdUJBQVo7QUFGdUI7O0FBQUE7QUFNbkJDLFVBQUFBLFVBTm1CLEdBTU4sSUFBSUMsZUFBSixDQUFlQyxRQUFmLENBTk07QUFBQTtBQUFBLGlCQU9OLDRDQUFtQkYsVUFBbkIsRUFBK0IsSUFBL0IsQ0FQTTs7QUFBQTtBQU9uQkcsVUFBQUEsSUFQbUI7QUFBQTtBQUFBLGlCQVFOQyxlQUFHQyxRQUFILENBQVksOEJBQVosQ0FSTTs7QUFBQTtBQVFuQkMsVUFBQUEsSUFSbUI7QUFBQTtBQUFBLGlCQVNFQyx5QkFBb0JDLElBQXBCLENBQXlCUixVQUF6QixFQUFxQ0csSUFBckMsRUFBMkNHLElBQTNDLENBVEY7O0FBQUE7QUFTbkJHLFVBQUFBLFlBVG1CO0FBVW5CQyxVQUFBQSxXQVZtQixHQVVMLElBQUlDLGdCQUFKLEdBQWtCQyxHQUFsQixDQUFzQjtBQUN4Q0MsWUFBQUEsSUFBSSxFQUFFLENBQUM7QUFBQ0MsY0FBQUEsTUFBTSxFQUFFWCxJQUFJLENBQUNZLE1BQWQ7QUFBc0JDLGNBQUFBLFFBQVEsRUFBRSxJQUFoQztBQUFzQ0MsY0FBQUEsV0FBVyxFQUFFO0FBQW5ELGFBQUQsQ0FEa0M7QUFFeENSLFlBQUFBLFlBQVksRUFBWkE7QUFGd0MsV0FBdEIsQ0FWSztBQUFBO0FBQUEsaUJBY25CLHlCQUFlVCxVQUFmLEVBQTJCVSxXQUEzQixFQUF3Q1AsSUFBeEMsQ0FkbUI7O0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsQ0FBdkIsR0FBSjtBQWlCQU4sSUFBSSxDQUFDLHVCQUFEO0FBQUE7QUFBQTtBQUFBO0FBQUEsNkJBQTBCO0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBLGVBQ3hCSCx5QkFEd0I7QUFBQTtBQUFBO0FBQUE7O0FBRTFCSSxVQUFBQSxPQUFPLENBQUNDLEdBQVIsQ0FBWSx1QkFBWjtBQUYwQjs7QUFBQTtBQU10QkMsVUFBQUEsVUFOc0IsR0FNVCxJQUFJQyxlQUFKLENBQWVDLFFBQWYsQ0FOUztBQUFBO0FBQUEsaUJBT1QsNENBQW1CRixVQUFuQixFQUErQixNQUEvQixDQVBTOztBQUFBO0FBT3RCRyxVQUFBQSxJQVBzQjtBQUFBO0FBQUEsaUJBUVRDLGVBQUdDLFFBQUgsQ0FDakIsaURBRGlCLENBUlM7O0FBQUE7QUFRdEJDLFVBQUFBLElBUnNCO0FBQUE7QUFBQSxpQkFXREMseUJBQW9CQyxJQUFwQixDQUF5QlIsVUFBekIsRUFBcUNHLElBQXJDLEVBQTJDRyxJQUEzQyxDQVhDOztBQUFBO0FBV3RCRyxVQUFBQSxZQVhzQjtBQVl0QkMsVUFBQUEsV0Fac0IsR0FZUixJQUFJQyxnQkFBSixHQUFrQkMsR0FBbEIsQ0FBc0I7QUFDeENDLFlBQUFBLElBQUksRUFBRSxDQUFDO0FBQUNDLGNBQUFBLE1BQU0sRUFBRVgsSUFBSSxDQUFDWSxNQUFkO0FBQXNCQyxjQUFBQSxRQUFRLEVBQUUsSUFBaEM7QUFBc0NDLGNBQUFBLFdBQVcsRUFBRTtBQUFuRCxhQUFELENBRGtDO0FBRXhDUixZQUFBQSxZQUFZLEVBQVpBO0FBRndDLFdBQXRCLENBWlE7QUFBQTtBQUFBLGlCQWdCdEIseUJBQWVULFVBQWYsRUFBMkJVLFdBQTNCLEVBQXdDUCxJQUF4QyxDQWhCc0I7O0FBQUE7QUFBQTtBQUFBO0FBQUE7QUFBQTtBQUFBO0FBQUEsQ0FBMUIsR0FBSiIsInNvdXJjZXNDb250ZW50IjpbIi8vIEBmbG93XG5cbmltcG9ydCBmcyBmcm9tICdtei9mcyc7XG5cbmltcG9ydCB7XG4gIENvbm5lY3Rpb24sXG4gIEJwZkNvbnRyb2xsZXJMb2FkZXIsXG4gIFRyYW5zYWN0aW9uLFxuICBzZW5kQW5kY29uZm1UeCxcbn0gZnJvbSAnLi4vc3JjJztcbmltcG9ydCB7bW9ja1JwY0VuYWJsZWR9IGZyb20gJy4vX19tb2Nrc19fL25vZGUtZmV0Y2gnO1xuaW1wb3J0IHt1cmx9IGZyb20gJy4vdXJsJztcbmltcG9ydCB7bmV3QWNjb3VudFdpdGhEaWZzfSBmcm9tICcuL25ldy1hY2NvdW50LXdpdGgtZGlmcyc7XG5cbmlmICghbW9ja1JwY0VuYWJsZWQpIHtcbiAgLy8gVGhlIGRlZmF1bHQgb2YgNSBzZWNvbmRzIGlzIHRvbyBzbG93IGZvciBsaXZlIHRlc3Rpbmcgc29tZXRpbWVzXG4gIGplc3Quc2V0VGltZW91dCgxMjAwMDApO1xufVxuXG50ZXN0KCdsb2FkIEJQRiBDIHByb2dyYW0nLCBhc3luYyAoKSA9PiB7XG4gIGlmIChtb2NrUnBjRW5hYmxlZCkge1xuICAgIGNvbnNvbGUubG9nKCdub24tbGl2ZSB0ZXN0IHNraXBwZWQnKTtcbiAgICByZXR1cm47XG4gIH1cblxuICBjb25zdCBjb25uZWN0aW9uID0gbmV3IENvbm5lY3Rpb24odXJsKTtcbiAgY29uc3QgZnJvbSA9IGF3YWl0IG5ld0FjY291bnRXaXRoRGlmcyhjb25uZWN0aW9uLCAxMDI0KTtcbiAgY29uc3QgZGF0YSA9IGF3YWl0IGZzLnJlYWRGaWxlKCd0ZXN0L2ZpeHR1cmVzL25vb3AtYy9ub29wLnNvJyk7XG4gIGNvbnN0IGNvbnRyb2xsZXJJZCA9IGF3YWl0IEJwZkNvbnRyb2xsZXJMb2FkZXIubG9hZChjb25uZWN0aW9uLCBmcm9tLCBkYXRhKTtcbiAgY29uc3QgdHJhbnNhY3Rpb24gPSBuZXcgVHJhbnNhY3Rpb24oKS5hZGQoe1xuICAgIGtleXM6IFt7cHVia2V5OiBmcm9tLnB1YktleSwgaXNTaWduZXI6IHRydWUsIGlzRGViaXRhYmxlOiB0cnVlfV0sXG4gICAgY29udHJvbGxlcklkLFxuICB9KTtcbiAgYXdhaXQgc2VuZEFuZGNvbmZtVHgoY29ubmVjdGlvbiwgdHJhbnNhY3Rpb24sIGZyb20pO1xufSk7XG5cbnRlc3QoJ2xvYWQgQlBGIFJ1c3QgcHJvZ3JhbScsIGFzeW5jICgpID0+IHtcbiAgaWYgKG1vY2tScGNFbmFibGVkKSB7XG4gICAgY29uc29sZS5sb2coJ25vbi1saXZlIHRlc3Qgc2tpcHBlZCcpO1xuICAgIHJldHVybjtcbiAgfVxuXG4gIGNvbnN0IGNvbm5lY3Rpb24gPSBuZXcgQ29ubmVjdGlvbih1cmwpO1xuICBjb25zdCBmcm9tID0gYXdhaXQgbmV3QWNjb3VudFdpdGhEaWZzKGNvbm5lY3Rpb24sIDEwMDAwMCk7XG4gIGNvbnN0IGRhdGEgPSBhd2FpdCBmcy5yZWFkRmlsZShcbiAgICAndGVzdC9maXh0dXJlcy9ub29wLXJ1c3Qvc29sYW5hX2JwZl9ydXN0X25vb3Auc28nLFxuICApO1xuICBjb25zdCBjb250cm9sbGVySWQgPSBhd2FpdCBCcGZDb250cm9sbGVyTG9hZGVyLmxvYWQoY29ubmVjdGlvbiwgZnJvbSwgZGF0YSk7XG4gIGNvbnN0IHRyYW5zYWN0aW9uID0gbmV3IFRyYW5zYWN0aW9uKCkuYWRkKHtcbiAgICBrZXlzOiBbe3B1YmtleTogZnJvbS5wdWJLZXksIGlzU2lnbmVyOiB0cnVlLCBpc0RlYml0YWJsZTogdHJ1ZX1dLFxuICAgIGNvbnRyb2xsZXJJZCxcbiAgfSk7XG4gIGF3YWl0IHNlbmRBbmRjb25mbVR4KGNvbm5lY3Rpb24sIHRyYW5zYWN0aW9uLCBmcm9tKTtcbn0pO1xuIl19

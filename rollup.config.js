@@ -31,7 +31,7 @@ function generateConfig(configType) {
         {
           file: 'lib/index.iife.js',
           format: 'iife',
-          name: 'solanaWeb3',
+          name: 'bitconchWeb3',
           sourcemap: true,
         },
       ];

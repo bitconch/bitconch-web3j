@@ -7,11 +7,11 @@ import {PubKey} from './pubkey';
 import * as Layout from './resize';
 
 /**
- * Factory class for transactions to interact with the System program
+ * Factory class for transactions to interact with the System controller
  */
 export class SystemController {
   /**
-   * Public key that identifies the System program
+   * Public key that identifies the System controller
    */
   static get controllerId(): PubKey {
     return new PubKey(
@@ -26,12 +26,14 @@ export class SystemController {
     from: PubKey,
     createNewAccount: PubKey,
     difs: number,
+    reputations: number,
     space: number,
     controllerId: PubKey,
   ): Transaction {
     const dataLayout = BufferLayout.struct([
       BufferLayout.u32('instruction'),
       BufferLayout.ns64('difs'),
+      BufferLayout.ns64('reputations'),
       BufferLayout.ns64('space'),
       Layout.pubKey('controllerId'),
     ]);
@@ -41,6 +43,7 @@ export class SystemController {
       {
         instruction: 0, // Create BusAccount instruction
         difs,
+        reputations,
         space,
         controllerId: controllerId.toBuffer(),
       },
@@ -86,7 +89,35 @@ export class SystemController {
   }
 
   /**
-   * Generate a Transaction that assigns an account to a program
+   * Generate a Transaction that transfers reputations from one account to another
+   */
+  static transferReputation(from: PubKey, to: PubKey, amount: number): Transaction {
+    const dataLayout = BufferLayout.struct([
+      BufferLayout.u32('instruction'),
+      BufferLayout.ns64('amount'),
+    ]);
+
+    const data = Buffer.alloc(dataLayout.span);
+    dataLayout.encode(
+      {
+        instruction: 4, // transfer reputations instruction
+        amount,
+      },
+      data,
+    );
+
+    return new Transaction().add({
+      keys: [
+        {pubkey: from, isSigner: true, isDebitable: true},
+        {pubkey: to, isSigner: false, isDebitable: false},
+      ],
+      controllerId: SystemController.controllerId,
+      data,
+    });
+  }
+
+  /**
+   * Generate a Transaction that assigns an account to a controller
    */
   static assign(from: PubKey, controllerId: PubKey): Transaction {
     const dataLayout = BufferLayout.struct([

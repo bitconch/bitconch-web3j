@@ -1,0 +1,24 @@
+476e11e08daa3febdb3bd70f5a284701
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.url = void 0;
+
+/**
+ * The connection url to use when running unit tests against a live cluster
+ */
+var url = 'http://localhost:8899/';
+/*
+export const url = 'http://edge.testnet.solana.com:8899/';
+export const url = 'http://beta.testnet.solana.com:8899/';
+export const url = 'http://testnet.solana.com:8899/';
+
+export const url = 'https://api.edge.testnet.solana.com/';
+export const url = 'https://api.beta.testnet.solana.com/';
+export const url = 'https://api.testnet.solana.com/';
+*/
+
+exports.url = url;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInVybC5qcyJdLCJuYW1lcyI6WyJ1cmwiXSwibWFwcGluZ3MiOiI7Ozs7Ozs7QUFFQTs7O0FBSU8sSUFBTUEsR0FBRyxHQUFHLHdCQUFaO0FBRVAiLCJzb3VyY2VzQ29udGVudCI6WyIvLyBAZmxvd1xuXG4vKipcbiAqIFRoZSBjb25uZWN0aW9uIHVybCB0byB1c2Ugd2hlbiBydW5uaW5nIHVuaXQgdGVzdHMgYWdhaW5zdCBhIGxpdmUgY2x1c3RlclxuICovXG5cbmV4cG9ydCBjb25zdCB1cmwgPSAnaHR0cDovL2xvY2FsaG9zdDo4ODk5Lyc7XG5cbi8qXG5leHBvcnQgY29uc3QgdXJsID0gJ2h0dHA6Ly9lZGdlLnRlc3RuZXQuc29sYW5hLmNvbTo4ODk5Lyc7XG5leHBvcnQgY29uc3QgdXJsID0gJ2h0dHA6Ly9iZXRhLnRlc3RuZXQuc29sYW5hLmNvbTo4ODk5Lyc7XG5leHBvcnQgY29uc3QgdXJsID0gJ2h0dHA6Ly90ZXN0bmV0LnNvbGFuYS5jb206ODg5OS8nO1xuXG5leHBvcnQgY29uc3QgdXJsID0gJ2h0dHBzOi8vYXBpLmVkZ2UudGVzdG5ldC5zb2xhbmEuY29tLyc7XG5leHBvcnQgY29uc3QgdXJsID0gJ2h0dHBzOi8vYXBpLmJldGEudGVzdG5ldC5zb2xhbmEuY29tLyc7XG5leHBvcnQgY29uc3QgdXJsID0gJ2h0dHBzOi8vYXBpLnRlc3RuZXQuc29sYW5hLmNvbS8nO1xuKi9cbiJdfQ==

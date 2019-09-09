@@ -54,12 +54,12 @@ export class TxOperation {
   }> = [];
 
   /**
-   * Program Id to execute
+   * Controller Id to execute
    */
   controllerId: PubKey;
 
   /**
-   * Program input
+   * Controller input
    */
   data: Buffer = Buffer.alloc(0);
 
